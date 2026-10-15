@@ -1396,7 +1396,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         u.role === 'admin' ||
         u.id === 'u_admin' ||
         u.id === 'u_admin_hung';
-      const defaultPass = isAdmin ? 'Admin@123' : 'Lhl@2026';
+     // Ép cứng mật khẩu Admin luôn là Admin@123 cho các tài khoản quản trị
+      const defaultPass = (u.email?.toLowerCase() === 'lehuyhung.h2com@gmail.com' || isAdmin) ? 'Admin@123' : 'Lhl@2026';
       const uPassword = (u.password && typeof u.password === 'string' && u.password.trim())
         ? u.password.trim()
         : defaultPass;

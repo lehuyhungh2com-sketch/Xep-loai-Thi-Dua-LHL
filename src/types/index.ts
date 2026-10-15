@@ -157,7 +157,7 @@ export interface MonthRankingRow {
   finalMonthlyScore: number; // averageScore + (bonus_points_monthly || 0)
   hasAllWeeksLocked: boolean;
   hasNoWeeksLocked: boolean;
-  performanceTier: 'Xuất sắc' | 'Tốt' | 'Khá' | 'Trung bình' | 'Cần cố gắng';
+  performanceTier: 'Xuất sắc' | 'Tốt' | 'Khá' | 'Trung bình' | 'Cần cố gắng' | 'Chưa đủ dữ liệu';
   isExempt?: boolean;
   exemptReason?: string;
 }
@@ -204,7 +204,7 @@ export interface SemesterRankingRow {
   finalSemesterScore: number; // semesterScore + (bonus_points_term || 0)
   hasAllMonthsLocked: boolean;
   hasNoMonthsLocked: boolean;
-  performanceTier: 'Xuất sắc' | 'Tốt' | 'Khá' | 'Trung bình' | 'Cần cố gắng';
+  performanceTier: 'Xuất sắc' | 'Tốt' | 'Khá' | 'Trung bình' | 'Cần cố gắng' | 'Chưa đủ dữ liệu';
   isExempt?: boolean; // Miễn thi đua HK1 (Đội tuyển HSG)
 }
 
@@ -474,7 +474,6 @@ export type CriteriaStatus = 'active' | 'inactive' | 'locked' | 'archived';
 export interface Criteria {
   id: string;
   code: string;
-  legacyId?: string;
   name: string;
   category: CriteriaCategory;
   type: CriteriaType;
@@ -498,6 +497,7 @@ export interface Criteria {
   startWeek?: number;
   endWeek?: number;
   changeReason?: string;
+  legacyId?: string;
 }
 
 export interface CriteriaVersionHistory {
@@ -619,7 +619,7 @@ export interface RankingEntry {
   monthPenaltyPoints?: number;
   yearBonusPoints?: number;
   logCount: number;
-  performanceTier: 'Xuất sắc' | 'Tốt' | 'Khá' | 'Trung bình' | 'Cần cố gắng';
+  performanceTier: 'Xuất sắc' | 'Tốt' | 'Khá' | 'Trung bình' | 'Cần cố gắng' | 'Chưa đủ dữ liệu';
   averageScore?: number;
   weekBreakdown?: { week: number; score: number }[];
   semester1Score?: number;

@@ -52,11 +52,6 @@ import {
   generateInitialCampusWeeklyDuties,
 } from '../data/dutyData';
 import {
-  DEFAULT_CAMPUSES,
-  INITIAL_CLASSES_SUMMARY,
-  ALL_INITIAL_USERS,
-} from '../utils/defaultUsers';
-import {
   exportOfflineStandbyEvaluationBook,
   exportRankingsToExcel,
   exportMonthlyRankingsToExcel,
@@ -575,92 +570,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } catch {}
   }
 
-  // 1. Core State - Khởi tạo 100% Client-side từ localStorage hoặc dữ liệu mẫu chuẩn (cho Vercel static hosting)
-  const [campuses, setCampuses] = useState<Campus[]>(() => {
-    try {
-      const raw = localStorage.getItem('lhl_ranking_campuses');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return DEFAULT_CAMPUSES;
-  });
-
-  const [classes, setClasses] = useState<ClassItem[]>(() => {
-    try {
-      const raw = localStorage.getItem('lhl_ranking_classes');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return INITIAL_CLASSES_SUMMARY;
-  });
-
-  const [criteria, setCriteria] = useState<Criteria[]>(() => {
-    try {
-      const raw = localStorage.getItem('lhl_ranking_criteria');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return OFFICIAL_CRITERIA_DATABASE;
-  });
-
-  const [scoreLogs, setScoreLogs] = useState<ScoreLog[]>(() => {
-    try {
-      const raw = localStorage.getItem('lhl_ranking_score_logs');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch {}
-    return [];
-  });
-
-  const [users, setUsers] = useState<User[]>(() => {
-    try {
-      const raw = localStorage.getItem('lhl_ranking_users_v2');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return ALL_INITIAL_USERS;
-  });
-  const [isDataLoaded, setIsDataLoaded] = useState<boolean>(true);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('lhl_ranking_campuses', JSON.stringify(campuses));
-    } catch {}
-  }, [campuses]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('lhl_ranking_classes', JSON.stringify(classes));
-    } catch {}
-  }, [classes]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('lhl_ranking_criteria', JSON.stringify(criteria));
-    } catch {}
-  }, [criteria]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('lhl_ranking_score_logs', JSON.stringify(scoreLogs));
-    } catch {}
-  }, [scoreLogs]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('lhl_ranking_users_v2', JSON.stringify(users));
-    } catch {}
-  }, [users]);
+  // 1. Core State - Xóa sạch mock data, khởi tạo mảng rỗng [] theo kiến trúc lưu trữ tập trung trên máy chủ
+  const [campuses, setCampuses] = useState<Campus[]>([]);
+  const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [criteria, setCriteria] = useState<Criteria[]>(OFFICIAL_CRITERIA_DATABASE);
+  const [scoreLogs, setScoreLogs] = useState<ScoreLog[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isDataLoaded, setIsDataLoaded] = useState<boolean>(false);
 
   const [settings, setSettings] = useState<SchoolSettings>(() => {
     const academicYear = '2026-2027';
@@ -1056,10 +972,84 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [academicYearArchives]);
 
   // =========================================================================
-  // KHỞI TẠO VÀ XÁC THỰC 100% CLIENT-SIDE (PHÙ HỢP VERCEL STATIC HOSTING)
+  // KIẾN TRÚC LƯU TRỮ TẬP TRUNG (CENTRAL DATABASE & REAL-TIME SYNCHRONIZATION)
+  // Gỡ bỏ việc dùng localStorage làm nguồn dữ liệu chính.
+  // Mọi thiết bị, trình duyệt và cửa sổ ẩn danh đều nạp trực tiếp từ máy chủ trung tâm.
   // =========================================================================
-  const loadCentralDatabase = useCallback(async (_isInitial = false) => {
-    setIsDataLoaded(true);
+  const lastSyncTimestampRef = useRef<string>('');
+
+  const loadCentralDatabase = useCallback(async (isInitial = false) => {
+    try {
+      const res = await fetch('/api/bootstrap');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          if (data.lastUpdated && data.lastUpdated === lastSyncTimestampRef.current && !isInitial) {
+            return;
+          }
+          if (data.lastUpdated) {
+            lastSyncTimestampRef.current = data.lastUpdated;
+          }
+
+          if (Array.isArray(data.users) && data.users.length > 0) {
+            setUsers(data.users);
+          }
+          if (Array.isArray(data.classes) && data.classes.length > 0) {
+            setClasses(data.classes);
+          }
+          if (Array.isArray(data.campuses) && data.campuses.length > 0) {
+            setCampuses(data.campuses);
+          }
+          if (Array.isArray(data.criteria) && data.criteria.length > 0) {
+            setCriteria(data.criteria);
+          }
+          if (Array.isArray(data.scoreLogs)) {
+            setScoreLogs(data.scoreLogs);
+          }
+          if (data.settings) {
+            setSettings((prev) => ({ ...prev, ...data.settings }));
+          }
+          if (Array.isArray(data.lockedWeeks)) {
+            setLockedWeeks(data.lockedWeeks);
+          }
+          if (data.lockedMonths) {
+            setLockedMonths(data.lockedMonths);
+          }
+          if (data.lockedSemesters) {
+            setLockedSemesters(data.lockedSemesters);
+          }
+          if (data.lockedYear !== undefined) {
+            setLockedYear(data.lockedYear);
+          }
+          if (data.lockedTitles !== undefined) {
+            setLockedTitles(data.lockedTitles);
+          }
+          if (data.historicalWeeklyScores) {
+            setHistoricalWeeklyScores(data.historicalWeeklyScores);
+          }
+          if (Array.isArray(data.appeals)) {
+            setAppeals(data.appeals);
+          }
+          if (Array.isArray(data.auditLogs)) {
+            setAuditLogs(data.auditLogs);
+          }
+          if (data.bonus_monthly) {
+            setBonusMonthly(data.bonus_monthly);
+          }
+          if (data.bonus_term) {
+            setBonusTerm(data.bonus_term);
+          }
+          if (data.bonus_yearly) {
+            setBonusYearly(data.bonus_yearly);
+          }
+          setIsDataLoaded(true);
+        }
+      }
+    } catch (err) {
+      console.error('Lỗi nạp dữ liệu từ máy chủ trung tâm:', err);
+    } finally {
+      setIsDataLoaded(true);
+    }
   }, []);
 
   // Nạp ngay khi mở app và tự động đồng bộ thời gian thực mỗi 4 giây qua mạng
@@ -1403,6 +1393,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         : defaultPass;
       return uEmail === cleanEmail && uPassword === cleanPassword;
     });
+
+    // Nếu trong state/store hiện tại chưa tìm thấy, thử kiểm tra API backend (trong trường hợp user vừa được import ở backend)
+    if (!matched) {
+      try {
+        const response = await fetch('/api/auth/validate-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: cleanEmail, password: cleanPassword }),
+        });
+        const data = await response.json();
+        if (response.ok && data.success && data.user) {
+          matched = data.user;
+          // Cập nhật người dùng mới vào State
+          setUsers((prev) => [...prev.filter((u) => u.id !== data.user.id), data.user]);
+        }
+      } catch {}
+    }
 
     // Nếu vẫn không tìm thấy: kiểm tra xem email có tồn tại không để thông báo chính xác
     if (!matched) {
@@ -2248,6 +2255,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       );
     }
 
+    // Sync duty assignments homeroom teacher
+    setCampusWeeklyDuties((prevDuties) =>
+      prevDuties.map((d) =>
+        d.classId === id ? { ...d, homeroomTeacher: updated.homeroomTeacher || '' } : d
+      )
+    );
+
     logAudit({
       action: 'SUA_LOP',
       entityType: 'class',
@@ -2499,62 +2513,92 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (userRole !== 'super_admin') {
       return { success: false, message: 'Chỉ Quản trị viên mới có quyền thêm giáo viên!' };
     }
-    const id = `gv_${Date.now()}`;
-    const newTeacher: TeacherItem = { ...teacherData, id };
-    setTeachers((prev) => [...prev, newTeacher]);
+    const id = `u_gv_${Date.now()}`;
+    const newUser: User = {
+      id,
+      name: teacherData.fullName,
+      role: 'gvcn',
+      email: teacherData.email || `gv.${Date.now()}@gmail.com`,
+      campusId: teacherData.campusId,
+      classId: teacherData.homeroomClassId,
+      title: `Giáo viên chủ nhiệm${teacherData.homeroomClassName ? ` lớp ${teacherData.homeroomClassName}` : ''}`,
+      phone: teacherData.phone,
+      teacherCode: teacherData.code,
+      scopeType: 'campus',
+      allowedCampusIds: teacherData.campusId ? [teacherData.campusId] : [],
+      isLocked: teacherData.status === 'inactive',
+    };
+    setUsers((prev) => [...prev, newUser]);
+
+    if (teacherData.homeroomClassId) {
+      setClasses((prev) =>
+        prev.map((c) => (c.id === teacherData.homeroomClassId ? { ...c, homeroomTeacher: teacherData.fullName } : c))
+      );
+    }
+
     logAudit({
       action: 'THEM_NGUOI_DUNG',
       entityType: 'user',
       entityId: id,
       beforeData: null,
-      afterData: newTeacher,
-      details: `Thêm giáo viên: ${newTeacher.fullName} (Mã: ${newTeacher.code})`,
+      afterData: newUser,
+      details: `Thêm giáo viên: ${teacherData.fullName} (Mã: ${teacherData.code})`,
     });
-    return { success: true, message: `Đã thêm giáo viên ${newTeacher.fullName}.` };
+    return { success: true, message: `Đã thêm giáo viên ${teacherData.fullName}.` };
   };
 
   const updateTeacher = (id: string, patch: Partial<TeacherItem>) => {
     if (userRole !== 'super_admin') {
       return { success: false, message: 'Chỉ Quản trị viên mới có quyền sửa thông tin giáo viên!' };
     }
-    const old = teachers.find((t) => t.id === id);
-    if (!old) return { success: false, message: 'Không tìm thấy giáo viên' };
-    const updated = { ...old, ...patch };
-    setTeachers((prev) => prev.map((t) => (t.id === id ? updated : t)));
+    const oldTeacher = teachers.find((t) => t.id === id);
+    if (!oldTeacher) return { success: false, message: 'Không tìm thấy giáo viên' };
+
+    if (patch.fullName) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === id || u.name === oldTeacher.fullName ? { ...u, name: patch.fullName! } : u))
+      );
+      if (oldTeacher.homeroomClassId) {
+        setClasses((prev) =>
+          prev.map((c) => (c.id === oldTeacher.homeroomClassId ? { ...c, homeroomTeacher: patch.fullName! } : c))
+        );
+      }
+    }
+
     logAudit({
       action: 'SUA_NGUOI_DUNG',
       entityType: 'user',
       entityId: id,
-      beforeData: old,
-      afterData: updated,
-      details: `Cập nhật thông tin giáo viên: ${updated.fullName}`,
+      beforeData: oldTeacher,
+      afterData: patch,
+      details: `Cập nhật thông tin giáo viên: ${patch.fullName || oldTeacher.fullName}`,
     });
-    return { success: true, message: `Đã cập nhật giáo viên ${updated.fullName}.` };
+    return { success: true, message: `Đã cập nhật giáo viên ${patch.fullName || oldTeacher.fullName}.` };
   };
 
   const deleteTeacher = (id: string) => {
     if (userRole !== 'super_admin') {
       return { success: false, message: 'Chỉ Quản trị viên mới có quyền xóa giáo viên!' };
     }
-    const old = teachers.find((t) => t.id === id);
-    if (!old) return { success: false, message: 'Không tìm thấy giáo viên' };
-    const isAssigned = classes.some((c) => c.homeroomTeacher === old.fullName || c.id === old.homeroomClassId);
+    const oldTeacher = teachers.find((t) => t.id === id);
+    if (!oldTeacher) return { success: false, message: 'Không tìm thấy giáo viên' };
+    const isAssigned = classes.some((c) => c.homeroomTeacher === oldTeacher.fullName || c.id === oldTeacher.homeroomClassId);
     if (isAssigned) {
       return {
         success: false,
-        message: `Không thể xóa giáo viên ${old.fullName} vì đang làm chủ nhiệm lớp hoặc có dữ liệu lịch sử! Vui lòng chuyển trạng thái sang "Không hoạt động".`,
+        message: `Không thể xóa giáo viên ${oldTeacher.fullName} vì đang làm chủ nhiệm lớp hoặc có dữ liệu lịch sử! Vui lòng chuyển trạng thái sang "Không hoạt động".`,
       };
     }
-    setTeachers((prev) => prev.filter((t) => t.id !== id));
+    setUsers((prev) => prev.filter((u) => u.id !== id));
     logAudit({
       action: 'XOA_NGUOI_DUNG',
       entityType: 'user',
       entityId: id,
-      beforeData: old,
+      beforeData: oldTeacher,
       afterData: null,
-      details: `Xóa giáo viên: ${old.fullName}`,
+      details: `Xóa giáo viên: ${oldTeacher.fullName}`,
     });
-    return { success: true, message: `Đã xóa giáo viên ${old.fullName}.` };
+    return { success: true, message: `Đã xóa giáo viên ${oldTeacher.fullName}.` };
   };
 
   const reassignHomeroomTeacher = (teacherId: string, classId: string, academicYear?: string) => {
@@ -2567,20 +2611,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return { success: false, message: 'Không tìm thấy thông tin giáo viên hoặc lớp học' };
     }
     const oldClassName = targetTeacher.homeroomClassName;
-    // Update teacher record
-    setTeachers((prev) =>
-      prev.map((t) =>
-        t.id === teacherId
+
+    // Update users record
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === teacherId || u.name === targetTeacher.fullName
           ? {
-              ...t,
-              homeroomClassId: targetClass.id,
-              homeroomClassName: targetClass.name,
+              ...u,
+              classId: targetClass.id,
               campusId: targetClass.campusId,
-              academicYear: academicYear || t.academicYear || '2026-2027',
+              title: `Giáo viên chủ nhiệm lớp ${targetClass.name}`,
             }
-          : t
+          : u
       )
     );
+
     // Update class homeroom teacher name
     setClasses((prev) =>
       prev.map((c) => (c.id === classId ? { ...c, homeroomTeacher: targetTeacher.fullName } : c))
@@ -5036,15 +5081,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const getExportSignatures = (targetCampusId?: string, scopeLabel?: string): ExportSignatures => {
     const campusId = targetCampusId ?? selectedCampusId;
     const currentCampus = campuses.find((c) => c.id === campusId);
-    const tptName = settings.leadershipSignatures?.tptName || 'Cô Lê Thị Hoa';
-    const principalName = settings.leadershipSignatures?.principalName || 'Thầy Nguyễn Văn Sơn';
+    const tptName = settings.leadershipSignatures?.tptName || '';
+    const principalName = settings.leadershipSignatures?.principalName || '';
 
     if (currentCampus) {
       const leader =
         currentCampus.leaderName ||
         settings.leadershipSignatures?.campusVicePrincipals?.[currentCampus.id] ||
         settings.leadershipSignatures?.vicePrincipalEmulationName ||
-        'Thầy Hoàng Văn Sơn';
+        '';
       return {
         tptName,
         principalName,
@@ -5059,7 +5104,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return {
       tptName,
       principalName,
-      leaderName: settings.leadershipSignatures?.vicePrincipalEmulationName || 'Thầy Hoàng Văn Sơn',
+      leaderName: settings.leadershipSignatures?.vicePrincipalEmulationName || '',
       leaderTitle: 'Phó Hiệu trưởng phụ trách Thi đua',
       campusName: scopeLabel || 'Toàn trường',
       governingBody: settings.governingBody || '',
@@ -5360,7 +5405,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const targetClasses = classes.filter((c) => {
       if (campusId !== 'all' && c.campusId !== campusId) return false;
       if (grade !== 'all' && c.grade !== grade) return false;
-      if (isSem1Week && (c.exemptSemester1 || (c as any).mien_thi_dua_HK1)) return false;
       return true;
     });
 
@@ -5442,7 +5486,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const targetClasses = classes.filter((c) => {
       if (campusId !== 'all' && c.campusId !== campusId) return false;
       if (grade !== 'all' && c.grade !== grade) return false;
-      if (isSem1Month && (c.exemptSemester1 || (c as any).mien_thi_dua_HK1)) return false;
       return true;
     });
 
@@ -5548,13 +5591,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const isFullyLocked = weeksInMonth.length > 0 && lockedWeeksInMonth.length === weeksInMonth.length;
     const hasNoLockedWeeks = lockedWeeksInMonth.length === 0;
 
-    const sem1Months = [9, 10, 11, 12];
-    const isSem1Month = sem1Months.includes(month);
-
     const targetClasses = classes.filter((c) => {
       if (campusId !== 'all' && c.campusId !== campusId) return false;
       if (grade !== 'all' && c.grade !== grade) return false;
-      if (isSem1Month && (c.exemptSemester1 || (c as any).mien_thi_dua_HK1)) return false;
       return true;
     });
 

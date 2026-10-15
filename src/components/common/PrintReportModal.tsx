@@ -29,6 +29,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
     settings,
     campuses,
     classes,
+    users,
     campusWeeklyDuties,
     getWeeklyRankings,
     getMonthlyRankings,
@@ -121,9 +122,9 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
     getYearlyRankings,
   ]);
 
-  // Dynamic signers from System Configuration
-  const tptName = settings.leadershipSignatures?.tptName || 'Cô Lê Thị Hoa';
-  const principalName = settings.leadershipSignatures?.principalName || 'Thầy Nguyễn Văn Sơn';
+  // Dynamic signers from System Configuration (No hardcoded fallback drafts)
+  const tptName = settings.leadershipSignatures?.tptName || '';
+  const principalName = settings.leadershipSignatures?.principalName || '';
 
   const { vicePrincipalTitle, vicePrincipalName } = useMemo(() => {
     if (activeCampus) {
@@ -131,7 +132,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
         activeCampus.leaderName ||
         settings.leadershipSignatures?.campusVicePrincipals?.[activeCampus.id] ||
         settings.leadershipSignatures?.vicePrincipalEmulationName ||
-        'Thầy Hoàng Văn Sơn';
+        '';
       return {
         vicePrincipalTitle: `Phó Hiệu trưởng phụ trách ${activeCampus.name}`,
         vicePrincipalName: leader,
@@ -139,11 +140,11 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
     }
     return {
       vicePrincipalTitle: 'Phó Hiệu trưởng phụ trách Thi đua',
-      vicePrincipalName: settings.leadershipSignatures?.vicePrincipalEmulationName || 'Thầy Hoàng Văn Sơn',
+      vicePrincipalName: settings.leadershipSignatures?.vicePrincipalEmulationName || '',
     };
   }, [activeCampus, settings.leadershipSignatures]);
 
-  // Dynamic Duty Teacher from weekly duty assignments
+  // Dynamic Duty Teacher directly synchronized with latest Global State & Database
   const { dutyTeacherName, dutyTeacherTitle } = useMemo(() => {
     if (campusWeeklyDuties && campusWeeklyDuties.length > 0) {
       const targetWeek = periodType === 'week' ? periodNumber : undefined;
@@ -153,18 +154,35 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
         return matchWeek && matchCampus;
       });
 
-      if (duty?.homeroomTeacher) {
+      if (duty) {
+        // Fetch LATEST homeroom teacher for duty class from classes or users list in Global State
+        const targetClass = classes.find((c) => c.id === duty.classId || c.name === duty.className);
+        const teacherUser = users.find(
+          (u) =>
+            (u.classId === targetClass?.id || u.classId === duty.classId) &&
+            (u.role === 'gvcn' || u.role === 'teacher')
+        );
+
+        const realTeacherName =
+          targetClass?.homeroomTeacher ||
+          teacherUser?.name ||
+          (duty.homeroomTeacher && !duty.homeroomTeacher.includes('Nguyễn Văn Nam') ? duty.homeroomTeacher : '');
+
         return {
-          dutyTeacherName: duty.homeroomTeacher,
-          dutyTeacherTitle: duty.className ? `GVCN Lớp ${duty.className}` : 'Giáo viên trực ban tuần',
+          dutyTeacherName: realTeacherName || '',
+          dutyTeacherTitle: realTeacherName
+            ? targetClass?.name || duty.className
+              ? `GVCN Lớp ${targetClass?.name || duty.className}`
+              : 'Giáo viên trực ban tuần'
+            : 'Giáo viên trực ban',
         };
       }
     }
     return {
-      dutyTeacherName: 'Giáo viên trực tuần',
+      dutyTeacherName: '',
       dutyTeacherTitle: 'Giáo viên trực ban',
     };
-  }, [campusWeeklyDuties, periodType, periodNumber, activeCampusId]);
+  }, [campusWeeklyDuties, periodType, periodNumber, activeCampusId, classes, users]);
 
   // Administrative date formatting
   const now = new Date();
@@ -415,7 +433,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
               <div style="font-weight: bold; text-transform: uppercase; font-size: 10pt;">NGƯỜI LẬP BIỂU / TPT ĐỘI</div>
               <div style="font-size: 8.5pt; color: #64748b; font-style: italic;">(Ký, ghi rõ họ tên)</div>
               <div class="sig-space"></div>
-              <div style="font-weight: bold; font-size: 10.5pt; color: #0f172a;">${tptName}</div>
+              <div style="font-weight: bold; font-size: 10.5pt; color: #0f172a;">${tptName || ''}</div>
               <div style="font-size: 8.5pt; color: #475569;">Tổng phụ trách Đội</div>
             </div>
 
@@ -423,16 +441,16 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
               <div style="font-weight: bold; text-transform: uppercase; font-size: 10pt;">${vicePrincipalTitle.toUpperCase()}</div>
               <div style="font-size: 8.5pt; color: #64748b; font-style: italic;">(Ký, ghi rõ họ tên)</div>
               <div class="sig-space"></div>
-              <div style="font-weight: bold; font-size: 10.5pt; color: #0f172a;">${vicePrincipalName}</div>
+              <div style="font-weight: bold; font-size: 10.5pt; color: #0f172a;">${vicePrincipalName || ''}</div>
               <div style="font-size: 8.5pt; color: #475569;">${vicePrincipalTitle}</div>
             </div>
 
             <div class="sig-cell">
-              <div style="font-weight: bold; text-transform: uppercase; font-size: 10pt;">GIÁO VIÊN TRỰC</div>
-              <div style="font-size: 8.5pt; color: #64748b; font-style: italic;">(Ký, ghi rõ họ tên)</div>
+              <div style="font-weight: bold; text-transform: uppercase; font-size: 10pt;">${periodType === 'week' ? 'GIÁO VIÊN TRỰC' : 'HIỆU TRƯỜNG NHÀ TRƯỜNG'}</div>
+              <div style="font-size: 8.5pt; color: #64748b; font-style: italic;">${periodType === 'week' ? '(Ký, ghi rõ họ tên)' : '(Ký tên và đóng dấu)'}</div>
               <div class="sig-space"></div>
-              <div style="font-weight: bold; font-size: 10.5pt; color: #0f172a;">${dutyTeacherName}</div>
-              <div style="font-size: 8.5pt; color: #475569;">${dutyTeacherTitle}</div>
+              <div style="font-weight: bold; font-size: 10.5pt; color: #0f172a;">${periodType === 'week' ? (dutyTeacherName || '') : (principalName || '')}</div>
+              <div style="font-size: 8.5pt; color: #475569;">${periodType === 'week' ? dutyTeacherTitle : 'Hiệu trưởng'}</div>
             </div>
           </div>
         </div>
@@ -651,6 +669,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
       leaderTitle: vicePrincipalTitle,
       leaderName: vicePrincipalName,
       principalName,
+      dutyTeacherName,
       campusName: activeScopeTitle,
     };
 
@@ -916,7 +935,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
                 <div className="font-semibold uppercase">NGƯỜI LẬP BIỂU / TPT ĐỘI</div>
                 <div className="text-[11px] text-slate-500 italic">(Ký, ghi rõ họ tên)</div>
                 <div className="h-16"></div>
-                <div className="font-bold text-slate-900">{tptName}</div>
+                <div className="font-bold text-slate-900">{tptName || ''}</div>
                 <div className="text-[11px] text-slate-600 font-sans">Tổng phụ trách Đội</div>
               </div>
 
@@ -924,16 +943,24 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
                 <div className="font-semibold uppercase">{vicePrincipalTitle.toUpperCase()}</div>
                 <div className="text-[11px] text-slate-500 italic">(Ký, ghi rõ họ tên)</div>
                 <div className="h-16"></div>
-                <div className="font-bold text-slate-900">{vicePrincipalName}</div>
+                <div className="font-bold text-slate-900">{vicePrincipalName || ''}</div>
                 <div className="text-[11px] text-slate-600 font-sans">{vicePrincipalTitle}</div>
               </div>
 
               <div className="space-y-1">
-                <div className="font-semibold uppercase">GIÁO VIÊN TRỰC</div>
-                <div className="text-[11px] text-slate-500 italic">(Ký, ghi rõ họ tên)</div>
+                <div className="font-semibold uppercase">
+                  {periodType === 'week' ? 'GIÁO VIÊN TRỰC' : 'HIỆU TRƯỜNG NHÀ TRƯỜNG'}
+                </div>
+                <div className="text-[11px] text-slate-500 italic">
+                  {periodType === 'week' ? '(Ký, ghi rõ họ tên)' : '(Ký tên và đóng dấu)'}
+                </div>
                 <div className="h-16"></div>
-                <div className="font-bold text-slate-900">{dutyTeacherName}</div>
-                <div className="text-[11px] text-slate-600 font-sans">{dutyTeacherTitle}</div>
+                <div className="font-bold text-slate-900">
+                  {periodType === 'week' ? (dutyTeacherName || '') : (principalName || '')}
+                </div>
+                <div className="text-[11px] text-slate-600 font-sans">
+                  {periodType === 'week' ? dutyTeacherTitle : 'Hiệu trưởng'}
+                </div>
               </div>
             </div>
           </div>

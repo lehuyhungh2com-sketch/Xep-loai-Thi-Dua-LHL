@@ -4,9 +4,6 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import fs from 'fs';
 import JSZip from 'jszip';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const archiver = require('archiver');
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -518,6 +515,7 @@ interface AuthUser {
   role: string;
   campusId?: string;
   classId?: string;
+  title?: string;
 }
 
 function extractUser(req: Request): AuthUser {
@@ -1917,50 +1915,58 @@ app.post('/api/reset-database', requireRole(['super_admin']), (req: Request, res
   });
 });
 
-// Export Full Source Code ZIP using archiver
-const handleExportZip = async (_req: Request, res: Response) => {
+// Download Source Code ZIP for standalone deployment (Netlify, Vercel, Cloud Run)
+app.get('/api/download-source-zip', async (_req: Request, res: Response) => {
+  const publicZip = path.resolve(__dirname, 'public/source_code_thcs_le_huu_lap.zip');
   try {
+    // Dynamic fallback generation with JSZip
+    const zip = new JSZip();
+    const rootDir = path.resolve(__dirname);
+    const excludeDirs = new Set(['node_modules', '.git', 'dist', '.aistudio', '.cache']);
+    const excludeFiles = new Set(['source_code_thcs_le_huu_lap.zip', 'test.zip', '.DS_Store']);
+
+    function addDirToZip(currentDir: string, zipFolder: any) {
+      const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(currentDir, entry.name);
+        if (entry.isDirectory()) {
+          if (!excludeDirs.has(entry.name)) {
+            const nextFolder = zipFolder.folder(entry.name);
+            if (nextFolder) addDirToZip(fullPath, nextFolder);
+          }
+        } else if (entry.isFile()) {
+          if (!excludeFiles.has(entry.name) && !entry.name.endsWith('.zip')) {
+            const fileData = fs.readFileSync(fullPath);
+            zipFolder.file(entry.name, fileData, {
+              compression: 'DEFLATE',
+              compressionOptions: { level: 9 },
+            });
+          }
+        }
+      }
+    }
+
+    addDirToZip(rootDir, zip);
+    const buffer = await zip.generateAsync({
+      type: 'nodebuffer',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 9 },
+      platform: 'DOS',
+    });
+
+    const publicDir = path.dirname(publicZip);
+    if (!fs.existsSync(publicDir)) {
+      fs.mkdirSync(publicDir, { recursive: true });
+    }
+    fs.writeFileSync(publicZip, buffer);
+
     res.setHeader('Content-Disposition', 'attachment; filename="source_code_thcs_le_huu_lap.zip"');
     res.setHeader('Content-Type', 'application/zip');
-
-    const archive = archiver('zip', {
-      zlib: { level: 9 }
-    });
-
-    archive.on('error', (err: any) => {
-      console.error('Archiver error:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ success: false, message: 'Lỗi nén mã nguồn: ' + err.message });
-      }
-    });
-
-    archive.pipe(res);
-
-    const rootDir = path.resolve(__dirname);
-    archive.glob('**/*', {
-      cwd: rootDir,
-      ignore: [
-        'node_modules/**',
-        'dist/**',
-        '.git/**',
-        '.aistudio/**',
-        '.cache/**',
-        'server.js',
-        '*.zip',
-        '.DS_Store'
-      ]
-    });
-
-    await archive.finalize();
+    res.send(buffer);
   } catch (err: any) {
-    if (!res.headersSent) {
-      res.status(500).json({ success: false, message: 'Lỗi nén mã nguồn: ' + err.message });
-    }
+    res.status(500).json({ success: false, message: 'Lỗi nén mã nguồn: ' + err.message });
   }
-};
-
-app.get('/api/export-zip', handleExportZip);
-app.get('/api/download-source-zip', handleExportZip);
+});
 
 app.post('/api/backup/restore', requireRole(['super_admin']), (req: Request, res: Response) => {
   const user = extractUser(req);
@@ -2010,31 +2016,14 @@ app.post('/api/backup/restore', requireRole(['super_admin']), (req: Request, res
   });
 });
 
-// ---------------- VITE / STATIC SERVING ----------------
+// ---------------- VITE MIDDLEWARE SERVING ----------------
 async function startServer() {
-  const distPath = path.resolve(__dirname, 'dist');
-  const indexPath = path.resolve(distPath, 'index.html');
-  const hasDist = fs.existsSync(indexPath);
-  const isProd = process.env.NODE_ENV === 'production' && hasDist;
-
-  if (isProd && hasDist) {
-    console.log(`[Production] Serving pre-built static bundle from: ${distPath}`);
-    app.use(express.static(distPath));
-    // SPA catch-all fallback for client-side routing
-    app.get('*', (req: Request, res: Response, next: NextFunction) => {
-      if (req.path.startsWith('/api')) {
-        return next();
-      }
-      res.sendFile(path.resolve(distPath, 'index.html'));
-    });
-  } else {
-    console.log('[Development] Initializing Vite middleware for dev mode...');
-    const vite = await createViteServer({
-      server: { middlewareMode: true, hmr: process.env.DISABLE_HMR !== 'true' },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  }
+  console.log('[Server] Initializing Vite middleware for dev & runtime server...');
+  const vite = await createViteServer({
+    server: { middlewareMode: true, hmr: process.env.DISABLE_HMR !== 'true', allowedHosts: ['.ai.studio', 'xeploai-thcslhl.ai.studio', 'localhost'] },
+    appType: 'spa',
+  });
+  app.use(vite.middlewares);
 
   const server = app.listen(PORT, HOST, () => {
     console.log(`THCS Lê Hữu Lập Full-Stack RBAC server listening on http://${HOST}:${PORT}`);

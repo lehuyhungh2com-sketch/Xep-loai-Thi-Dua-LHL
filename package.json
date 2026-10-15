@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite build && tsx server.ts",
-    "start": "npm run build && node server.js",
+    "dev": "tsx server.ts",
+    "start": "tsx server.ts",
     "build": "vite build && esbuild server.ts --platform=node --format=esm --target=node20 --outfile=server.js --packages=external",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
@@ -15,10 +15,8 @@
   "dependencies": {
     "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/archiver": "^8.0.0",
     "@types/html2pdf.js": "^0.10.0",
     "@vitejs/plugin-react": "^6.1.1",
-    "archiver": "^8.0.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "html2pdf.js": "^0.14.0",

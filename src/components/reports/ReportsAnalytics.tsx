@@ -116,7 +116,6 @@ export const ReportsAnalytics: React.FC = () => {
       .slice(0, 5);
   }, [scoreLogs, selectedWeek]);
 
-  // Tier distribution
   const tierCounts = useMemo(() => {
     const counts = {
       'Xuất sắc': 0,
@@ -124,9 +123,12 @@ export const ReportsAnalytics: React.FC = () => {
       'Khá': 0,
       'Trung bình': 0,
       'Cần cố gắng': 0,
+      'Chưa đủ dữ liệu': 0,
     };
     rankings.forEach((r) => {
-      counts[r.performanceTier]++;
+      if (counts[r.performanceTier] !== undefined) {
+        counts[r.performanceTier]++;
+      }
     });
     return counts;
   }, [rankings]);

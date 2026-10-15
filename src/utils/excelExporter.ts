@@ -71,9 +71,9 @@ export function exportOfflineStandbyEvaluationBook(
   const headerTitle = `TRƯỜNG THCS LÊ HỮU LẬP - BẢNG ĐIỂM THI ĐUA NỀ NẾP TUẦN ${weekNumber}`;
   const dateStr = new Date().toLocaleDateString('vi-VN');
 
-  const tpt = signatures?.tptName || settings.leadershipSignatures?.tptName || 'Cô Lê Thị Hoa';
-  const principal = signatures?.principalName || settings.leadershipSignatures?.principalName || 'Thầy Nguyễn Văn Sơn';
-  const viceLeader = signatures?.leaderName || settings.leadershipSignatures?.vicePrincipalEmulationName || 'Thầy Hoàng Văn Sơn';
+  const tpt = signatures?.tptName || settings.leadershipSignatures?.tptName || '';
+  const principal = signatures?.principalName || settings.leadershipSignatures?.principalName || '';
+  const viceLeader = signatures?.leaderName || settings.leadershipSignatures?.vicePrincipalEmulationName || '';
   const viceTitle = signatures?.leaderTitle || 'Phó Hiệu trưởng phụ trách Thi đua';
 
   let html = `
@@ -224,7 +224,7 @@ export function exportOfflineStandbyEvaluationBook(
           <strong>GIÁO VIÊN TRỰC</strong><br>
           <span style="font-size: 10pt; font-style: italic;">(Ký, ghi rõ họ tên)</span>
           <br><br><br><br>
-          <strong>Giáo viên trực ban tuần</strong>
+          <strong>${signatures?.dutyTeacherName || ''}</strong>
         </td>
       </tr>
     </table>
@@ -251,9 +251,9 @@ export function exportRankingsToExcel(
 ) {
   const dateStr = new Date().toLocaleDateString('vi-VN');
 
-  const tpt = signatures?.tptName || 'Cô Lê Thị Hoa';
-  const principal = signatures?.principalName || 'Thầy Nguyễn Văn Sơn';
-  const viceLeader = signatures?.leaderName || 'Thầy Hoàng Văn Sơn';
+  const tpt = signatures?.tptName || '';
+  const principal = signatures?.principalName || '';
+  const viceLeader = signatures?.leaderName || '';
   const viceTitle = signatures?.leaderTitle || (scopeTitle.includes('Phân hiệu') ? `Phó Hiệu trưởng phụ trách ${scopeTitle}` : 'Phó Hiệu trưởng phụ trách Thi đua');
 
   // Calculate summary stats
@@ -424,8 +424,8 @@ export function exportMonthlyRankingsToExcel(
   const dateStr = new Date().toLocaleDateString('vi-VN');
   const totalCols = 5 + weeksInMonth.length + 5; // STT, Lớp, Phân hiệu, Khối, GVCN + weeks + Số tuần, Điểm TB Tuần, Thưởng, Tổng Điểm Tháng, Xếp hạng, Xếp loại
 
-  const tpt = signatures?.tptName || 'Cô Lê Thị Hoa';
-  const principal = signatures?.principalName || 'Thầy Nguyễn Văn Sơn';
+  const tpt = signatures?.tptName || '';
+  const principal = signatures?.principalName || '';
   const viceLeader = signatures?.leaderName || '';
   const viceTitle = signatures?.leaderTitle || (scopeTitle.includes('Phân hiệu') ? `Phó Hiệu trưởng phụ trách ${scopeTitle}` : 'Phó Hiệu trưởng phụ trách Thi đua');
 
@@ -581,9 +581,9 @@ export function exportSemesterRankingsToExcel(
   const semesterRoman = semester === 1 ? 'I' : 'II';
   const totalCols = 8 + monthsInSemester.length;
 
-  const tpt = signatures?.tptName || 'Cô Lê Thị Hoa';
-  const principal = signatures?.principalName || 'Thầy Nguyễn Văn Sơn';
-  const viceLeader = signatures?.leaderName || 'Thầy Hoàng Văn Sơn';
+  const tpt = signatures?.tptName || '';
+  const principal = signatures?.principalName || '';
+  const viceLeader = signatures?.leaderName || '';
   const viceTitle = signatures?.leaderTitle || (scopeTitle.includes('Phân hiệu') ? `Phó Hiệu trưởng phụ trách ${scopeTitle}` : 'Phó Hiệu trưởng phụ trách Thi đua');
 
   let html = `
@@ -731,9 +731,9 @@ export function exportYearRankingsToExcel(
   const dateStr = new Date().toLocaleDateString('vi-VN');
   const totalCols = 10;
 
-  const tpt = signatures?.tptName || 'Cô Lê Thị Hoa';
-  const principal = signatures?.principalName || 'Thầy Nguyễn Văn Sơn';
-  const viceLeader = signatures?.leaderName || 'Thầy Hoàng Văn Sơn';
+  const tpt = signatures?.tptName || '';
+  const principal = signatures?.principalName || '';
+  const viceLeader = signatures?.leaderName || '';
   const viceTitle = signatures?.leaderTitle || (scopeTitle.includes('Phân hiệu') ? `Phó Hiệu trưởng phụ trách ${scopeTitle}` : 'Phó Hiệu trưởng phụ trách Thi đua');
 
   let html = `
@@ -1064,9 +1064,9 @@ export function exportTitleEvaluationToExcel(
   const dateStr = new Date().toLocaleDateString('vi-VN');
   const totalCols = 7;
 
-  const tpt = signatures?.tptName || 'Cô Lê Thị Hoa';
-  const principal = signatures?.principalName || 'Thầy Nguyễn Văn Sơn';
-  const viceLeader = signatures?.leaderName || 'Thầy Hoàng Văn Sơn';
+  const tpt = signatures?.tptName || '';
+  const principal = signatures?.principalName || '';
+  const viceLeader = signatures?.leaderName || '';
   const viceTitle = signatures?.leaderTitle || (scopeTitle.includes('Phân hiệu') ? `Phó Hiệu trưởng phụ trách ${scopeTitle}` : 'Hội đồng Thi đua Nhà trường');
 
   let html = `

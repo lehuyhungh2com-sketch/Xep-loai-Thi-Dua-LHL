@@ -112,31 +112,21 @@ export const BackupExcelCenterModal: React.FC<BackupExcelCenterModalProps> = ({ 
   };
 
   const handleDownloadServerDb = () => {
-    fetch('/api/backup/download', {
-      headers: {
-        'x-user-id': currentUser?.id || 'admin',
-        'x-user-name': currentUser?.name || 'admin',
-        'x-user-role': currentUser?.role || 'admin',
-      },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Không có quyền tải bản sao lưu máy chủ');
-        return res.blob();
-      })
-      .then((blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `server_db_backup_${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast('Đã tải tệp sao lưu máy chủ server_db.json!', 'success');
-      })
-      .catch((err) => {
-        showToast(err.message || 'Lỗi khi tải bản sao lưu máy chủ', 'error');
-      });
+    try {
+      const dataStr = exportFullBackupPayload();
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `server_db_backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Đã tải tệp sao lưu dữ liệu thành công!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi khi tải bản sao lưu', 'error');
+    }
   };
 
   const handleUploadRestore = (e: React.ChangeEvent<HTMLInputElement>) => {

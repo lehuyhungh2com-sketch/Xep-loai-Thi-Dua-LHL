@@ -5364,6 +5364,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const targetClasses = classes.filter((c) => {
       if (campusId !== 'all' && c.campusId !== campusId) return false;
       if (grade !== 'all' && c.grade !== grade) return false;
+      if (isSem1Week && (c.exemptSemester1 || (c as any).mien_thi_dua_HK1)) return false;
       return true;
     });
 
@@ -5445,6 +5446,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const targetClasses = classes.filter((c) => {
       if (campusId !== 'all' && c.campusId !== campusId) return false;
       if (grade !== 'all' && c.grade !== grade) return false;
+      if (isSem1Month && (c.exemptSemester1 || (c as any).mien_thi_dua_HK1)) return false;
       return true;
     });
 
@@ -5550,9 +5552,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const isFullyLocked = weeksInMonth.length > 0 && lockedWeeksInMonth.length === weeksInMonth.length;
     const hasNoLockedWeeks = lockedWeeksInMonth.length === 0;
 
+    const sem1Months = [9, 10, 11, 12];
+    const isSem1Month = sem1Months.includes(month);
+
     const targetClasses = classes.filter((c) => {
       if (campusId !== 'all' && c.campusId !== campusId) return false;
       if (grade !== 'all' && c.grade !== grade) return false;
+      if (isSem1Month && (c.exemptSemester1 || (c as any).mien_thi_dua_HK1)) return false;
       return true;
     });
 

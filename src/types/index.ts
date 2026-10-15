@@ -474,6 +474,7 @@ export type CriteriaStatus = 'active' | 'inactive' | 'locked' | 'archived';
 export interface Criteria {
   id: string;
   code: string;
+  legacyId?: string;
   name: string;
   category: CriteriaCategory;
   type: CriteriaType;

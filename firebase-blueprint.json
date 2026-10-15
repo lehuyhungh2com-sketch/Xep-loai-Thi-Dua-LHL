@@ -1,0 +1,136 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Account",
+      "description": "System user account",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "email": { "type": "string" },
+        "title": { "type": "string" },
+        "campusId": { "type": "string" },
+        "classId": { "type": "string" },
+        "isLocked": { "type": "boolean" }
+      },
+      "required": ["id", "name", "role", "email"]
+    },
+    "ClassItem": {
+      "title": "Class Item",
+      "description": "School class entity",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "grade": { "type": "number" },
+        "campusId": { "type": "string" },
+        "homeroomTeacher": { "type": "string" }
+      },
+      "required": ["id", "name", "campusId"]
+    },
+    "Campus": {
+      "title": "Campus",
+      "description": "School campus location",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "leaderName": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "Criteria": {
+      "title": "Evaluation Criteria",
+      "description": "Demerit or merit criteria",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "title": { "type": "string" },
+        "points": { "type": "number" },
+        "category": { "type": "string" }
+      },
+      "required": ["id", "title", "points"]
+    },
+    "ScoreLog": {
+      "title": "Score Log",
+      "description": "Violation or merit score entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "classId": { "type": "string" },
+        "week": { "type": "number" },
+        "criteriaId": { "type": "string" },
+        "points": { "type": "number" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "classId", "week", "points"]
+    },
+    "SchoolSettings": {
+      "title": "School Settings",
+      "description": "Global settings document",
+      "type": "object",
+      "properties": {
+        "schoolName": { "type": "string" },
+        "academicYear": { "type": "string" },
+        "currentWeek": { "type": "number" }
+      }
+    },
+    "LockState": {
+      "title": "Lock State",
+      "description": "Week or Month lock record",
+      "type": "object",
+      "properties": {
+        "locked": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "AuditLog": {
+      "title": "Audit Log",
+      "description": "System audit trail entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "action": { "type": "string" },
+        "timestamp": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User accounts collection"
+    },
+    "/classes/{classId}": {
+      "schema": { "$ref": "#/entities/ClassItem" },
+      "description": "Classes collection"
+    },
+    "/campuses/{campusId}": {
+      "schema": { "$ref": "#/entities/Campus" },
+      "description": "Campuses collection"
+    },
+    "/criteria/{criteriaId}": {
+      "schema": { "$ref": "#/entities/Criteria" },
+      "description": "Criteria collection"
+    },
+    "/score_logs/{logId}": {
+      "schema": { "$ref": "#/entities/ScoreLog" },
+      "description": "Score logs collection"
+    },
+    "/settings/global": {
+      "schema": { "$ref": "#/entities/SchoolSettings" },
+      "description": "Global school configuration"
+    },
+    "/locked_weeks/{weekId}": {
+      "schema": { "$ref": "#/entities/LockState" },
+      "description": "Locked weeks state"
+    },
+    "/audit_logs/{auditId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Audit trail log"
+    }
+  }
+}

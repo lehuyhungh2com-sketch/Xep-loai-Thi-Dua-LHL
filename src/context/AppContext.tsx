@@ -1437,17 +1437,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setSelectedCampusId(matched.campusId);
     }
 
-    // Direct entry to tab: nếu là Giáo viên (Role 4) thì vào thẳng Nhập điểm (vì đã ẩn Dashboard)
+   // Direct entry to tab: nếu là Giáo viên (Role 4) thì vào thẳng Nhập điểm (vì đã ẩn Dashboard)
     const isTeacher = matched.role === 'gvcn' || matched.role === 'teacher' || (matched.role as any) === 4 || (matched.role as any) === '4';
     const targetTab = isTeacher ? 'scoring' : 'dashboard';
     setCurrentTab(targetTab);
 
-    // Đồng bộ ngầm danh sách người dùng và phiên đăng nhập tới backend
-    fetch('/api/users/sync-from-classes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ users: currentUsersList }),
-    }).catch(() => {});
+    // [ĐÃ GỠ BỎ LỆNH FETCH API GÂY LỖI 404 TRÊN VERCEL]
 
     return {
       success: true,

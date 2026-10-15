@@ -1148,19 +1148,56 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     );
 
-    // 7. Audit Logs real-time listener
+    // 7. Locked Months real-time listener
+    const unSubLockedMonths = subscribeCollection<MonthLockInfo & { id: string }>(
+      CLOUD_COLLECTIONS.LOCKED_MONTHS,
+      (items) => {
+        if (items.length > 0) {
+          const map: Record<number, MonthLockInfo> = {};
+          items.forEach((m) => {
+            if (m.month) map[m.month] = m;
+          });
+          setLockedMonths(map);
+        }
+      }
+    );
+
+    // 8. Locked Semesters real-time listener
+    const unSubLockedSemesters = subscribeCollection<SemesterLockInfo & { id: string }>(
+      CLOUD_COLLECTIONS.LOCKED_SEMESTERS,
+      (items) => {
+        if (items.length > 0) {
+          const map: Record<number, SemesterLockInfo> = {};
+          items.forEach((s) => {
+            if (s.semester) map[s.semester] = s;
+          });
+          setLockedSemesters(map);
+        }
+      }
+    );
+
+    // 9. Locked Year real-time listener
+    const unSubLockedYear = subscribeDocument<YearLockInfo>(
+      CLOUD_COLLECTIONS.LOCKED_YEAR,
+      'global',
+      (data) => {
+        if (data) setLockedYear(data);
+      }
+    );
+
+    // 10. Audit Logs real-time listener
     const unSubAuditLogs = subscribeCollection<AuditLog>(CLOUD_COLLECTIONS.AUDIT_LOGS, (items) => {
       if (items.length > 0) {
         setAuditLogs(items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
       }
     });
 
-    // 8. Appeals real-time listener
+    // 11. Appeals real-time listener
     const unSubAppeals = subscribeCollection<AdjustmentAppeal>(CLOUD_COLLECTIONS.APPEALS, (items) => {
       setAppeals(items);
     });
 
-    // 9. Global Settings real-time listener
+    // 12. Global Settings real-time listener
     const unSubSettings = subscribeDocument<SchoolSettings>(
       CLOUD_COLLECTIONS.SETTINGS,
       'global',
@@ -1169,12 +1206,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     );
 
-    // 10. Historical Scores real-time listener
+    // 13. Historical Scores real-time listener
     const unSubHistorical = subscribeDocument<{ id: string; scores: HistoricalWeeklyScoresMap }>(
       CLOUD_COLLECTIONS.HISTORICAL_SCORES,
       'global',
       (data) => {
         if (data?.scores) setHistoricalWeeklyScores(data.scores);
+      }
+    );
+
+    // 14. Campus Weekly Duties real-time listener
+    const unSubWeeklyDuties = subscribeCollection<CampusWeeklyDuty>(
+      CLOUD_COLLECTIONS.CAMPUS_WEEKLY_DUTIES,
+      (items) => {
+        if (items.length > 0) setCampusWeeklyDuties(items);
+      }
+    );
+
+    // 15. Disciplinary Records real-time listener
+    const unSubDisciplinary = subscribeCollection<DisciplinaryRecord>(
+      CLOUD_COLLECTIONS.DISCIPLINARY_RECORDS,
+      (items) => {
+        setDisciplinaryRecords(items);
       }
     );
 
@@ -1185,10 +1238,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       unSubCriteria();
       unSubScoreLogs();
       unSubLockedWeeks();
+      unSubLockedMonths();
+      unSubLockedSemesters();
+      unSubLockedYear();
       unSubAuditLogs();
       unSubAppeals();
       unSubSettings();
       unSubHistorical();
+      unSubWeeklyDuties();
+      unSubDisciplinary();
     };
   }, []);
 
@@ -3438,6 +3496,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setLockedMonths(updated);
     setSettings((prev) => ({ ...prev, lockedMonths: updated }));
 
+    // Synchronize to Cloud Firestore
+    saveCloudDoc(CLOUD_COLLECTIONS.LOCKED_MONTHS, `month_${month}`, lockInfo);
+
     fetch('/api/datalock/month', {
       method: 'POST',
       headers: {
@@ -3483,6 +3544,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     delete updated[month];
     setLockedMonths(updated);
     setSettings((prev) => ({ ...prev, lockedMonths: updated }));
+
+    // Delete from Cloud Firestore
+    deleteCloudDoc(CLOUD_COLLECTIONS.LOCKED_MONTHS, `month_${month}`);
 
     fetch('/api/datalock/month', {
       method: 'POST',
@@ -3557,6 +3621,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setLockedSemesters(updated);
     setSettings((prev) => ({ ...prev, lockedSemesters: updated }));
 
+    // Synchronize to Cloud Firestore
+    saveCloudDoc(CLOUD_COLLECTIONS.LOCKED_SEMESTERS, `semester_${semester}`, lockInfo);
+
     logAudit({
       action: 'CHOT_DU_LIEU_HOC_KY',
       category: 'khoa_du_lieu',
@@ -3592,6 +3659,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     delete updated[semester];
     setLockedSemesters(updated);
     setSettings((prev) => ({ ...prev, lockedSemesters: updated }));
+
+    // Delete from Cloud Firestore
+    deleteCloudDoc(CLOUD_COLLECTIONS.LOCKED_SEMESTERS, `semester_${semester}`);
 
     logAudit({
       action: 'MO_KHOA_HOC_KY',
@@ -3656,6 +3726,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setLockedYear(lockInfo);
     setSettings((prev) => ({ ...prev, lockedYear: lockInfo }));
 
+    // Synchronize to Cloud Firestore
+    saveCloudDoc(CLOUD_COLLECTIONS.LOCKED_YEAR, 'global', lockInfo);
+
     logAudit({
       action: 'CHOT_DU_LIEU_CA_NAM',
       category: 'khoa_du_lieu',
@@ -3693,6 +3766,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       delete updated.lockedYear;
       return updated;
     });
+
+    // Delete from Cloud Firestore
+    deleteCloudDoc(CLOUD_COLLECTIONS.LOCKED_YEAR, 'global');
 
     logAudit({
       action: 'MO_KHOA_CA_NAM',
@@ -3754,6 +3830,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setLockedTitles(lockInfo);
     setSettings((prev) => ({ ...prev, lockedTitles: lockInfo }));
 
+    // Synchronize to Cloud Firestore
+    saveCloudDoc(CLOUD_COLLECTIONS.LOCKED_TITLES, 'global', lockInfo);
+
     logAudit({
       action: 'CHOT_DANH_HIEU_NAM',
       category: 'khoa_du_lieu',
@@ -3792,6 +3871,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return updated;
     });
 
+    // Delete from Cloud Firestore
+    deleteCloudDoc(CLOUD_COLLECTIONS.LOCKED_TITLES, 'global');
+
     logAudit({
       action: 'MO_KHOA_DANH_HIEU_NAM',
       category: 'khoa_du_lieu',
@@ -3829,6 +3911,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setDisciplinaryRecords((prev) => [newRecord, ...prev]);
 
+    // Synchronize to Cloud Firestore
+    saveCloudDoc(CLOUD_COLLECTIONS.DISCIPLINARY_RECORDS, id, newRecord);
+
     logAudit({
       action: 'CAP_NHAT_KY_LUAT',
       entityType: 'disciplinary_record',
@@ -3857,6 +3942,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
 
     setDisciplinaryRecords((prev) => prev.filter((r) => r.id !== id));
+
+    // Delete from Cloud Firestore
+    deleteCloudDoc(CLOUD_COLLECTIONS.DISCIPLINARY_RECORDS, id);
 
     logAudit({
       action: 'CAP_NHAT_KY_LUAT',

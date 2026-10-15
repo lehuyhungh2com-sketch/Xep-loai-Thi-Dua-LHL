@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback, ReactNode } from 'react';
+import masterDatabase from '../../data/server_db.json';
 import {
   Campus,
   ClassItem,
@@ -570,15 +571,73 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } catch {}
   }
 
-  // 1. Core State - Xóa sạch mock data, khởi tạo mảng rỗng [] theo kiến trúc lưu trữ tập trung trên máy chủ
-  const [campuses, setCampuses] = useState<Campus[]>([]);
-  const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [criteria, setCriteria] = useState<Criteria[]>(OFFICIAL_CRITERIA_DATABASE);
-  const [scoreLogs, setScoreLogs] = useState<ScoreLog[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [isDataLoaded, setIsDataLoaded] = useState<boolean>(false);
+  // 1. Core State - Khởi tạo trực tiếp từ localStorage, nếu trống thì tự động nạp CSDL gốc chuẩn 100%
+  const [campuses, setCampuses] = useState<Campus[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.CAMPUSES);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return (masterDatabase.campuses as Campus[]) || [];
+  });
+
+  const [classes, setClasses] = useState<ClassItem[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.CLASSES);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return (masterDatabase.classes as ClassItem[]) || [];
+  });
+
+  const [criteria, setCriteria] = useState<Criteria[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.CRITERIA);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return (masterDatabase.criteria as Criteria[]) || OFFICIAL_CRITERIA_DATABASE;
+  });
+
+  const [scoreLogs, setScoreLogs] = useState<ScoreLog[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.SCORE_LOGS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return (masterDatabase.scoreLogs as ScoreLog[]) || [];
+  });
+
+  const [users, setUsers] = useState<User[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.USERS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return (masterDatabase.users as User[]) || [];
+  });
+
+  const [isDataLoaded, setIsDataLoaded] = useState<boolean>(true);
 
   const [settings, setSettings] = useState<SchoolSettings>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch {}
+    if (masterDatabase.settings) return masterDatabase.settings as SchoolSettings;
     const academicYear = '2026-2027';
     const startWeek1 = calculateNaturalWeek1StartDate(academicYear);
     const { currentWeek: calculatedActive } = calculateCurrentActiveWeek(startWeek1, 35);
@@ -611,7 +670,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   });
 
-  const [historicalWeeklyScores, setHistoricalWeeklyScores] = useState<HistoricalWeeklyScoresMap>({});
+  const [historicalWeeklyScores, setHistoricalWeeklyScores] = useState<HistoricalWeeklyScoresMap>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.HISTORICAL_SCORES);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed) return parsed;
+      }
+    } catch {}
+    return (masterDatabase.historicalWeeklyScores as HistoricalWeeklyScoresMap) || {};
+  });
 
   const [bonusMonthly, setBonusMonthly] = useState<Record<string, number>>(() => {
     try {
@@ -716,14 +784,69 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     fromRedFlag?: boolean;
   } | null>(null);
 
-  const [lockedWeeks, setLockedWeeks] = useState<number[]>([]);
-  const [lockedMonths, setLockedMonths] = useState<Record<number, MonthLockInfo>>({});
-  const [lockedSemesters, setLockedSemesters] = useState<Record<number, SemesterLockInfo>>({});
-  const [lockedYear, setLockedYear] = useState<YearLockInfo | null>(null);
-  const [lockedTitles, setLockedTitles] = useState<TitleLockInfo | null>(null);
-  const [disciplinaryRecords, setDisciplinaryRecords] = useState<DisciplinaryRecord[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [appeals, setAppeals] = useState<AdjustmentAppeal[]>([]);
+  const [lockedWeeks, setLockedWeeks] = useState<number[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.LOCKED_WEEKS);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return (masterDatabase.lockedWeeks as number[]) || [];
+  });
+
+  const [lockedMonths, setLockedMonths] = useState<Record<number, MonthLockInfo>>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.LOCKED_MONTHS);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return (masterDatabase.lockedMonths as Record<number, MonthLockInfo>) || {};
+  });
+
+  const [lockedSemesters, setLockedSemesters] = useState<Record<number, SemesterLockInfo>>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.LOCKED_SEMESTERS);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return (masterDatabase.lockedSemesters as Record<number, SemesterLockInfo>) || {};
+  });
+
+  const [lockedYear, setLockedYear] = useState<YearLockInfo | null>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.LOCKED_YEAR);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return (masterDatabase.lockedYear as YearLockInfo | null) || null;
+  });
+
+  const [lockedTitles, setLockedTitles] = useState<TitleLockInfo | null>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.LOCKED_TITLES);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return (masterDatabase.lockedTitles as TitleLockInfo | null) || null;
+  });
+
+  const [disciplinaryRecords, setDisciplinaryRecords] = useState<DisciplinaryRecord[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.DISCIPLINARY_RECORDS);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return (masterDatabase.disciplinaryRecords as DisciplinaryRecord[]) || [];
+  });
+
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.AUDIT_LOGS);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return (masterDatabase.auditLogs as AuditLog[]) || [];
+  });
+
+  const [appeals, setAppeals] = useState<AdjustmentAppeal[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.APPEALS);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return (masterDatabase.appeals as AdjustmentAppeal[]) || [];
+  });
 
   const [academicYearArchives, setAcademicYearArchives] = useState<AcademicYearArchive[]>(() => {
     try {

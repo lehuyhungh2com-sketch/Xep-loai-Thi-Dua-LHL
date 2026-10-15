@@ -570,46 +570,92 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } catch {}
   }
 
-  // 1. Core State - Xóa sạch mock data, khởi tạo mảng rỗng [] theo kiến trúc lưu trữ tập trung trên máy chủ
-  const [campuses, setCampuses] = useState<Campus[]>([]);
-  const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [criteria, setCriteria] = useState<Criteria[]>(OFFICIAL_CRITERIA_DATABASE);
-  const [scoreLogs, setScoreLogs] = useState<ScoreLog[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [isDataLoaded, setIsDataLoaded] = useState<boolean>(false);
-
-  const [settings, setSettings] = useState<SchoolSettings>(() => {
-    const academicYear = '2026-2027';
-    const startWeek1 = calculateNaturalWeek1StartDate(academicYear);
-    const { currentWeek: calculatedActive } = calculateCurrentActiveWeek(startWeek1, 35);
-    return {
-      schoolName: 'Trường THCS Lê Hữu Lập',
-      governingBody: '',
-      academicYear,
-      basePointsPerWeek: 100,
-      currentWeek: calculatedActive,
-      totalWeeksSemester1: 18,
-      totalWeeksSemester2: 17,
-      totalWeeks: 35,
-      current_active_week: calculatedActive,
-      start_date_of_week_1: startWeek1,
-      max_weeks: 35,
-      monthWeeksMap: {
-        9: [1, 2, 3, 4],
-        10: [5, 6, 7, 8],
-        11: [9, 10, 11, 12, 13],
-        12: [14, 15, 16, 17, 18],
-        1: [19, 20, 21, 22],
-        2: [23, 24, 25, 26],
-        3: [27, 28, 29, 30],
-        4: [31, 32, 33, 34],
-        5: [35],
-      },
-      yearFormula: '(HK1 + HK2 * 2) / 3',
-      evaluationConfig: DEFAULT_EVALUATION_CONFIG,
-      dataMode: 'production',
-    };
+  // 1. Core State - Khởi tạo 100% Client-side từ localStorage hoặc dữ liệu mẫu chuẩn (cho Vercel static hosting)
+  const [campuses, setCampuses] = useState<Campus[]>(() => {
+    try {
+      const raw = localStorage.getItem('lhl_ranking_campuses');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return DEFAULT_CAMPUSES;
   });
+
+  const [classes, setClasses] = useState<ClassItem[]>(() => {
+    try {
+      const raw = localStorage.getItem('lhl_ranking_classes');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_CLASSES_SUMMARY;
+  });
+
+  const [criteria, setCriteria] = useState<Criteria[]>(() => {
+    try {
+      const raw = localStorage.getItem('lhl_ranking_criteria');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return OFFICIAL_CRITERIA_DATABASE;
+  });
+
+  const [scoreLogs, setScoreLogs] = useState<ScoreLog[]>(() => {
+    try {
+      const raw = localStorage.getItem('lhl_ranking_score_logs');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+
+  const [users, setUsers] = useState<User[]>(() => {
+    try {
+      const raw = localStorage.getItem('lhl_ranking_users_v2');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return ALL_INITIAL_USERS;
+  });
+  const [isDataLoaded, setIsDataLoaded] = useState<boolean>(true);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lhl_ranking_campuses', JSON.stringify(campuses));
+    } catch {}
+  }, [campuses]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lhl_ranking_classes', JSON.stringify(classes));
+    } catch {}
+  }, [classes]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lhl_ranking_criteria', JSON.stringify(criteria));
+    } catch {}
+  }, [criteria]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lhl_ranking_score_logs', JSON.stringify(scoreLogs));
+    } catch {}
+  }, [scoreLogs]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lhl_ranking_users_v2', JSON.stringify(users));
+    } catch {}
+  }, [users]);
 
   const [historicalWeeklyScores, setHistoricalWeeklyScores] = useState<HistoricalWeeklyScoresMap>({});
 
@@ -978,79 +1024,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // =========================================================================
   const lastSyncTimestampRef = useRef<string>('');
 
-  const loadCentralDatabase = useCallback(async (isInitial = false) => {
-    try {
-      const res = await fetch('/api/bootstrap');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          if (data.lastUpdated && data.lastUpdated === lastSyncTimestampRef.current && !isInitial) {
-            return;
-          }
-          if (data.lastUpdated) {
-            lastSyncTimestampRef.current = data.lastUpdated;
-          }
-
-          if (Array.isArray(data.users) && data.users.length > 0) {
-            setUsers(data.users);
-          }
-          if (Array.isArray(data.classes) && data.classes.length > 0) {
-            setClasses(data.classes);
-          }
-          if (Array.isArray(data.campuses) && data.campuses.length > 0) {
-            setCampuses(data.campuses);
-          }
-          if (Array.isArray(data.criteria) && data.criteria.length > 0) {
-            setCriteria(data.criteria);
-          }
-          if (Array.isArray(data.scoreLogs)) {
-            setScoreLogs(data.scoreLogs);
-          }
-          if (data.settings) {
-            setSettings((prev) => ({ ...prev, ...data.settings }));
-          }
-          if (Array.isArray(data.lockedWeeks)) {
-            setLockedWeeks(data.lockedWeeks);
-          }
-          if (data.lockedMonths) {
-            setLockedMonths(data.lockedMonths);
-          }
-          if (data.lockedSemesters) {
-            setLockedSemesters(data.lockedSemesters);
-          }
-          if (data.lockedYear !== undefined) {
-            setLockedYear(data.lockedYear);
-          }
-          if (data.lockedTitles !== undefined) {
-            setLockedTitles(data.lockedTitles);
-          }
-          if (data.historicalWeeklyScores) {
-            setHistoricalWeeklyScores(data.historicalWeeklyScores);
-          }
-          if (Array.isArray(data.appeals)) {
-            setAppeals(data.appeals);
-          }
-          if (Array.isArray(data.auditLogs)) {
-            setAuditLogs(data.auditLogs);
-          }
-          if (data.bonus_monthly) {
-            setBonusMonthly(data.bonus_monthly);
-          }
-          if (data.bonus_term) {
-            setBonusTerm(data.bonus_term);
-          }
-          if (data.bonus_yearly) {
-            setBonusYearly(data.bonus_yearly);
-          }
-          setIsDataLoaded(true);
-        }
-      }
-    } catch (err) {
-      console.error('Lỗi nạp dữ liệu từ máy chủ trung tâm:', err);
-    } finally {
-      setIsDataLoaded(true);
-    }
-  }, []);
+  const loadCentralDatabase = useCallback(async (_isInitial = false) => {
+    setIsDataLoaded(true);
+  }, []);, []);
 
   // Nạp ngay khi mở app và tự động đồng bộ thời gian thực mỗi 4 giây qua mạng
   useEffect(() => {
@@ -1363,7 +1339,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
 
-    // 1. Chọc thẳng vào Cơ sở dữ liệu (State / Store) chứa danh sách Người dùng mới nhất
     let currentUsersList: User[] = [...users];
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.USERS);
@@ -1378,7 +1353,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     } catch {}
 
-    // 2. Kiểm tra bằng hàm find(): Tìm user có email (chuyển sang chữ thường .toLowerCase()) và password trùng với input
     let matched = currentUsersList.find((u) => {
       const uEmail = (u.email || '').trim().toLowerCase();
       const isAdmin =
@@ -1393,24 +1367,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return uEmail === cleanEmail && uPassword === cleanPassword;
     });
 
-    // Nếu trong state/store hiện tại chưa tìm thấy, thử kiểm tra API backend (trong trường hợp user vừa được import ở backend)
-    if (!matched) {
-      try {
-        const response = await fetch('/api/auth/validate-login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: cleanEmail, password: cleanPassword }),
-        });
-        const data = await response.json();
-        if (response.ok && data.success && data.user) {
-          matched = data.user;
-          // Cập nhật người dùng mới vào State
-          setUsers((prev) => [...prev.filter((u) => u.id !== data.user.id), data.user]);
-        }
-      } catch {}
-    }
-
-    // Nếu vẫn không tìm thấy: kiểm tra xem email có tồn tại không để thông báo chính xác
     if (!matched) {
       const emailExists = currentUsersList.find(
         (u) => (u.email || '').trim().toLowerCase() === cleanEmail
@@ -1434,33 +1390,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       };
     }
 
-    // Bất kỳ email nào tồn tại trong CSDL và đúng mật khẩu đều được cấp quyền đăng nhập, không phân biệt role!
     setCurrentUserId(matched.id);
     try {
       sessionStorage.setItem('lhl_session_auth_user_id', matched.id);
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER_ID, matched.id);
     } catch {}
-
-    if (matched.campusId) {
-      setSelectedCampusId(matched.campusId);
-    }
-
-    // Direct entry to tab: nếu là Giáo viên (Role 4) thì vào thẳng Nhập điểm (vì đã ẩn Dashboard)
-    const isTeacher = matched.role === 'gvcn' || matched.role === 'teacher' || (matched.role as any) === 4 || (matched.role as any) === '4';
-    const targetTab = isTeacher ? 'scoring' : 'dashboard';
-    setCurrentTab(targetTab);
-
-    // Đồng bộ ngầm danh sách người dùng và phiên đăng nhập tới backend
-    fetch('/api/users/sync-from-classes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ users: currentUsersList }),
-    }).catch(() => {});
 
     return {
       success: true,
+      message: `Đăng nhập thành công với tài khoản ${matched.name} (${matched.title || matched.role})`,
       user: matched,
-      targetTab,
-      message: `Đăng nhập thành công! Chào mừng ${matched.name}.`,
     };
   };
 

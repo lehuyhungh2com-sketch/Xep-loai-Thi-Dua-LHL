@@ -1871,6 +1871,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(coreUsers));
     } catch {}
 
+    // Synchronize to Cloud Firestore
+    batchSaveCloudDocs(CLOUD_COLLECTIONS.USERS, coreUsers);
+
     fetch('/api/users/sync-from-classes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1961,6 +1964,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(combinedUsers));
     } catch {}
+
+    // Đồng bộ toàn bộ danh sách tài khoản lên Cloud Firestore thời gian thực
+    batchSaveCloudDocs(CLOUD_COLLECTIONS.USERS, combinedUsers);
 
     // Persist to backend server
     fetch('/api/users/sync-from-classes', {

@@ -2013,8 +2013,9 @@ app.post('/api/backup/restore', requireRole(['super_admin']), (req: Request, res
 // ---------------- VITE / STATIC SERVING ----------------
 async function startServer() {
   const distPath = path.resolve(__dirname, 'dist');
-  const hasDist = fs.existsSync(path.resolve(distPath, 'index.html'));
-  const isProd = process.env.NODE_ENV === 'production' || hasDist;
+  const indexPath = path.resolve(distPath, 'index.html');
+  const hasDist = fs.existsSync(indexPath);
+  const isProd = process.env.NODE_ENV === 'production' && hasDist;
 
   if (isProd && hasDist) {
     console.log(`[Production] Serving pre-built static bundle from: ${distPath}`);

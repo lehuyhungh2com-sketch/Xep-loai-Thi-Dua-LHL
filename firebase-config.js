@@ -1,29 +1,22 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAnalytics, isSupported } from "firebase/analytics";
+import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-export const firebaseConfig = {
-  apiKey: "AIzaSyCpW-PxHIo9FQ0IIspMhBW6Sc0VN6l15f4",
+const firebaseConfig = {
+  apiKey: "AIzaSyCPw-PxHiO9FQ0IiSpMhBW6Sc0VN6L15f4",
   authDomain: "neneplhl.firebaseapp.com",
   projectId: "neneplhl",
-  storageBucket: "neneplhl.firebasestorage.app",
+  storageBucket: "neneplhl.appspot.com",
   messagingSenderId: "879961923597",
-  appId: "1:879961923597:web:753b8273faf2e9ac8cf544",
-  measurementId: "G-VTQ7BYWZ4R"
+  appId: "1:879961923597:web:753b8273faf2e9ac8cf544"
 };
 
-// Initialize Firebase
-export const app = initializeApp(firebaseConfig);
-
-export let analytics = null;
-if (typeof window !== 'undefined') {
-  isSupported().then((supported) => {
-    if (supported) {
-      analytics = getAnalytics(app);
-    }
-  }).catch(() => {});
+// Khởi tạo Firebase an toàn không làm crash app nếu mất mạng
+let db = null;
+try {
+  const app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+} catch (error) {
+  console.warn("Firebase không khởi tạo được, ứng dụng sẽ chạy thuần LocalStorage:", error);
 }
 
-export default firebaseConfig;
+export { db };

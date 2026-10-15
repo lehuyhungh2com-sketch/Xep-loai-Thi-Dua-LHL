@@ -1,0 +1,403 @@
+import { CampusWeeklyDuty, RedFlagMember, RedFlagBriefing, RedFlagActivityLog } from '../types';
+
+/**
+ * Duty Week & Red Flag Management Initial Data
+ * THCS Lê Hữu Lập - Năm học 2026 - 2027
+ */
+
+export const INITIAL_RED_FLAG_MEMBERS: RedFlagMember[] = [
+  {
+    id: 'rf_01',
+    name: 'Em Trịnh Hoàng Long',
+    classId: 'c_9a1',
+    className: '9A1',
+    campusId: 'lhl_main',
+    campusName: 'Trường chính',
+    roleTitle: 'Đội trưởng',
+    assignedArea: 'Khu phòng học dãy nhà A và sân cờ trung tâm',
+    assignedShift: 'Đầu giờ sáng (06:45 - 07:15) & Ra chơi',
+    phone: '0912 345 601',
+    status: 'active',
+    notes: 'Phụ trách chung đội cờ đỏ trường chính, điều phối trực ban',
+  },
+  {
+    id: 'rf_02',
+    name: 'Em Nguyễn Khánh Linh',
+    classId: 'c_9a1',
+    className: '9A1',
+    campusId: 'lhl_main',
+    campusName: 'Trường chính',
+    roleTitle: 'Đội phó',
+    assignedArea: 'Cổng trường chính & Khu vực nhà xe học sinh',
+    assignedShift: 'Đầu giờ sáng (06:45 - 07:15) & Giờ tan học',
+    phone: '0912 345 602',
+    status: 'active',
+    notes: 'Giám sát trật tự an toàn giao thông trước cổng trường',
+  },
+  {
+    id: 'rf_03',
+    name: 'Em Lê Đình Quang',
+    classId: 'c_9a2',
+    className: '9A2',
+    campusId: 'lhl_main',
+    campusName: 'Trường chính',
+    roleTitle: 'Ủy viên BCH',
+    assignedArea: 'Khu phòng học Khối 6, Khối 7 (Dãy nhà B)',
+    assignedShift: '15 phút đầu giờ truy bài & Giờ ra chơi',
+    phone: '0912 345 603',
+    status: 'active',
+    notes: 'Kiểm tra tác phong, khăn quàng đỏ, sơ vin',
+  },
+  {
+    id: 'rf_04',
+    name: 'Em Nguyễn Thảo Nguyên',
+    classId: 'c_9a2',
+    className: '9A2',
+    campusId: 'lhl_main',
+    campusName: 'Trường chính',
+    roleTitle: 'Đội viên',
+    assignedArea: 'Khu vệ sinh chung & Hành lang các tầng',
+    assignedShift: 'Giờ ra chơi & Sau giờ sinh hoạt',
+    phone: '0912 345 604',
+    status: 'active',
+    notes: 'Giám sát nề nếp vệ sinh, bảo vệ của công',
+  },
+  {
+    id: 'rf_05',
+    name: 'Em Vũ Hải Đăng',
+    classId: 'c_8a1',
+    className: '8A1',
+    campusId: 'lhl_main',
+    campusName: 'Trường chính',
+    roleTitle: 'Đội viên',
+    assignedArea: 'Sân bóng rổ, Sân thể dục & Khu bán trú',
+    assignedShift: 'Giờ ra chơi & Giờ ăn trưa bán trú',
+    phone: '0912 345 605',
+    status: 'active',
+    notes: 'Kiểm tra nề nếp tập thể dục giữa giờ và trật tự bán trú',
+  },
+  {
+    id: 'rf_06',
+    name: 'Em Phạm Minh Đức',
+    classId: 'c_8a1',
+    className: '8A1',
+    campusId: 'lhl_main',
+    campusName: 'Trường chính',
+    roleTitle: 'Đội viên',
+    assignedArea: 'Khu vực cầu thang, hành lang tầng 2 dãy A',
+    assignedShift: 'Giờ ra chơi',
+    phone: '0912 345 606',
+    status: 'active',
+  },
+  {
+    id: 'rf_07',
+    name: 'Em Lê Thị Thu Trang',
+    classId: 'c_9g1',
+    className: '9G1',
+    campusId: 'hau_loc',
+    campusName: 'Phân hiệu Hậu Lộc',
+    roleTitle: 'Đội trưởng',
+    assignedArea: 'Cổng phân hiệu Hậu Lộc & Khu lớp 6, 7',
+    assignedShift: 'Đầu giờ sáng (06:45 - 07:15) & Ra chơi',
+    phone: '0912 345 607',
+    status: 'active',
+    notes: 'Phụ trách cờ đỏ phân hiệu Hậu Lộc',
+  },
+  {
+    id: 'rf_08',
+    name: 'Em Vũ Minh Tuấn',
+    classId: 'c_9g1',
+    className: '9G1',
+    campusId: 'hau_loc',
+    campusName: 'Phân hiệu Hậu Lộc',
+    roleTitle: 'Đội viên',
+    assignedArea: 'Khu lớp 8, 9 & Nhà để xe phân hiệu Hậu Lộc',
+    assignedShift: 'Đầu giờ sáng & Giờ tan học',
+    phone: '0912 345 608',
+    status: 'active',
+  },
+  {
+    id: 'rf_09',
+    name: 'Em Bùi Nhật Minh',
+    classId: 'c_9e1',
+    className: '9E1',
+    campusId: 'loc_tan',
+    campusName: 'Phân hiệu Lộc Tân',
+    roleTitle: 'Đội trưởng',
+    assignedArea: 'Toàn bộ khuôn viên phân hiệu Lộc Tân',
+    assignedShift: 'Đầu giờ sáng & Giờ ra chơi',
+    phone: '0912 345 609',
+    status: 'active',
+  },
+  {
+    id: 'rf_10',
+    name: 'Em Nguyễn Văn Nam',
+    classId: 'c_9b1',
+    className: '9T1',
+    campusId: 'thuan_loc',
+    campusName: 'Phân hiệu Thuần Lộc',
+    roleTitle: 'Đội trưởng',
+    assignedArea: 'Cổng phân hiệu & Dãy phòng học Thuần Lộc',
+    assignedShift: 'Đầu giờ sáng & Giờ ra chơi',
+    phone: '0912 345 610',
+    status: 'active',
+  },
+  {
+    id: 'rf_11',
+    name: 'Em Hoàng Thị Yến',
+    classId: 'c_9x1',
+    className: '9X1',
+    campusId: 'xuan_loc',
+    campusName: 'Phân hiệu Xuân Lộc',
+    roleTitle: 'Đội trưởng',
+    assignedArea: 'Cổng phân hiệu & Khu lớp học Xuân Lộc',
+    assignedShift: 'Đầu giờ sáng & Giờ ra chơi',
+    phone: '0912 345 611',
+    status: 'active',
+  },
+  {
+    id: 'rf_12',
+    name: 'Em Trần Quốc Anh',
+    classId: 'c_9y1',
+    className: '9Y1',
+    campusId: 'tuy_loc',
+    campusName: 'Phân hiệu Tuy Lộc',
+    roleTitle: 'Đội trưởng',
+    assignedArea: 'Khuôn viên phân hiệu Tuy Lộc',
+    assignedShift: 'Đầu giờ sáng & Giờ ra chơi',
+    phone: '0912 345 612',
+    status: 'active',
+  },
+];
+
+export const INITIAL_RED_FLAG_BRIEFINGS: RedFlagBriefing[] = [
+  {
+    id: 'brief_w1',
+    week: 1,
+    campusId: 'lhl_main',
+    meetingDate: '2026-09-04',
+    meetingTime: '08:30',
+    presidedBy: 'Cô Lê Thị Hoa (Tổng Phụ Trách Đội)',
+    dutyClassId: 'c_9a3',
+    dutyClassName: '9A3',
+    dutyTeacherName: 'Thầy Vũ Văn Bình',
+    logBookHandedOver: true,
+    attendeesCount: 16,
+    status: 'completed',
+    conclusionSummary: 'Đã tổng kết nề nếp tuần khai giảng. 100% các lớp thực hiện nghiêm trang phục và lễ chào cờ đầu năm.',
+    notes: 'Sổ theo dõi bàn giao đầy đủ chữ ký của GVCN trực tuần và đội trưởng cờ đỏ.',
+  },
+  {
+    id: 'brief_w2',
+    week: 2,
+    campusId: 'lhl_main',
+    meetingDate: '2026-09-11',
+    meetingTime: '08:30',
+    presidedBy: 'Cô Lê Thị Hoa (Tổng Phụ Trách Đội)',
+    dutyClassId: 'c_9a2',
+    dutyClassName: '9A2',
+    dutyTeacherName: 'Thầy Hoàng Văn Hải',
+    logBookHandedOver: true,
+    attendeesCount: 15,
+    status: 'completed',
+    conclusionSummary: 'Nhắc nhở hiện tượng học sinh Khối 6 còn quên khăn quàng đỏ. Giao Đội cờ đỏ hướng dẫn thêm.',
+    notes: 'Đã hoàn tất nhập điểm và chốt sổ tuần 2.',
+  },
+  {
+    id: 'brief_w3',
+    week: 3,
+    campusId: 'lhl_main',
+    meetingDate: '2026-09-18',
+    meetingTime: '08:30',
+    presidedBy: 'Cô Lê Thị Hoa (Tổng Phụ Trách Đội)',
+    dutyClassId: 'c_8a1',
+    dutyClassName: '8A1',
+    dutyTeacherName: 'Cô Trần Thị Hương',
+    logBookHandedOver: true,
+    attendeesCount: 17,
+    status: 'completed',
+    conclusionSummary: 'Khen ngợi phong trào giữ gìn vệ sinh và hoa điểm 10 chào mừng năm học mới.',
+    notes: 'Chốt số liệu thi đua tuần 3 toàn trường.',
+  },
+  {
+    id: 'brief_w4',
+    week: 4,
+    campusId: 'lhl_main',
+    meetingDate: '2026-09-25',
+    meetingTime: '08:30',
+    presidedBy: 'Cô Lê Thị Hoa (Tổng Phụ Trách Đội)',
+    dutyClassId: 'c_9a1',
+    dutyClassName: '9A1',
+    dutyTeacherName: 'Cô Lê Thị Nga',
+    logBookHandedOver: false,
+    attendeesCount: 18,
+    status: 'pending',
+    conclusionSummary: 'Hạn chót cập nhật biên bản thi đua tuần 4 trước 08:30 Thứ Sáu phục vụ họp giao ban Liên đội.',
+    notes: 'Đang theo dõi cập nhật dữ liệu từ lớp trực tuần 9A1 và các phân hiệu.',
+  },
+];
+
+export const INITIAL_RED_FLAG_ACTIVITIES: RedFlagActivityLog[] = [
+  {
+    id: 'act_01',
+    week: 4,
+    campusId: 'lhl_main',
+    date: '2026-09-21',
+    time: '06:50',
+    area: 'Cổng trường chính',
+    reporterName: 'Em Trịnh Hoàng Long (Đội trưởng)',
+    activityType: 'traffic_support',
+    title: 'Phân luồng giao thông & nhắc nhở đội mũ bảo hiểm',
+    content: 'Phối hợp với bảo vệ trường nhắc nhở phụ huynh dừng đỗ xe đúng vạch quy định khi đưa đón học sinh.',
+    result: 'Cổng trường thông thoáng, 100% học sinh đội mũ bảo hiểm khi ngồi sau xe máy.',
+  },
+  {
+    id: 'act_02',
+    week: 4,
+    campusId: 'lhl_main',
+    date: '2026-09-21',
+    time: '07:15',
+    area: 'Sân cờ trung tâm',
+    reporterName: 'Em Nguyễn Khánh Linh (Đội phó)',
+    activityType: 'flag_ceremony',
+    title: 'Nghi thức Chào cờ đầu tuần & Kéo cờ Tổ quốc',
+    content: 'Đội cờ đỏ lớp trực 9A1 thực hiện kéo cờ trang nghiêm và điều hành lễ chào cờ đầu tuần.',
+    result: 'Buổi lễ diễn ra trang trọng, học sinh toàn trường hát Quốc ca, Đội ca đồng thanh.',
+  },
+  {
+    id: 'act_03',
+    week: 4,
+    campusId: 'lhl_main',
+    date: '2026-09-22',
+    time: '08:50',
+    area: 'Khu vệ sinh chung & Sân sau',
+    reporterName: 'Em Nguyễn Thảo Nguyên',
+    activityType: 'cleanliness_check',
+    title: 'Kiểm tra công tác vệ sinh giờ ra chơi',
+    content: 'Kiểm tra thùng rác phân loại và khu vực bồn rửa tay của các dãy phòng học.',
+    result: 'Các lớp dọn dẹp sạch sẽ, không có rác tồn đọng ở bồn hoa.',
+  },
+  {
+    id: 'act_04',
+    week: 4,
+    campusId: 'hau_loc',
+    date: '2026-09-23',
+    time: '07:00',
+    area: 'Khuôn viên phân hiệu Hậu Lộc',
+    reporterName: 'Em Lê Thị Thu Trang',
+    activityType: 'patrol',
+    title: 'Kiểm tra sĩ số và nề nếp truy bài 15 phút đầu giờ',
+    content: 'Đi tuần tra các lớp 6G1, 7G1, 8G1, 9G1, kiểm tra học sinh đi muộn.',
+    result: 'Các lớp ngồi trật tự truy bài, lớp 8G1 có 1 học sinh đi muộn đã nhắc nhở.',
+  },
+];
+
+/**
+ * Generate full 35-week duty schedule for all 6 campuses
+ * Structure: Tuần → Phân hiệu → Lớp trực → GVCN
+ */
+export function generateInitialCampusWeeklyDuties(): CampusWeeklyDuty[] {
+  const duties: CampusWeeklyDuty[] = [];
+
+  // Campus configuration list
+  const campusesConfig = [
+    {
+      campusId: 'lhl_main',
+      classes: [
+        { id: 'c_9a1', name: '9A1', teacher: 'Cô Lê Thị Nga' },
+        { id: 'c_9a2', name: '9A2', teacher: 'Thầy Hoàng Văn Hải' },
+        { id: 'c_9a3', name: '9A3', teacher: 'Thầy Vũ Văn Bình' },
+        { id: 'c_8a1', name: '8A1', teacher: 'Cô Trần Thị Hương' },
+        { id: 'c_8a2', name: '8A2', teacher: 'Thầy Nguyễn Văn Nam' },
+        { id: 'c_8a3', name: '8A3', teacher: 'Cô Bùi Thị Mai' },
+        { id: 'c_7a1', name: '7A1', teacher: 'Cô Đỗ Thị Lan' },
+        { id: 'c_7a2', name: '7A2', teacher: 'Thầy Phạm Văn Kiên' },
+        { id: 'c_7a3', name: '7A3', teacher: 'Cô Vũ Thị Thu' },
+        { id: 'c_6a1', name: '6A1', teacher: 'Cô Trịnh Thị Thúy' },
+        { id: 'c_6a2', name: '6A2', teacher: 'Thầy Lê Văn Cường' },
+        { id: 'c_6a3', name: '6A3', teacher: 'Cô Nguyễn Thị Hoa' },
+      ],
+    },
+    {
+      campusId: 'hau_loc',
+      classes: [
+        { id: 'c_9g1', name: '9G1', teacher: 'Cô Phạm Thu Thảo' },
+        { id: 'c_9g2', name: '9G2', teacher: 'Thầy Đinh Văn Hùng' },
+        { id: 'c_8g1', name: '8G1', teacher: 'Cô Nguyễn Thị Nga' },
+        { id: 'c_8g2', name: '8G2', teacher: 'Thầy Trần Đình Trọng' },
+        { id: 'c_7g1', name: '7G1', teacher: 'Cô Vũ Thị Vân' },
+        { id: 'c_6g1', name: '6G1', teacher: 'Thầy Đặng Thanh Tâm' },
+      ],
+    },
+    {
+      campusId: 'loc_tan',
+      classes: [
+        { id: 'c_9e1', name: '9E1', teacher: 'Thầy Hoàng Văn Nam' },
+        { id: 'c_9e2', name: '9E2', teacher: 'Cô Lê Thị Kim' },
+        { id: 'c_8e1', name: '8E1', teacher: 'Thầy Vũ Quang Huy' },
+        { id: 'c_8e2', name: '8E2', teacher: 'Cô Đặng Thu Hiền' },
+        { id: 'c_7e1', name: '7E1', teacher: 'Thầy Nguyễn Đức Thắng' },
+        { id: 'c_6e1', name: '6E1', teacher: 'Cô Mai Thị Liên' },
+      ],
+    },
+    {
+      campusId: 'thuan_loc',
+      classes: [
+        { id: 'c_9t1', name: '9T1', teacher: 'Thầy Vũ Minh Tuấn' },
+        { id: 'c_9t2', name: '9T2', teacher: 'Cô Đào Thị Bích' },
+        { id: 'c_8t1', name: '8T1', teacher: 'Thầy Lương Văn Quyết' },
+        { id: 'c_8t2', name: '8T2', teacher: 'Cô Trương Mỹ Hạnh' },
+        { id: 'c_7t1', name: '7T1', teacher: 'Thầy Tạ Đình Phong' },
+        { id: 'c_6t1', name: '6T1', teacher: 'Cô Bùi Bích Phương' },
+      ],
+    },
+    {
+      campusId: 'xuan_loc',
+      classes: [
+        { id: 'c_9x1', name: '9X1', teacher: 'Cô Trần Thị Huệ' },
+        { id: 'c_8x1', name: '8X1', teacher: 'Thầy Ngô Văn Tài' },
+        { id: 'c_7x1', name: '7X1', teacher: 'Cô Nguyễn Thanh Hằng' },
+        { id: 'c_6x1', name: '6X1', teacher: 'Thầy Đỗ Minh Tuân' },
+      ],
+    },
+    {
+      campusId: 'tuy_loc',
+      classes: [
+        { id: 'c_9y1', name: '9Y1', teacher: 'Thầy Bùi Quang Hưng' },
+        { id: 'c_8y1', name: '8Y1', teacher: 'Cô Trịnh Diệu Linh' },
+        { id: 'c_7y1', name: '7Y1', teacher: 'Thầy Nguyễn Văn Toàn' },
+        { id: 'c_6y1', name: '6Y1', teacher: 'Cô Lê Hoàng Yến' },
+      ],
+    },
+  ];
+
+  // Populate weeks 1 through 35 for each campus
+  for (let week = 1; week <= 35; week++) {
+    for (const campus of campusesConfig) {
+      // Rotate through classes
+      // In Week 4, ensure 9A1 is assigned to lhl_main so Cô Lê Thị Nga is on duty!
+      let classIndex: number;
+      if (campus.campusId === 'lhl_main' && week === 4) {
+        classIndex = 0; // c_9a1
+      } else {
+        classIndex = (week - 1) % campus.classes.length;
+      }
+
+      const assigned = campus.classes[classIndex];
+      duties.push({
+        id: `duty_w${week}_${campus.campusId}`,
+        week,
+        campusId: campus.campusId,
+        classId: assigned.id,
+        className: assigned.name,
+        homeroomTeacher: assigned.teacher,
+        dutyRoleDescription: `Trực ban nề nếp Tuần ${week}: Kéo cờ, giám sát trang phục, vệ sinh, truy bài và tổng hợp nề nếp giao ban.`,
+        briefingDeadlineDay: 'Thứ 6',
+        briefingDeadlineTime: '08:30',
+        notes: `Lớp trực tuần ${assigned.name} chịu trách nhiệm ghi nhận dữ liệu thi đua trong tuần ${week}.`,
+      });
+    }
+  }
+
+  return duties;
+}

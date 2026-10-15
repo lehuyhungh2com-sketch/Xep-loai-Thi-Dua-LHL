@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { PrintReportModal } from '../common/PrintReportModal';
 import {
   BarChart3,
   TrendingUp,
@@ -21,12 +22,15 @@ export const ReportsAnalytics: React.FC = () => {
     scoreLogs,
     selectedWeek,
     setSelectedWeek,
+    maxWeeks,
     settings,
     getWeeklyRankings,
     exportCurrentRankingsExcel,
     exportOfflineStandbyWorkbook,
     exportCurrentScoreLogsExcel,
   } = useApp();
+
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   const rankings = useMemo(() => {
     return getWeeklyRankings(selectedWeek, 'all', 'all');
@@ -153,7 +157,7 @@ export const ReportsAnalytics: React.FC = () => {
               onChange={(e) => setSelectedWeek(Number(e.target.value))}
               className="font-bold text-indigo-700 bg-transparent focus:outline-hidden cursor-pointer"
             >
-              {Array.from({ length: 35 }, (_, i) => i + 1).map((w) => (
+              {Array.from({ length: maxWeeks }, (_, i) => i + 1).map((w) => (
                 <option key={w} value={w}>
                   Tuần {w}
                 </option>
@@ -180,11 +184,12 @@ export const ReportsAnalytics: React.FC = () => {
           </button>
 
           <button
-            onClick={() => window.print()}
+            onClick={() => setShowPrintModal(true)}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer shadow-xs"
+            title="Xem trước văn bản in, in báo cáo hoặc tải file PDF chính thức"
           >
             <Printer size={15} />
-            <span>In báo cáo</span>
+            <span>In / Xuất PDF</span>
           </button>
         </div>
       </div>
@@ -358,6 +363,19 @@ export const ReportsAnalytics: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Print Report Preview Modal */}
+      {showPrintModal && (
+        <PrintReportModal
+          periodTitle={`Tuần ${selectedWeek}`}
+          scopeTitle="Toàn trường"
+          rankings={rankings}
+          selectedCampusId="all"
+          periodType="week"
+          periodNumber={selectedWeek}
+          onClose={() => setShowPrintModal(false)}
+        />
+      )}
     </div>
   );
 };

@@ -101,9 +101,9 @@ export const CampusManager: React.FC = () => {
     setName(camp.name);
     setCode(camp.code);
     setType(camp.type);
-    setLeaderName(camp.leaderName);
-    setPhone(camp.phone);
-    setAddress(camp.address);
+    setLeaderName(camp.leaderName || '');
+    setPhone(camp.phone || '');
+    setAddress(camp.address || '');
     setDescription(camp.description || '');
     setErrorMessage('');
     setShowModal(true);

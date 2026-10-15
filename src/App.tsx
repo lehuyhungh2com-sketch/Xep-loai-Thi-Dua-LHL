@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
@@ -15,12 +15,33 @@ import { UserManager } from './components/users/UserManager';
 import { SettingsManager } from './components/settings/SettingsManager';
 import { AuditLogViewer } from './components/audit/AuditLogViewer';
 import { AppealsManager } from './components/appeals/AppealsManager';
+import { MonthlyRankingsHub } from './components/rankings/MonthlyRankingsHub';
+import { SemesterRankingsHub } from './components/rankings/SemesterRankingsHub';
+import { YearRankingsHub } from './components/rankings/YearRankingsHub';
+import { ClassAwardsHub } from './components/rankings/ClassAwardsHub';
+import { AcademicCatalogManager } from './components/admin/AcademicCatalogManager';
+import { LoginScreen } from './components/auth/LoginScreen';
 
 const MainLayout: React.FC = () => {
-  const { currentTab } = useApp();
+  const { currentTab, setCurrentTab, isAuthenticated, currentUser, canAccessTab } = useApp();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Tự động chuyển hướng sang Bảng Xếp Hạng nếu tab hiện tại bị chặn theo phân quyền (ví dụ Role 4 Giáo viên)
+  useEffect(() => {
+    if (isAuthenticated && currentUser && !canAccessTab(currentTab)) {
+      setCurrentTab('rankings');
+    }
+  }, [isAuthenticated, currentUser, currentTab, canAccessTab, setCurrentTab]);
+
+  // Strictly block unauthenticated access: No Dashboard, no sidebar, no data
+  if (!isAuthenticated) {
+    return <LoginScreen />;
+  }
+
   const renderActiveView = () => {
+    if (!canAccessTab(currentTab)) {
+      return <RankingsHub />;
+    }
     switch (currentTab) {
       case 'dashboard':
         return <DashboardOverview />;
@@ -38,6 +59,14 @@ const MainLayout: React.FC = () => {
         return <CriteriaManager />;
       case 'rankings':
         return <RankingsHub />;
+      case 'month_rankings':
+        return <MonthlyRankingsHub />;
+      case 'semester_rankings':
+        return <SemesterRankingsHub />;
+      case 'year_rankings':
+        return <YearRankingsHub />;
+      case 'title_evaluation':
+        return <ClassAwardsHub />;
       case 'reports':
         return <ReportsAnalytics />;
       case 'datalock':
@@ -46,6 +75,8 @@ const MainLayout: React.FC = () => {
         return <AuditLogViewer />;
       case 'users':
         return <UserManager />;
+      case 'academic_catalog':
+        return <AcademicCatalogManager />;
       case 'settings':
         return <SettingsManager />;
       default:

@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import {
   Trophy,
   Calendar,
+  Award,
   Filter,
   Download,
   Printer,
@@ -42,6 +43,7 @@ export const RankingsHub: React.FC = () => {
     getYearlyRankings,
     exportCurrentRankingsExcel,
     exportOfflineStandbyWorkbook,
+    setCurrentTab,
   } = useApp();
 
   const [periodType, setPeriodType] = useState<PeriodType>('week');
@@ -169,6 +171,30 @@ export const RankingsHub: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* 3-Tier Ranking Module Switcher */}
+      <div className="flex items-center gap-2 p-1.5 bg-slate-200/70 rounded-xl w-fit no-print">
+        <button
+          className="px-3.5 py-1.5 bg-white text-indigo-900 rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5"
+        >
+          <Trophy size={13} className="text-indigo-600" />
+          <span>Xếp Hạng Tuần</span>
+        </button>
+        <button
+          onClick={() => setCurrentTab('month_rankings')}
+          className="px-3.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+        >
+          <Calendar size={13} />
+          <span>Xếp Hạng Tháng</span>
+        </button>
+        <button
+          onClick={() => setCurrentTab('semester_rankings')}
+          className="px-3.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+        >
+          <Award size={13} />
+          <span>Xếp Hạng Học Kỳ</span>
+        </button>
+      </div>
+
       {/* Top Header Card */}
       <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -300,20 +326,28 @@ export const RankingsHub: React.FC = () => {
             )}
 
             {periodType === 'month' && (
-              <div className="flex items-center gap-1.5">
-                <Calendar size={15} className="text-slate-400" />
-                <span className="text-xs text-slate-500 font-medium">Chọn Tháng:</span>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                  className="text-xs font-bold text-indigo-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-hidden cursor-pointer"
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Calendar size={15} className="text-slate-400" />
+                  <span className="text-xs text-slate-500 font-medium">Chọn Tháng:</span>
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                    className="text-xs font-bold text-indigo-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-hidden cursor-pointer"
+                  >
+                    {[9, 10, 11, 12, 1, 2, 3, 4, 5].map((m) => (
+                      <option key={m} value={m}>
+                        Tháng {m}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={() => setCurrentTab('month_rankings')}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 flex items-center gap-1 transition-colors"
                 >
-                  {[9, 10, 11, 12, 1, 2, 3, 4, 5].map((m) => (
-                    <option key={m} value={m}>
-                      Tháng {m}
-                    </option>
-                  ))}
-                </select>
+                  <span>Chốt tháng & Chi tiết tuần quy chuẩn →</span>
+                </button>
               </div>
             )}
 
@@ -485,8 +519,18 @@ export const RankingsHub: React.FC = () => {
 
                       {/* Class Name */}
                       <td className="py-3 px-4">
-                        <div className="font-bold text-slate-900 text-sm">
-                          Lớp {entry.classItem.name}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-slate-900 text-sm">
+                            Lớp {entry.classItem.name}
+                          </span>
+                          {periodType === 'week' && entry.isHistorical && (
+                            <span
+                              className="px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200"
+                              title={entry.historicalNote || 'Điểm bảo lưu lịch sử'}
+                            >
+                              Bảo lưu
+                            </span>
+                          )}
                         </div>
                         <div className="text-[11px] text-slate-400">
                           Khối {entry.classItem.grade} · {entry.classItem.studentCount} học sinh
@@ -644,7 +688,18 @@ export const RankingsHub: React.FC = () => {
         <PrintReportModal
           periodTitle={periodLabel}
           scopeTitle={scopeLabel}
-          rankings={filteredRankings}
+          rankings={rawRankings}
+          selectedCampusId={selectedCampusId}
+          periodType={periodType}
+          periodNumber={
+            periodType === 'week'
+              ? selectedWeek
+              : periodType === 'month'
+              ? selectedMonth
+              : periodType === 'semester'
+              ? selectedSemester
+              : 1
+          }
           onClose={() => setShowPrintModal(false)}
         />
       )}

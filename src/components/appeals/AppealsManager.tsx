@@ -39,6 +39,8 @@ export const AppealsManager: React.FC = () => {
     selectedWeek,
   } = useApp();
 
+  if (!currentUser) return null;
+
   // GVCN state
   const isGVCN = userRole === 'gvcn';
   const myClass = classes.find((c) => c.id === currentUser.classId) || classes[0];

@@ -103,10 +103,10 @@ export const RegulationAuditModal: React.FC<RegulationAuditModalProps> = ({ isOp
       badgeColor: 'bg-teal-100 text-teal-800',
     },
     {
-      name: '8. Khen thưởng & Thành tích',
-      desc: 'Nhặt được của rơi (≥ 200k +2đ, < 200k +1đ), Giao lưu CLB văn hóa khối 6-8, Đội tuyển HSG tỉnh khối 9 (+2đ đến +5đ), Đội nghi lễ phục vụ Đội (tối đa 0.5đ/lớp).',
-      count: OFFICIAL_CRITERIA_DATABASE.filter((c) => c.category.includes('kỳ thi') || c.category.includes('tốt')).length,
-      badge: 'Cộng thưởng',
+      name: '8. Khen thưởng tuần',
+      desc: 'Sổ đầu bài ghi ký đầy đủ (+3đ), Điểm tốt trường chính/phân hiệu (+2đ), Nhặt được của rơi (≥ 200k +0.5đ).',
+      count: OFFICIAL_CRITERIA_DATABASE.filter((c) => c.type === 'bonus').length,
+      badge: 'Cộng thưởng tuần',
       badgeColor: 'bg-green-100 text-green-800',
     },
   ];

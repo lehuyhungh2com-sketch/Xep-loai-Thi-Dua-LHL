@@ -35,6 +35,7 @@ export const ClassManager: React.FC = () => {
   const {
     classes,
     campuses,
+    users,
     addClass,
     updateClass,
     deleteClass,
@@ -53,12 +54,15 @@ export const ClassManager: React.FC = () => {
 
   // Form states for Single Class
   const [name, setName] = useState('');
-  const [grade, setGrade] = useState<6 | 7 | 8 | 9>(6);
+  const [classCode, setClassCode] = useState('');
+  const [grade, setGrade] = useState<number>(6);
   const [campusId, setCampusId] = useState<string>(campuses[0]?.id || 'lhl_main');
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
   const [homeroomTeacher, setHomeroomTeacher] = useState('');
   const [monitorName, setMonitorName] = useState('');
   const [studentCount, setStudentCount] = useState<number>(40);
   const [roomNumber, setRoomNumber] = useState('');
+  const [exemptSemester1, setExemptSemester1] = useState<boolean>(false);
 
   // Form states for Batch Add
   const [batchClassInput, setBatchClassInput] = useState('');
@@ -74,6 +78,19 @@ export const ClassManager: React.FC = () => {
 
   const selectedCampusObj = campuses.find((c) => c.id === selectedCampusId);
 
+  // List of teachers from users
+  const teacherUsers = useMemo(() => {
+    return users.filter((u) => {
+      const isTeacherRole =
+        u.role === 'gvcn' ||
+        u.role === 'teacher' ||
+        u.role === 'tpt_doi' ||
+        (u.title && (u.title.toLowerCase().includes('giáo viên') || u.title.toLowerCase().includes('gvcn')));
+      const isCurrent = editingClass && (u.id === editingClass.teacherId || u.classId === editingClass.id);
+      return isTeacherRole || isCurrent;
+    });
+  }, [users, editingClass]);
+
   const filteredClasses = useMemo(() => {
     return classes.filter((c) => {
       if (selectedCampusId !== 'all' && c.campusId !== selectedCampusId) return false;
@@ -83,12 +100,28 @@ export const ClassManager: React.FC = () => {
         return (
           c.name.toLowerCase().includes(q) ||
           c.homeroomTeacher.toLowerCase().includes(q) ||
-          c.monitorName.toLowerCase().includes(q)
+          (c.monitorName || '').toLowerCase().includes(q)
         );
       }
       return true;
     });
   }, [classes, selectedCampusId, selectedGrade, searchQuery]);
+
+  const handleNameChange = (val: string) => {
+    const upper = val.toUpperCase();
+    setName(upper);
+    setClassCode(upper); // Tự động copy giá trị Tên lớp vào Mã lớp
+  };
+
+  const handleTeacherSelect = (tId: string) => {
+    setSelectedTeacherId(tId);
+    if (!tId) {
+      setHomeroomTeacher('Chưa phân công');
+    } else {
+      const matched = users.find((u) => u.id === tId);
+      setHomeroomTeacher(matched ? matched.name : 'Chưa phân công');
+    }
+  };
 
   const handleOpenAdd = (preferredCampusId?: string) => {
     setEditingClass(null);
@@ -102,10 +135,13 @@ export const ClassManager: React.FC = () => {
 
     setGrade(6);
     setName(suggested);
-    setHomeroomTeacher('');
+    setClassCode(suggested); // Tự động copy giá trị Tên lớp vào Mã lớp
+    setSelectedTeacherId('');
+    setHomeroomTeacher('Chưa phân công');
     setMonitorName('');
     setStudentCount(40);
     setRoomNumber('');
+    setExemptSemester1(false);
     setBatchClassInput('');
     setBatchDefaultStudents(40);
     setShowModal(true);
@@ -115,10 +151,31 @@ export const ClassManager: React.FC = () => {
     setEditingClass(cls);
     setModalMode('single');
     setName(cls.name);
+    setClassCode(cls.code || cls.name);
     setGrade(cls.grade);
     setCampusId(cls.campusId);
-    setHomeroomTeacher(cls.homeroomTeacher);
-    setMonitorName(cls.monitorName);
+    setExemptSemester1(!!cls.exemptSemester1);
+
+    // Find teacher in users by teacherId, classId, or matching name
+    const matched = users.find(
+      (u) =>
+        (cls.teacherId && u.id === cls.teacherId) ||
+        (u.classId && u.classId === cls.id) ||
+        (cls.homeroomTeacher &&
+          cls.homeroomTeacher !== 'Chưa phân công' &&
+          u.name.trim().toLowerCase() === cls.homeroomTeacher.trim().toLowerCase() &&
+          (u.role === 'gvcn' || u.role === 'teacher' || u.title?.toLowerCase().includes('giáo viên')))
+    );
+
+    if (matched) {
+      setSelectedTeacherId(matched.id);
+      setHomeroomTeacher(matched.name);
+    } else {
+      setSelectedTeacherId('');
+      setHomeroomTeacher(cls.homeroomTeacher || 'Chưa phân công');
+    }
+
+    setMonitorName(cls.monitorName || '');
     setStudentCount(cls.studentCount);
     setRoomNumber(cls.roomNumber || '');
     setShowModal(true);
@@ -129,7 +186,9 @@ export const ClassManager: React.FC = () => {
     const cObj = campuses.find((c) => c.id === newCId);
     if (cObj && !editingClass) {
       const existingCount = classes.filter((c) => c.campusId === newCId && c.grade === grade).length;
-      setName(getCampusClassPrefixSuggestion(cObj.name, grade, existingCount));
+      const suggested = getCampusClassPrefixSuggestion(cObj.name, grade, existingCount);
+      setName(suggested);
+      setClassCode(suggested);
     }
   };
 
@@ -138,7 +197,9 @@ export const ClassManager: React.FC = () => {
     const cObj = campuses.find((c) => c.id === campusId);
     if (cObj && !editingClass) {
       const existingCount = classes.filter((c) => c.campusId === campusId && c.grade === newGrade).length;
-      setName(getCampusClassPrefixSuggestion(cObj.name, newGrade, existingCount));
+      const suggested = getCampusClassPrefixSuggestion(cObj.name, newGrade, existingCount);
+      setName(suggested);
+      setClassCode(suggested);
     }
   };
 
@@ -150,16 +211,26 @@ export const ClassManager: React.FC = () => {
     if (modalMode === 'single') {
       const trimmedName = name.trim().toUpperCase();
       if (!trimmedName) return;
+      const finalCode = (classCode.trim() || trimmedName).toUpperCase();
+
+      const selectedTeacher = users.find((u) => u.id === selectedTeacherId);
+      const finalTeacherName = selectedTeacher ? selectedTeacher.name : homeroomTeacher.trim() || 'Chưa phân công';
+      const finalTeacherId = selectedTeacher?.id || undefined;
+      const finalTeacherCode = selectedTeacher?.teacherCode || undefined;
 
       if (editingClass) {
         const res = updateClass(editingClass.id, {
           name: trimmedName,
+          code: finalCode,
           grade,
           campusId,
-          homeroomTeacher: homeroomTeacher.trim() || 'Chưa phân công',
+          homeroomTeacher: finalTeacherName,
+          teacherId: finalTeacherId,
+          teacherCode: finalTeacherCode,
           monitorName: monitorName.trim() || 'Chưa bầu',
           studentCount: Math.max(1, Number(studentCount) || 40),
           roomNumber: roomNumber.trim() || undefined,
+          exemptSemester1: !!exemptSemester1,
         });
         if (!res.success) {
           showToast(res.message || 'Không thể cập nhật thông tin lớp', 'error');
@@ -177,12 +248,16 @@ export const ClassManager: React.FC = () => {
 
         const res = addClass({
           name: trimmedName,
+          code: finalCode,
           grade,
           campusId,
-          homeroomTeacher: homeroomTeacher.trim() || 'Chưa phân công',
+          homeroomTeacher: finalTeacherName,
+          teacherId: finalTeacherId,
+          teacherCode: finalTeacherCode,
           monitorName: monitorName.trim() || 'Chưa bầu',
           studentCount: Math.max(1, Number(studentCount) || 40),
           roomNumber: roomNumber.trim() || undefined,
+          exemptSemester1: !!exemptSemester1,
         });
         if (!res.success) {
           showToast(res.message || 'Không thể thêm lớp học mới', 'error');
@@ -242,6 +317,16 @@ export const ClassManager: React.FC = () => {
       }
       showToast(`Đã xóa lớp ${className}`);
     }
+  };
+
+  const handleToggleExemptSemester1 = (cls: ClassItem) => {
+    const nextVal = !cls.exemptSemester1;
+    const res = updateClass(cls.id, { exemptSemester1: nextVal });
+    if (res && !res.success) {
+      showToast(res.message || 'Không thể cập nhật trạng thái miễn thi đua', 'error');
+      return;
+    }
+    showToast(`Đã ${nextVal ? 'BẬT' : 'TẮT'} miễn thi đua HK1 cho Lớp ${cls.name}`);
   };
 
   const canManage = canManageCampusClasses(currentUser, selectedCampusId !== 'all' ? selectedCampusId : undefined);
@@ -370,13 +455,14 @@ export const ClassManager: React.FC = () => {
                 <th className="py-3 px-4">Lớp trưởng</th>
                 <th className="py-3 px-4 text-center">Sĩ số</th>
                 <th className="py-3 px-4 text-center">Phòng học</th>
+                <th className="py-3 px-3 text-center">Thi đua HK1</th>
                 <th className="py-3 px-4 text-center w-28">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredClasses.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400">
+                  <td colSpan={10} className="py-12 text-center text-slate-400">
                     Không tìm thấy lớp học nào phù hợp với bộ lọc hiện tại.
                   </td>
                 </tr>
@@ -414,6 +500,28 @@ export const ClassManager: React.FC = () => {
                       </td>
                       <td className="py-3 px-4 text-center text-slate-500 font-mono text-[11px]">
                         {cls.roomNumber || '---'}
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        {canManage ? (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleExemptSemester1(cls)}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer ${
+                              cls.exemptSemester1
+                                ? 'bg-amber-100 text-amber-900 border-amber-300 shadow-2xs hover:bg-amber-200'
+                                : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
+                            }`}
+                            title={cls.exemptSemester1 ? 'Đang miễn thi đua HK1 (Đội tuyển HSG). Bấm để chuyển sang bình thường.' : 'Bấm để bật miễn thi đua HK1 cho lớp này'}
+                          >
+                            {cls.exemptSemester1 ? '🏆 Miễn HK1' : 'Bình thường'}
+                          </button>
+                        ) : cls.exemptSemester1 ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-300 font-bold text-[10px]">
+                            🏆 Miễn HK1
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-400">---</span>
+                        )}
                       </td>
                       <td className="py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-1">
@@ -558,24 +666,50 @@ export const ClassManager: React.FC = () => {
                         type="text"
                         required
                         value={name}
-                        onChange={(e) => setName(e.target.value.toUpperCase())}
+                        onChange={(e) => handleNameChange(e.target.value)}
                         placeholder="VD: 6A1, 9B2..."
-                        className="w-full text-xs font-bold text-indigo-700 bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-indigo-500"
+                        className="w-full text-xs font-bold text-indigo-700 bg-white border border-slate-200 rounded-xl p-2.5 focus:outline-indigo-500"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">Giáo viên chủ nhiệm</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                        <span>Mã lớp (Tự động theo tên lớp)</span>
+                        <span className="text-[10px] text-slate-400 font-normal">Chỉ đọc</span>
+                      </label>
                       <input
                         type="text"
-                        value={homeroomTeacher}
-                        onChange={(e) => setHomeroomTeacher(e.target.value)}
-                        placeholder="VD: Thầy Trần Văn Nam..."
-                        className="w-full text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-indigo-500"
+                        readOnly
+                        value={classCode}
+                        placeholder="Tự động đồng bộ theo tên lớp..."
+                        tabIndex={-1}
+                        className="w-full text-xs font-mono font-bold text-slate-600 bg-slate-100 border border-slate-200 rounded-xl p-2.5 cursor-not-allowed select-none"
                       />
                     </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                        <span>Giáo viên chủ nhiệm *</span>
+                        <span className="text-[10px] text-indigo-600 font-medium">Danh sách GV</span>
+                      </label>
+                      <select
+                        value={selectedTeacherId}
+                        onChange={(e) => handleTeacherSelect(e.target.value)}
+                        className="w-full text-xs font-medium text-slate-800 bg-white border border-slate-200 rounded-xl p-2.5 cursor-pointer focus:outline-indigo-500"
+                      >
+                        <option value="">-- Chưa phân công --</option>
+                        {teacherUsers.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.teacherCode ? `[${t.teacherCode}] ` : ''}{t.name} {t.email ? `(${t.email})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">Lớp trưởng</label>
                       <input
@@ -584,20 +718,6 @@ export const ClassManager: React.FC = () => {
                         onChange={(e) => setMonitorName(e.target.value)}
                         placeholder="VD: Lê Thị B..."
                         className="w-full text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-indigo-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">Sĩ số học sinh</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="60"
-                        value={studentCount}
-                        onChange={(e) => setStudentCount(Number(e.target.value))}
-                        className="w-full text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-indigo-500"
                       />
                     </div>
                     <div>
@@ -610,6 +730,44 @@ export const ClassManager: React.FC = () => {
                         className="w-full text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-indigo-500"
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Sĩ số học sinh *</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="60"
+                      value={studentCount}
+                      onChange={(e) => setStudentCount(Number(e.target.value))}
+                      className="w-full text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-indigo-500"
+                    />
+                  </div>
+
+                  {/* Tuỳ chọn Nghiệp vụ: Miễn thi đua Học kỳ 1 (Cho đội tuyển HSG) */}
+                  <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-2xl flex items-center justify-between gap-3 shadow-2xs">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-amber-950 flex items-center gap-1">
+                          🏆 Miễn thi đua Học kỳ 1
+                        </span>
+                        <span className="px-1.5 py-0.5 bg-amber-200 text-amber-900 rounded text-[10px] font-extrabold uppercase">
+                          Đặc thù Đội tuyển HSG
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-amber-800/90 mt-0.5 leading-snug">
+                        Áp dụng cho <strong>Lớp 9A1</strong> hoặc lớp bồi dưỡng đội tuyển HSG của nhà trường. Lớp sẽ được loại khỏi bảng xếp hạng HK1 và Điểm Cả năm sẽ tính bằng <strong>100% Điểm Học kỳ 2</strong>.
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={exemptSemester1}
+                        onChange={(e) => setExemptSemester1(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                    </label>
                   </div>
                 </>
               ) : (

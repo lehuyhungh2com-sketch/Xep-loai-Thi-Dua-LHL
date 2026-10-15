@@ -1,7 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { ViewTab } from '../../types';
-import { ROLE_METADATA } from '../../utils/rbac';
+import { ROLE_METADATA, isRoleTeacher } from '../../utils/rbac';
 import {
   LayoutDashboard,
   School,
@@ -10,6 +10,9 @@ import {
   PenTool,
   Sliders,
   Trophy,
+  Calendar,
+  Award,
+  Medal,
   BarChart3,
   Lock,
   Users2,
@@ -18,6 +21,10 @@ import {
   CheckCircle2,
   FileQuestion,
   History,
+  Sparkles,
+  Database,
+  LogOut,
+  Download,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -36,11 +43,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     canAccessTab,
     lockedWeeks,
     selectedWeek,
+    selectedMonth,
+    selectedSemester,
+    isMonthLocked,
+    isSemesterLocked,
+    isYearLocked,
+    isTitleLocked,
     appeals,
     auditLogs,
+    downloadSourceCodeZip,
+    logout,
   } = useApp();
 
+  if (!currentUser) return null;
+
   const isCurrentWeekLocked = lockedWeeks.includes(selectedWeek);
+  const isCurrentMonthLocked = isMonthLocked(selectedMonth);
+  const isCurrentSemesterLocked = isSemesterLocked(selectedSemester);
   const pendingAppealsCount = appeals.filter((a) => a.status === 'pending').length;
   const roleMeta = ROLE_METADATA[userRole];
 
@@ -52,7 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     badge?: string | number;
     badgeColor?: string;
   }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'dashboard', label: 'Dashboard Toàn trường', icon: LayoutDashboard, badge: '6 Phân hiệu', badgeColor: 'bg-blue-500/20 text-blue-300' },
     { id: 'campuses', label: 'Phân hiệu', icon: School, badge: `${campuses.length} cơ sở`, badgeColor: 'bg-emerald-500/20 text-emerald-300' },
     { id: 'classes', label: 'Lớp', icon: BookOpen, badge: `${classes.length} lớp` },
     { id: 'redflag', label: 'Đội cờ đỏ', icon: Flag, badge: 'Trực tuần', badgeColor: 'bg-rose-500/20 text-rose-300' },
@@ -65,7 +84,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       badgeColor: 'bg-amber-500/20 text-amber-300',
     },
     { id: 'criteria', label: 'Tiêu chí', icon: Sliders },
-    { id: 'rankings', label: 'Xếp hạng', icon: Trophy, badge: 'Tuần & Tháng', badgeColor: 'bg-amber-500/20 text-amber-300' },
+    { id: 'rankings', label: 'Xếp hạng tuần', icon: Trophy, badge: `T${selectedWeek}`, badgeColor: 'bg-amber-500/20 text-amber-300' },
+    {
+      id: 'month_rankings',
+      label: 'Xếp hạng tháng',
+      icon: Calendar,
+      badge: isCurrentMonthLocked ? `Th.${selectedMonth} 🔒` : `Th.${selectedMonth}`,
+      badgeColor: isCurrentMonthLocked ? 'bg-rose-500/20 text-rose-300' : 'bg-indigo-500/20 text-indigo-300',
+    },
+    {
+      id: 'semester_rankings',
+      label: 'Xếp hạng học kỳ',
+      icon: Award,
+      badge: isCurrentSemesterLocked ? `HK${selectedSemester === 1 ? 'I' : 'II'} 🔒` : `HK${selectedSemester === 1 ? 'I' : 'II'}`,
+      badgeColor: isCurrentSemesterLocked ? 'bg-rose-500/20 text-rose-300' : 'bg-purple-500/20 text-purple-300',
+    },
+    {
+      id: 'year_rankings',
+      label: 'Xếp hạng cả năm',
+      icon: Medal,
+      badge: isYearLocked() ? '🔒 Đã chốt' : '2026-2027',
+      badgeColor: isYearLocked() ? 'bg-rose-500/20 text-rose-300' : 'bg-blue-500/20 text-blue-300',
+    },
+    {
+      id: 'title_evaluation',
+      label: 'Xét danh hiệu lớp',
+      icon: Sparkles,
+      badge: isTitleLocked() ? '🔒 Đã chốt' : 'Danh hiệu',
+      badgeColor: isTitleLocked() ? 'bg-purple-500/20 text-purple-300' : 'bg-amber-500/20 text-amber-300',
+    },
     { id: 'reports', label: 'Báo cáo', icon: BarChart3 },
     {
       id: 'datalock',
@@ -82,6 +129,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       badgeColor: 'bg-indigo-500/20 text-indigo-300',
     },
     { id: 'users', label: 'Người dùng', icon: Users2 },
+    {
+      id: 'academic_catalog',
+      label: 'Cấu hình năm học & Danh mục',
+      icon: Database,
+      badge: 'Thực tế / Mẫu',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300',
+    },
     { id: 'settings', label: 'Cấu hình', icon: SettingsIcon },
   ];
 
@@ -170,6 +224,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           })}
         </div>
 
+        {/* Export / Download Source Code ZIP (Ẩn đối với Role 4: Giáo viên) */}
+        {!isRoleTeacher(currentUser) && (
+          <div className="px-3 py-2 border-t border-[#16365c] bg-[#071629]">
+            <button
+              onClick={downloadSourceCodeZip}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black text-xs shadow-md shadow-amber-950/40 transition-all cursor-pointer active:scale-98"
+              title="Tải toàn bộ mã nguồn (.zip) dự án về máy tính để đưa lên Vercel / Netlify"
+            >
+              <Download size={15} className="animate-bounce" />
+              <span>TẢI XUỐNG MÃ NGUỒN (.ZIP)</span>
+            </button>
+          </div>
+        )}
+
         {/* User Card & RBAC Badge */}
         <div className="p-3 border-t border-[#16365c] bg-[#091b31]">
           <div className="p-2.5 rounded-lg bg-[#112d4e] border border-[#1d4370]">
@@ -187,6 +255,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             </div>
             <div className="text-[11px] text-blue-300 truncate mt-0.5">
               {currentUser.title}
+            </div>
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#1d4370]">
+              <span className="text-[10px] text-slate-400">Phiên làm việc</span>
+              <button
+                onClick={logout}
+                className="flex items-center gap-1 text-[11px] font-bold text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
+                title="Đăng xuất khỏi hệ thống"
+              >
+                <LogOut size={12} />
+                <span>Đăng xuất</span>
+              </button>
             </div>
           </div>
         </div>

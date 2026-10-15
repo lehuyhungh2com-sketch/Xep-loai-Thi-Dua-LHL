@@ -37,23 +37,27 @@ export const DataLockManager: React.FC = () => {
     scoreLogs,
     classes,
     campuses,
-    setCurrentTab
+    setCurrentTab,
+    maxWeeks,
   } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'locked' | 'unlocked'>('all');
   const [filterSemester, setFilterSemester] = useState<'all' | 'hk1' | 'hk2'>('all');
   const [reportWeekModal, setReportWeekModal] = useState<number | null>(null);
+  const [unlockWeekTarget, setUnlockWeekTarget] = useState<{ week: number; reason: string; error?: string } | null>(null);
 
-  // Check permissions: Ban Giám Hiệu or Super Admin
+  const sem1Weeks = settings.totalWeeksSemester1 || 18;
+
+  // Check permissions: Ban Giám Hiệu, TPT Đội or Super Admin
   const canLock = canLockUnlockWeeks(currentUser);
 
-  // Build data list for all 35 weeks
+  // Build data list for all maxWeeks weeks
   const weeksData = useMemo(() => {
-    return Array.from({ length: 35 }, (_, idx) => {
+    return Array.from({ length: maxWeeks }, (_, idx) => {
       const week = idx + 1;
       const isLocked = isWeekLocked(week);
-      const semester = week <= 18 ? 1 : 2;
+      const semester = week <= sem1Weeks ? 1 : 2;
       const stats = getSchoolStats(week);
       const rankings = getWeeklyRankings(week, 'all', 'all');
       const topClass = rankings[0];
@@ -70,7 +74,7 @@ export const DataLockManager: React.FC = () => {
         penaltyCount: weekLogs.filter((l) => l.type === 'penalty').length,
       };
     });
-  }, [isWeekLocked, getSchoolStats, getWeeklyRankings, scoreLogs]);
+  }, [maxWeeks, sem1Weeks, isWeekLocked, getSchoolStats, getWeeklyRankings, scoreLogs]);
 
   // Filtered weeks
   const filteredWeeks = useMemo(() => {
@@ -100,12 +104,33 @@ export const DataLockManager: React.FC = () => {
 
   const handleToggle = (week: number) => {
     if (!canLock) {
-      alert('Chỉ Ban Giám Hiệu hoặc Tổng Phụ Trách Đội mới có quyền khóa/mở chốt số liệu tuần!');
+      alert('Chỉ Ban Giám Hiệu, Tổng phụ trách Đội hoặc Quản trị viên mới có thẩm quyền chốt hoặc mở khóa dữ liệu tuần!');
       return;
     }
-    const result = toggleLockWeek(week);
-    if (!result.success) {
-      alert(result.message);
+    const locked = isWeekLocked(week);
+    if (locked) {
+      // Unlocking requires reason and Admin role
+      setUnlockWeekTarget({ week, reason: '', error: undefined });
+    } else {
+      // Locking week
+      const result = toggleLockWeek(week);
+      if (!result.success) {
+        alert(result.message);
+      }
+    }
+  };
+
+  const handleConfirmUnlockWeek = () => {
+    if (!unlockWeekTarget) return;
+    if (!unlockWeekTarget.reason.trim()) {
+      setUnlockWeekTarget({ ...unlockWeekTarget, error: 'Bắt buộc nhập lý do mở khóa để lưu vết kiểm toán hệ thống!' });
+      return;
+    }
+    const result = toggleLockWeek(unlockWeekTarget.week, unlockWeekTarget.reason.trim());
+    if (result.success) {
+      setUnlockWeekTarget(null);
+    } else {
+      setUnlockWeekTarget({ ...unlockWeekTarget, error: result.message });
     }
   };
 
@@ -128,6 +153,30 @@ export const DataLockManager: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* 3-Tier Hierarchy Switcher */}
+      <div className="flex items-center gap-2 p-1.5 bg-slate-200/70 rounded-xl w-fit">
+        <button
+          className="px-3.5 py-1.5 bg-white text-slate-900 rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5"
+        >
+          <Lock size={13} className="text-blue-600" />
+          <span>Chốt Dữ Liệu Tuần</span>
+        </button>
+        <button
+          onClick={() => setCurrentTab('month_rankings')}
+          className="px-3.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+        >
+          <Calendar size={13} />
+          <span>Chốt Dữ Liệu Tháng</span>
+        </button>
+        <button
+          onClick={() => setCurrentTab('semester_rankings')}
+          className="px-3.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+        >
+          <Trophy size={13} />
+          <span>Chốt Dữ Liệu Học Kỳ</span>
+        </button>
+      </div>
+
       {/* Top Banner */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -193,7 +242,7 @@ export const DataLockManager: React.FC = () => {
             <Calendar size={16} className="text-blue-600" />
           </div>
           <div className="text-2xl font-black text-blue-950 mt-1 tabular-nums">
-            {totalLocked} <span className="text-xs font-normal text-slate-400">/ 35 tuần</span>
+            {totalLocked} <span className="text-xs font-normal text-slate-400">/ {maxWeeks} tuần</span>
           </div>
           <div className="text-[11px] text-emerald-700 font-semibold mt-1 flex items-center gap-1">
             <CheckCircle2 size={12} />
@@ -267,7 +316,7 @@ export const DataLockManager: React.FC = () => {
                   filterSemester === 'all' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Cả năm (35T)
+                Cả năm ({maxWeeks}T)
               </button>
               <button
                 onClick={() => setFilterSemester('hk1')}
@@ -275,7 +324,7 @@ export const DataLockManager: React.FC = () => {
                   filterSemester === 'hk1' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Học kỳ 1 (1-18)
+                Học kỳ 1 (1-{sem1Weeks})
               </button>
               <button
                 onClick={() => setFilterSemester('hk2')}
@@ -283,7 +332,7 @@ export const DataLockManager: React.FC = () => {
                   filterSemester === 'hk2' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Học kỳ 2 (19-35)
+                Học kỳ 2 ({sem1Weeks + 1}-{maxWeeks})
               </button>
             </div>
 
@@ -311,13 +360,13 @@ export const DataLockManager: React.FC = () => {
                   filterStatus === 'unlocked' ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Đang mở ({35 - totalLocked})
+                Đang mở ({Math.max(0, maxWeeks - totalLocked)})
               </button>
             </div>
           </div>
 
           <div className="text-xs text-slate-500">
-            Hiển thị <strong>{filteredWeeks.length}</strong> / 35 tuần
+            Hiển thị <strong>{filteredWeeks.length}</strong> / {maxWeeks} tuần
           </div>
         </div>
 
@@ -493,8 +542,10 @@ export const DataLockManager: React.FC = () => {
               {/* Header Official Letterhead */}
               <div className="grid grid-cols-2 text-center pb-4 border-b border-slate-200">
                 <div>
-                  <div className="font-bold text-xs uppercase text-slate-700">PHÒNG GD&ĐT HUYỆN HẬU LỘC</div>
-                  <div className="font-extrabold text-xs sm:text-sm text-blue-950 uppercase mt-0.5">TRƯỜNG THCS LÊ HỮU LẬP</div>
+                  {settings.governingBody && settings.governingBody.trim() && (
+                    <div className="font-bold text-xs uppercase text-slate-700">{settings.governingBody.trim()}</div>
+                  )}
+                  <div className="font-extrabold text-xs sm:text-sm text-blue-950 uppercase mt-0.5">{settings.schoolName || 'TRƯỜNG THCS LÊ HỮU LẬP'}</div>
                   <div className="text-[11px] text-slate-500 mt-0.5">Số: ...... /BB-THCSLHL</div>
                 </div>
                 <div>
@@ -628,6 +679,67 @@ export const DataLockManager: React.FC = () => {
                   Đóng
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unlock Week Reason Modal */}
+      {unlockWeekTarget && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-5 lg:p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                <Unlock size={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-800">
+                  Mở Khóa Dữ Liệu Tuần {unlockWeekTarget.week}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Quyền Quản trị viên cấp cao (Super Admin)
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
+              <p className="font-semibold">Bảo mật dữ liệu đã chốt:</p>
+              <p>
+                Dữ liệu Tuần {unlockWeekTarget.week} đã được chốt và đóng băng. Thao tác mở khóa bắt buộc phải giải trình lý do chính đáng và sẽ được lưu trữ vĩnh viễn trong nhật ký kiểm toán hệ thống.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700">
+                Lý do mở khóa <span className="text-rose-600">*</span>
+              </label>
+              <textarea
+                value={unlockWeekTarget.reason}
+                onChange={(e) => setUnlockWeekTarget({ ...unlockWeekTarget, reason: e.target.value, error: undefined })}
+                placeholder="Nhập lý do chi tiết (VD: Điều chỉnh biên bản vi phạm theo đơn khiếu nại được BGH phê duyệt)..."
+                rows={3}
+                className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white"
+              />
+              {unlockWeekTarget.error && (
+                <p className="text-xs text-rose-600 font-medium">
+                  {unlockWeekTarget.error}
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setUnlockWeekTarget(null)}
+                className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={handleConfirmUnlockWeek}
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-amber-600 hover:bg-amber-700 text-white transition-all shadow-sm cursor-pointer"
+              >
+                Xác nhận Mở Khóa Tuần
+              </button>
             </div>
           </div>
         </div>

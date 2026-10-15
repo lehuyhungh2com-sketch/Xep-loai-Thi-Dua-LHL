@@ -52,6 +52,11 @@ import {
   generateInitialCampusWeeklyDuties,
 } from '../data/dutyData';
 import {
+  DEFAULT_CAMPUSES,
+  INITIAL_CLASSES_SUMMARY,
+  ALL_INITIAL_USERS,
+} from '../utils/defaultUsers';
+import {
   exportOfflineStandbyEvaluationBook,
   exportRankingsToExcel,
   exportMonthlyRankingsToExcel,
@@ -657,6 +662,39 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } catch {}
   }, [users]);
 
+  const [settings, setSettings] = useState<SchoolSettings>(() => {
+    const academicYear = '2026-2027';
+    const startWeek1 = calculateNaturalWeek1StartDate(academicYear);
+    const { currentWeek: calculatedActive } = calculateCurrentActiveWeek(startWeek1, 35);
+    return {
+      schoolName: 'Trường THCS Lê Hữu Lập',
+      governingBody: '',
+      academicYear,
+      basePointsPerWeek: 100,
+      currentWeek: calculatedActive,
+      totalWeeksSemester1: 18,
+      totalWeeksSemester2: 17,
+      totalWeeks: 35,
+      current_active_week: calculatedActive,
+      start_date_of_week_1: startWeek1,
+      max_weeks: 35,
+      monthWeeksMap: {
+        9: [1, 2, 3, 4],
+        10: [5, 6, 7, 8],
+        11: [9, 10, 11, 12, 13],
+        12: [14, 15, 16, 17, 18],
+        1: [19, 20, 21, 22],
+        2: [23, 24, 25, 26],
+        3: [27, 28, 29, 30],
+        4: [31, 32, 33, 34],
+        5: [35],
+      },
+      yearFormula: '(HK1 + HK2 * 2) / 3',
+      evaluationConfig: DEFAULT_EVALUATION_CONFIG,
+      dataMode: 'production',
+    };
+  });
+
   const [historicalWeeklyScores, setHistoricalWeeklyScores] = useState<HistoricalWeeklyScoresMap>({});
 
   const [bonusMonthly, setBonusMonthly] = useState<Record<string, number>>(() => {
@@ -1018,15 +1056,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [academicYearArchives]);
 
   // =========================================================================
-  // KIẾN TRÚC LƯU TRỮ TẬP TRUNG (CENTRAL DATABASE & REAL-TIME SYNCHRONIZATION)
-  // Gỡ bỏ việc dùng localStorage làm nguồn dữ liệu chính.
-  // Mọi thiết bị, trình duyệt và cửa sổ ẩn danh đều nạp trực tiếp từ máy chủ trung tâm.
+  // KHỞI TẠO VÀ XÁC THỰC 100% CLIENT-SIDE (PHÙ HỢP VERCEL STATIC HOSTING)
   // =========================================================================
-  const lastSyncTimestampRef = useRef<string>('');
-
   const loadCentralDatabase = useCallback(async (_isInitial = false) => {
     setIsDataLoaded(true);
-  }, []);, []);
+  }, []);
 
   // Nạp ngay khi mở app và tự động đồng bộ thời gian thực mỗi 4 giây qua mạng
   useEffect(() => {
@@ -1339,6 +1373,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
 
+    // 1. Chọc thẳng vào Cơ sở dữ liệu (State / Store) chứa danh sách Người dùng mới nhất
     let currentUsersList: User[] = [...users];
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.USERS);
@@ -1353,6 +1388,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     } catch {}
 
+    // 2. Kiểm tra bằng hàm find(): Tìm user có email (chuyển sang chữ thường .toLowerCase()) và password trùng với input
     let matched = currentUsersList.find((u) => {
       const uEmail = (u.email || '').trim().toLowerCase();
       const isAdmin =
@@ -1367,6 +1403,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return uEmail === cleanEmail && uPassword === cleanPassword;
     });
 
+    // Nếu vẫn không tìm thấy: kiểm tra xem email có tồn tại không để thông báo chính xác
     if (!matched) {
       const emailExists = currentUsersList.find(
         (u) => (u.email || '').trim().toLowerCase() === cleanEmail
@@ -1390,16 +1427,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       };
     }
 
+    // Bất kỳ email nào tồn tại trong CSDL và đúng mật khẩu đều được cấp quyền đăng nhập, không phân biệt role!
     setCurrentUserId(matched.id);
     try {
       sessionStorage.setItem('lhl_session_auth_user_id', matched.id);
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER_ID, matched.id);
     } catch {}
+
+    if (matched.campusId) {
+      setSelectedCampusId(matched.campusId);
+    }
+
+    // Direct entry to tab: nếu là Giáo viên (Role 4) thì vào thẳng Nhập điểm (vì đã ẩn Dashboard)
+    const isTeacher = matched.role === 'gvcn' || matched.role === 'teacher' || (matched.role as any) === 4 || (matched.role as any) === '4';
+    const targetTab = isTeacher ? 'scoring' : 'dashboard';
+    setCurrentTab(targetTab);
+
+    // Đồng bộ ngầm danh sách người dùng và phiên đăng nhập tới backend
+    fetch('/api/users/sync-from-classes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ users: currentUsersList }),
+    }).catch(() => {});
 
     return {
       success: true,
-      message: `Đăng nhập thành công với tài khoản ${matched.name} (${matched.title || matched.role})`,
       user: matched,
+      targetTab,
+      message: `Đăng nhập thành công! Chào mừng ${matched.name}.`,
     };
   };
 

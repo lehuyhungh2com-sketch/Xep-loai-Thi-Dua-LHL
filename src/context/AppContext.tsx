@@ -1250,6 +1250,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   }, []);
 
+  // Tự động đẩy dữ liệu khởi tạo lên Cloud Firestore nếu CSDL trên Cloud còn trống
+  useEffect(() => {
+    if (!isFirebaseConfigured()) return;
+
+    const unSub = subscribeCollection<ClassItem>(CLOUD_COLLECTIONS.CLASSES, (items) => {
+      if (items.length === 0) {
+        if (classes.length > 0) batchSaveCloudDocs(CLOUD_COLLECTIONS.CLASSES, classes);
+        if (users.length > 0) batchSaveCloudDocs(CLOUD_COLLECTIONS.USERS, users);
+        if (criteria.length > 0) batchSaveCloudDocs(CLOUD_COLLECTIONS.CRITERIA, criteria);
+        if (campuses.length > 0) batchSaveCloudDocs(CLOUD_COLLECTIONS.CAMPUSES, campuses);
+        if (settings) saveCloudDoc(CLOUD_COLLECTIONS.SETTINGS, 'global', settings);
+      }
+    });
+
+    return () => unSub();
+  }, []);
+
   const lastSyncTimestampRef = useRef<string>('');
 
   const loadCentralDatabase = useCallback(async (isInitial = false) => {
@@ -3041,6 +3058,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newCrit = { ...crit, id };
     setCriteria((prev) => [...prev, newCrit]);
 
+    // Synchronize to Cloud Firestore
+    saveCloudDoc(CLOUD_COLLECTIONS.CRITERIA, id, newCrit);
+
     // Persist to central database
     fetch('/api/criteria', {
       method: 'POST',
@@ -3069,6 +3089,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const updated = { ...oldCrit, ...patch };
     setCriteria((prev) => prev.map((c) => (c.id === id ? updated : c)));
 
+    // Synchronize to Cloud Firestore
+    saveCloudDoc(CLOUD_COLLECTIONS.CRITERIA, id, updated);
+
     // Persist to central database so F5 does not lose changes
     fetch(`/api/criteria/${encodeURIComponent(id)}`, {
       method: 'PUT',
@@ -3096,6 +3119,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!oldCrit) return { success: false, message: 'Không tìm thấy tiêu chí' };
     setCriteria((prev) => prev.filter((c) => c.id !== id));
 
+    // Delete from Cloud Firestore
+    deleteCloudDoc(CLOUD_COLLECTIONS.CRITERIA, id);
+
     // Persist deletion to central database
     fetch(`/api/criteria/${encodeURIComponent(id)}`, {
       method: 'DELETE',
@@ -3120,7 +3146,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const oldCrit = criteria.find((c) => c.id === id);
     if (!oldCrit) return { success: false, message: 'Không tìm thấy tiêu chí' };
     const nextActive = !oldCrit.isActive;
-    setCriteria((prev) => prev.map((c) => (c.id === id ? { ...c, isActive: nextActive } : c)));
+    const updated = { ...oldCrit, isActive: nextActive };
+    setCriteria((prev) => prev.map((c) => (c.id === id ? updated : c)));
+
+    // Synchronize to Cloud Firestore
+    saveCloudDoc(CLOUD_COLLECTIONS.CRITERIA, id, updated);
 
     // Persist to central database
     fetch(`/api/criteria/${encodeURIComponent(id)}`, {

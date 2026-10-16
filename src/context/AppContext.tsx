@@ -1319,6 +1319,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         classes: classesSnap.docs.map(d => ({ id: d.id, ...d.data() })),
         criteria: criteriaSnap.docs.map(d => ({ id: d.id, ...d.data() })),
         settings: settingsSnap.exists() ? settingsSnap.data() : {},
+        bonus_monthly: (await getDoc(doc(db, 'settings', 'bonus_monthly'))).data() || {},
       };
       
       if (data.success) {

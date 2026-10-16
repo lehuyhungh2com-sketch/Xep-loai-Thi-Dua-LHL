@@ -72,7 +72,7 @@ export const ReportsAnalytics: React.FC = () => {
 
   // Top Violations across current week logs
   const topViolations = useMemo(() => {
-    const weekLogs = scoreLogs.filter((l) => l.week === selectedWeek && (l.type === 'penalty' || l.totalPoints < 0));
+    const weekLogs = scoreLogs.filter((l) => Number(l.week) === Number(selectedWeek) && (l.type === 'penalty' || l.totalPoints < 0));
     const map = new Map<string, { code: string; name: string; category: string; count: number; points: number }>();
 
     weekLogs.forEach((l) => {
@@ -95,7 +95,7 @@ export const ReportsAnalytics: React.FC = () => {
 
   // Top Honors / Bonuses across current week logs
   const topBonuses = useMemo(() => {
-    const weekLogs = scoreLogs.filter((l) => l.week === selectedWeek && (l.type === 'bonus' || l.totalPoints > 0));
+    const weekLogs = scoreLogs.filter((l) => Number(l.week) === Number(selectedWeek) && (l.type === 'bonus' || l.totalPoints > 0));
     const map = new Map<string, { code: string; name: string; category: string; count: number; points: number }>();
 
     weekLogs.forEach((l) => {

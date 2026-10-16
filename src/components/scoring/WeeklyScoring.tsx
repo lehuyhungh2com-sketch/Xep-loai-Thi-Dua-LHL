@@ -34,7 +34,7 @@ import {
   Flag,
 } from 'lucide-react';
 import { Criteria, ScoreLog, CriteriaPeriod, ClassItem, Campus, CampusWeeklyDuty, normalizeRole } from '../../types';
-import { canInputScores, ROLE_METADATA } from '../../utils/rbac';
+import { canInputScores, canLockWeek, canUnlockWeek, ROLE_METADATA } from '../../utils/rbac';
 import { exportWeeklyScoringTemplate } from '../../utils/excelTemplateManager';
 import { ExcelImportModal } from './ExcelImportModal';
 
@@ -51,6 +51,7 @@ export const WeeklyScoring: React.FC = () => {
     userRole,
     lockedWeeks,
     isWeekLocked,
+    toggleLockWeek,
     addScoreLog,
     updateScoreLog,
     deleteScoreLog,
@@ -68,6 +69,30 @@ export const WeeklyScoring: React.FC = () => {
   if (!currentUser) return null;
 
   const isLocked = isWeekLocked(selectedWeek);
+  const canLock = canLockWeek(currentUser);
+  const canUnlock = canUnlockWeek(currentUser);
+
+  const handleToggleLockCurrentWeek = () => {
+    if (isLocked) {
+      if (!canUnlock) {
+        alert(`Từ chối quyền: Chỉ Quản trị viên tối cao (Admin) mới có thẩm quyền mở khóa dữ liệu Tuần ${selectedWeek} đã chốt!`);
+        return;
+      }
+      const reason = window.prompt(`Nhập lý do mở khóa dữ liệu Tuần ${selectedWeek} (Bắt buộc để lưu vết kiểm toán hệ thống):`);
+      if (!reason || !reason.trim()) return;
+      const res = toggleLockWeek(selectedWeek, reason.trim());
+      alert(res.message);
+    } else {
+      if (!canLock) {
+        alert(`Từ chối quyền: Chỉ Ban Giám Hiệu, Tổng Phụ Trách Đội hoặc Quản trị viên mới có thẩm quyền chốt số liệu Tuần ${selectedWeek}!`);
+        return;
+      }
+      if (window.confirm(`Xác nhận CHỐT KHÓA dữ liệu thi đua Tuần ${selectedWeek}? Toàn bộ điểm số tuần này sẽ được đóng băng để tính bảng xếp hạng.`)) {
+        const res = toggleLockWeek(selectedWeek);
+        alert(res.message);
+      }
+    }
+  };
 
   // 1. Phân hiệu & Tuần
   const [selectedCampusId, setSelectedCampusId] = useState<string>(() => {
@@ -247,7 +272,7 @@ export const WeeklyScoring: React.FC = () => {
   const classLogs = useMemo(() => {
     if (!currentClass) return [];
     return scoreLogs.filter(
-      (l) => l.classId === currentClass.id && l.week === selectedWeek
+      (l) => l.classId === currentClass.id && Number(l.week) === Number(selectedWeek)
     );
   }, [scoreLogs, currentClass, selectedWeek]);
 
@@ -272,7 +297,7 @@ export const WeeklyScoring: React.FC = () => {
     return scoreLogs.find(
       (l) =>
         l.classId === currentClass.id &&
-        l.week === selectedWeek &&
+        Number(l.week) === Number(selectedWeek) &&
         (l.criteriaId === currentCriteria.id || l.criteriaCode === currentCriteria.code)
     );
   }, [scoreLogs, currentClass, selectedWeek, currentCriteria]);
@@ -580,15 +605,39 @@ export const WeeklyScoring: React.FC = () => {
             </div>
 
             {isLocked ? (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold">
-                <Lock size={14} className="text-amber-400" />
-                <span>TUẦN ĐÃ CHỐT</span>
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold">
+                  <Lock size={14} className="text-amber-400" />
+                  <span>TUẦN ĐÃ CHỐT</span>
+                </span>
+                {canUnlock && (
+                  <button
+                    onClick={handleToggleLockCurrentWeek}
+                    title={`Mở khóa Tuần ${selectedWeek} (Yêu cầu quyền Admin & lý do)`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  >
+                    <Unlock size={13} />
+                    <span>Mở khóa tuần</span>
+                  </button>
+                )}
+              </div>
             ) : (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-bold">
-                <Unlock size={14} className="text-emerald-400" />
-                <span>ĐANG MỞ CHẤM</span>
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-bold">
+                  <Unlock size={14} className="text-emerald-400" />
+                  <span>ĐANG MỞ CHẤM</span>
+                </span>
+                {canLock && (
+                  <button
+                    onClick={handleToggleLockCurrentWeek}
+                    title={`Chốt điểm thi đua Tuần ${selectedWeek}`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  >
+                    <Lock size={13} />
+                    <span>Chốt điểm tuần</span>
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>

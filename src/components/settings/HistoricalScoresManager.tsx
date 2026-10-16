@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   History,
@@ -74,8 +74,25 @@ export const HistoricalScoresManager: React.FC = () => {
   const [statusMsg, setStatusMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const prevSelectedWeekRef = useRef(selectedWeek);
+  const getClassWeeklyScoreRef = useRef(getClassWeeklyScore);
+  useEffect(() => {
+    getClassWeeklyScoreRef.current = getClassWeeklyScore;
+  });
+
   // Initialize or update scores input whenever selectedWeek changes or historicalWeeklyScores updates
   useEffect(() => {
+    const weekChanged = prevSelectedWeekRef.current !== selectedWeek;
+    if (weekChanged) {
+      prevSelectedWeekRef.current = selectedWeek;
+    }
+
+    // CRITICAL FIX: Khi người dùng đang nhập liệu (isDirty === true) hoặc đang lưu (isSaving === true),
+    // TUYỆT ĐỐI KHÔNG reset hay đè dữ liệu đang gõ bằng polling từ Database!
+    if (!weekChanged && (isDirty || isSaving)) {
+      return;
+    }
+
     const weekNum = Number(selectedWeek);
     const existingWeekData = historicalWeeklyScores[weekNum] || (historicalWeeklyScores as any)[String(weekNum)];
     const initialMap: Record<string, { score: string; note: string }> = {};
@@ -99,9 +116,9 @@ export const HistoricalScoresManager: React.FC = () => {
         };
       } else {
         // If no historical score exists, provide reference score (from logs) or default 100
-        const refScore = getClassWeeklyScore(cls.id, selectedWeek);
+        const refScore = getClassWeeklyScoreRef.current(cls.id, selectedWeek);
         initialMap[cls.id] = {
-          score: String(refScore.finalScore),
+          score: String(refScore?.finalScore ?? 100),
           note: '',
         };
       }
@@ -109,7 +126,7 @@ export const HistoricalScoresManager: React.FC = () => {
 
     setScoresInput(initialMap);
     setIsDirty(false);
-  }, [selectedWeek, historicalWeeklyScores, classes, getClassWeeklyScore]);
+  }, [selectedWeek, historicalWeeklyScores, classes]);
 
   // Check if current week has saved historical data
   const hasSavedHistoricalData = useMemo(() => {

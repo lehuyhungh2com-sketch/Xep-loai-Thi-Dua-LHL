@@ -64,7 +64,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
   // 1. Weekly Score Info for selected week
   const currentWeekScore = getClassWeeklyScore(classItem.id, selectedWeekNum);
   const weekLogs = scoreLogs.filter(
-    (l) => l.classId === classItem.id && (l.week === selectedWeekNum || (l.period !== 'week' && l.period !== undefined))
+    (l) => l.classId === classItem.id && (Number(l.week) === Number(selectedWeekNum) || (l.period !== 'week' && l.period !== undefined))
   );
   const bonusLogs = weekLogs.filter((l) => l.type === 'bonus' || l.totalPoints > 0);
   const penaltyLogs = weekLogs.filter((l) => l.type === 'penalty' || l.totalPoints < 0);

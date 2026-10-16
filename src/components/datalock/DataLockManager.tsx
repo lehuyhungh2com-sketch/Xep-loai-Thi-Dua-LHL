@@ -20,7 +20,7 @@ import {
   Sparkles,
   ChevronRight
 } from 'lucide-react';
-import { canLockUnlockWeeks } from '../../utils/rbac';
+import { canLockWeek, canUnlockWeek } from '../../utils/rbac';
 
 export const DataLockManager: React.FC = () => {
   const {
@@ -49,8 +49,10 @@ export const DataLockManager: React.FC = () => {
 
   const sem1Weeks = settings.totalWeeksSemester1 || 18;
 
-  // Check permissions: Ban Giám Hiệu, TPT Đội or Super Admin
-  const canLock = canLockUnlockWeeks(currentUser);
+  // Check permissions: Ban Giám Hiệu, TPT Đội hoặc Quản trị viên
+  const canLock = canLockWeek(currentUser);
+  const canUnlock = canUnlockWeek(currentUser);
+  const canManageLock = canLock || canUnlock;
 
   // Build data list for all maxWeeks weeks
   const weeksData = useMemo(() => {
@@ -103,15 +105,19 @@ export const DataLockManager: React.FC = () => {
   const currentWeekIsLocked = isWeekLocked(selectedWeek);
 
   const handleToggle = (week: number) => {
-    if (!canLock) {
-      alert('Chỉ Ban Giám Hiệu, Tổng phụ trách Đội hoặc Quản trị viên mới có thẩm quyền chốt hoặc mở khóa dữ liệu tuần!');
-      return;
-    }
     const locked = isWeekLocked(week);
     if (locked) {
+      if (!canUnlock) {
+        alert(`Từ chối truy cập: Dữ liệu Tuần ${week} đã được chốt và đóng băng. Chỉ Quản trị viên hệ thống (Admin) mới có thẩm quyền mở khóa kèm giải trình lý do!`);
+        return;
+      }
       // Unlocking requires reason and Admin role
       setUnlockWeekTarget({ week, reason: '', error: undefined });
     } else {
+      if (!canLock) {
+        alert('Chỉ Ban Giám Hiệu, Tổng phụ trách Đội hoặc Quản trị viên mới có thẩm quyền chốt số liệu thi đua tuần!');
+        return;
+      }
       // Locking week
       const result = toggleLockWeek(week);
       if (!result.success) {
@@ -463,17 +469,31 @@ export const DataLockManager: React.FC = () => {
                     <td className="py-3.5 px-4 text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         {/* Lock / Unlock button */}
-                        {canLock && (
+                        {canManageLock && (
                           <button
                             onClick={() => handleToggle(item.week)}
-                            title={item.isLocked ? 'Mở khóa tuần' : 'Khóa chốt tuần'}
-                            className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                            title={
                               item.isLocked
-                                ? 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100'
-                                : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                                ? (canUnlock ? `Mở khóa Tuần ${item.week} (Yêu cầu quyền Admin & lý do giải trình)` : `Chỉ Quản trị viên (Admin) mới có quyền mở khóa Tuần ${item.week}`)
+                                : `Chốt số liệu & Khóa sổ Tuần ${item.week}`
+                            }
+                            className={`px-2.5 py-1.5 rounded-lg border font-bold text-[11px] flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
+                              item.isLocked
+                                ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                                : 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
                             }`}
                           >
-                            {item.isLocked ? <Unlock size={14} /> : <Lock size={14} />}
+                            {item.isLocked ? (
+                              <>
+                                <Unlock size={13} className="text-amber-600" />
+                                <span>Mở khóa</span>
+                              </>
+                            ) : (
+                              <>
+                                <Lock size={13} className="text-white" />
+                                <span>Chốt tuần</span>
+                              </>
+                            )}
                           </button>
                         )}
 

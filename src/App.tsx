@@ -28,7 +28,7 @@ const MainLayout: React.FC = () => {
 
   // Tự động chuyển hướng sang Bảng Xếp Hạng nếu tab hiện tại bị chặn theo phân quyền (ví dụ Role 4 Giáo viên)
   useEffect(() => {
-    if (isAuthenticated && currentUser && !canAccessTab(currentTab)) {
+    if (isAuthenticated && currentUser && currentTab !== 'rankings' && !canAccessTab(currentTab)) {
       setCurrentTab('rankings');
     }
   }, [isAuthenticated, currentUser, currentTab, canAccessTab, setCurrentTab]);

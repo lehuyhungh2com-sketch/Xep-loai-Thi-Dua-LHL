@@ -40,6 +40,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Điểm bảo lưu lịch sử (Historical Preserved Scores)
+    match /historical_scores/{docId} {
+      allow read, write: if true;
+    }
+
     // Cấu hình tiêu chí (Criteria & Version History)
     match /criteria/{criteriaId} {
       allow read, write: if true;

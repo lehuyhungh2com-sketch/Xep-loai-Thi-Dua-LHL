@@ -1745,7 +1745,7 @@ app.put('/api/appeals/:id/review', requireRole(['super_admin', 'bgh', 'tpt_doi',
 });
 
 // Week Data Lock API (Super Admin, BGH, and TPT Đội)
-app.post('/api/datalock/toggle', requireRole(['super_admin', 'bgh', 'tpt_doi']), (req: Request, res: Response) => {
+app.post('/api/datalock/toggle', requireRole(['super_admin', 'admin', 'bgh', 'tpt_doi']), (req: Request, res: Response) => {
   const user = extractUser(req);
   const week = Number(req.body.week);
 
@@ -1757,7 +1757,13 @@ app.post('/api/datalock/toggle', requireRole(['super_admin', 'bgh', 'tpt_doi']),
   const isCurrentlyLocked = db.lockedWeeks.includes(week);
   const beforeWeeks = [...db.lockedWeeks];
 
-  if (isCurrentlyLocked) {
+  if (Array.isArray(req.body.lockedWeeks)) {
+    // Client sent authoritative synced lockedWeeks array
+    db.lockedWeeks = (req.body.lockedWeeks as unknown[])
+      .map(Number)
+      .filter((n: number) => !isNaN(n) && n >= 1 && n <= 35)
+      .sort((a: number, b: number) => a - b);
+  } else if (isCurrentlyLocked) {
     // Mở khóa dữ liệu (Unlock data): CHỈ CHO PHÉP tài khoản có role === 1 (Quản trị viên)
     if (user.role !== 'super_admin' && user.role !== 'admin') {
       res.status(403).json({
@@ -1770,6 +1776,10 @@ app.post('/api/datalock/toggle', requireRole(['super_admin', 'bgh', 'tpt_doi']),
   } else {
     // Chốt dữ liệu (Lock data): Giữ nguyên cho phép Role 1, Role 2, Role 3
     db.lockedWeeks = [...db.lockedWeeks, week].sort((a, b) => a - b);
+  }
+
+  if (db.settings) {
+    db.settings.lockedWeeks = db.lockedWeeks;
   }
 
   const action = isCurrentlyLocked ? 'MO_KHOA_TUAN' : 'CHOT_DU_LIEU_TUAN';

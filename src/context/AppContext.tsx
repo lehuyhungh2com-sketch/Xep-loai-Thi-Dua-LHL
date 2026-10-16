@@ -1299,10 +1299,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // 3. Nạp từ máy chủ trung tâm backend (nếu có) và kết hợp thông minh (không ghi đè mất dữ liệu mây)
     try {
-      const res = await fetch('/api/bootstrap');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
+      // Direct Firestore fetch for bootstrap data (Replacting /api/bootstrap)
+      const [usersSnap, classesSnap, criteriaSnap, settingsSnap] = await Promise.all([
+        getDocs(collection(db, 'users')),
+        getDocs(collection(db, 'classes')),
+        getDocs(collection(db, 'criteria')),
+        getDoc(doc(db, 'school_settings', 'current')),
+      ]);
+
+      const data = {
+        success: true,
+        users: usersSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+        classes: classesSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+        criteria: criteriaSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+        settings: settingsSnap.exists() ? settingsSnap.data() : {},
+      };
+      
+      if (data.success) {
           if (data.lastUpdated) {
             lastSyncTimestampRef.current = data.lastUpdated;
           }
@@ -1399,16 +1412,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             setBonusYearly(data.bonus_yearly);
           }
         }
-      } else if (cloudScoresMap.size > 0) {
-        // Trường hợp backend API không khả dụng (ví dụ chạy trên điện thoại hoặc môi trường static hosting)
-        const finalScores = Array.from(cloudScoresMap.values());
-        finalScores.sort((a, b) => (b.id || '').localeCompare(a.id || ''));
-        setScoreLogs(finalScores);
-        try {
-          localStorage.setItem(STORAGE_KEYS.SCORE_LOGS, JSON.stringify(finalScores));
-        } catch {}
-      }
-    } catch (err) {
+        } catch (err) {
       console.warn('Lỗi kết nối máy chủ trung tâm (sử dụng nguồn Firebase/cục bộ):', err);
       if (cloudScoresMap.size > 0) {
         const finalScores = Array.from(cloudScoresMap.values());
@@ -5095,20 +5099,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // Synchronize to backend
     try {
-      await fetch('/api/historical-scores', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': currentUser.id,
-          'x-user-name': currentUser.name,
-          'x-user-role': currentUser.role,
-        },
-        body: JSON.stringify({
-          week,
-          scores: updatedWeekMap,
-          lockWeek: autoLock,
-        }),
+      await saveCloudDoc('historical_scores', 'current', {
+        week,
+        scores: updatedWeekMap,
+        lockWeek: autoLock,
+        updatedAt: new Date().toISOString(),
+        updatedBy: currentUser.id
       });
+
     } catch {}
 
     const classesCount = Object.keys(updatedWeekMap).length;

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback, ReactNode } from 'react';
 import masterDatabase from '../../data/server_db.json';
 import { db } from '../../firebase-config';
-import { doc, setDoc, deleteDoc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, onSnapshot, updateDoc, collection, getDocs } from 'firebase/firestore';
 import {
   Campus,
   ClassItem,
@@ -527,42 +527,129 @@ function determineTier(score: number): RankingEntry['performanceTier'] {
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // ... existing code ...
   
-  // Realtime Sync Hook
+  // Realtime Cloud Firestore Synchronization Hook (Song song Cục bộ & Đám mây)
+  // Lắng nghe dữ liệu thực tế từ collection 'scores' để điện thoại & máy tính luôn đồng bộ điểm tức thì
   useEffect(() => {
-    const collectionsToSync = ['classes', 'campuses', 'users', 'score_logs', 'school_settings'];
-    const unsubscribers = collectionsToSync.map(collectionName => {
+    const unsubscribers: Array<() => void> = [];
+
+    // 1. Lắng nghe toàn bộ biên bản điểm từ collection 'scores'
+    try {
+      const unsubScores = onSnapshot(collection(db, 'scores'), (snapshot) => {
+        if (!snapshot.empty) {
+          const cloudLogs: ScoreLog[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            cloudLogs.push({ id: docSnap.id, ...data } as ScoreLog);
+          });
+          // Sắp xếp thứ tự mới nhất lên đầu
+          cloudLogs.sort((a, b) => (b.id || '').localeCompare(a.id || ''));
+          setScoreLogs(cloudLogs);
+          try {
+            localStorage.setItem(STORAGE_KEYS.SCORE_LOGS, JSON.stringify(cloudLogs));
+          } catch {}
+        }
+      }, (err) => {
+        console.warn('Lưu ý đồng bộ Cloud Firestore (scores):', err);
+      });
+      unsubscribers.push(unsubScores);
+    } catch (e) {
+      console.warn('Không thể khởi tạo listener cho collection scores:', e);
+    }
+
+    // 2. Lắng nghe trạng thái chốt tuần
+    try {
+      const unsubWeeks = onSnapshot(doc(db, 'locked_weeks', 'summary'), (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          if (Array.isArray(data.lockedWeeks)) {
+            setLockedWeeks(data.lockedWeeks);
+            try {
+              localStorage.setItem(STORAGE_KEYS.LOCKED_WEEKS, JSON.stringify(data.lockedWeeks));
+            } catch {}
+          }
+        }
+      }, (err) => console.warn('Lưu ý đồng bộ locked_weeks:', err));
+      unsubscribers.push(unsubWeeks);
+    } catch {}
+
+    // 3. Lắng nghe trạng thái chốt tháng
+    try {
+      const unsubMonths = onSnapshot(doc(db, 'locked_months', 'summary'), (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          const months = data.lockedMonths || data.months;
+          if (months && typeof months === 'object') {
+            setLockedMonths(months);
+            try {
+              localStorage.setItem(STORAGE_KEYS.LOCKED_MONTHS, JSON.stringify(months));
+            } catch {}
+          }
+        }
+      }, (err) => console.warn('Lưu ý đồng bộ locked_months:', err));
+      unsubscribers.push(unsubMonths);
+    } catch {}
+
+    // 4. Lắng nghe danh mục tiêu chí
+    try {
+      const unsubCriteria = onSnapshot(doc(db, 'criteria_sync', 'current'), (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          if (Array.isArray(data.list) && data.list.length > 0) {
+            setCriteria(data.list);
+            try {
+              localStorage.setItem(STORAGE_KEYS.CRITERIA, JSON.stringify(data.list));
+            } catch {}
+          }
+        }
+      }, (err) => console.warn('Lưu ý đồng bộ criteria:', err));
+      unsubscribers.push(unsubCriteria);
+    } catch {}
+
+    // 5. Lắng nghe điểm bảo lưu lịch sử (Historical Scores)
+    try {
+      const unsubHist = onSnapshot(doc(db, 'historical_scores', 'summary'), (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          if (data.scores && typeof data.scores === 'object') {
+            setHistoricalWeeklyScores(data.scores);
+            try {
+              localStorage.setItem(STORAGE_KEYS.HISTORICAL_SCORES, JSON.stringify(data.scores));
+            } catch {}
+          }
+        }
+      }, (err) => console.warn('Lưu ý đồng bộ historical_scores:', err));
+      unsubscribers.push(unsubHist);
+    } catch {}
+
+    // 6. Lắng nghe các tài liệu bổ trợ (classes, campuses, users, school_settings)
+    const auxiliaryDocs = ['classes', 'campuses', 'users', 'school_settings'];
+    auxiliaryDocs.forEach((colName) => {
       try {
-        return onSnapshot(doc(db, collectionName, 'data'), (snapshot) => {
+        const unsub = onSnapshot(doc(db, colName, 'data'), (snapshot) => {
           if (snapshot.exists()) {
             const data = snapshot.data();
-            // Update local state and localStorage
-            if (collectionName === 'classes' && data.list) {
+            if (colName === 'classes' && Array.isArray(data.list)) {
               setClasses(data.list);
-              localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(data.list));
-            } else if (collectionName === 'campuses' && data.list) {
+              try { localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(data.list)); } catch {}
+            } else if (colName === 'campuses' && Array.isArray(data.list)) {
               setCampuses(data.list);
-              localStorage.setItem(STORAGE_KEYS.CAMPUSES, JSON.stringify(data.list));
-            } else if (collectionName === 'users' && data.list) {
+              try { localStorage.setItem(STORAGE_KEYS.CAMPUSES, JSON.stringify(data.list)); } catch {}
+            } else if (colName === 'users' && Array.isArray(data.list)) {
               setUsers(data.list);
-              localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(data.list));
-            } else if (collectionName === 'score_logs' && data.list) {
-              setScoreLogs(data.list);
-              localStorage.setItem(STORAGE_KEYS.SCORE_LOGS, JSON.stringify(data.list));
-            } else if (collectionName === 'school_settings') {
+              try { localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(data.list)); } catch {}
+            } else if (colName === 'school_settings') {
               setSettings((prev) => ({ ...prev, ...data }));
-              localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify({ ...settings, ...data }));
+              try { localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify({ ...settings, ...data })); } catch {}
             }
           }
-        }, (error) => {
-          console.error(`Error syncing ${collectionName}:`, error);
-        });
-      } catch (e) {
-        console.error(`Failed to setup snapshot for ${collectionName}:`, e);
-        return () => {};
-      }
+        }, () => {});
+        unsubscribers.push(unsub);
+      } catch {}
     });
 
-    return () => unsubscribers.forEach(unsub => unsub());
+    return () => unsubscribers.forEach(unsub => {
+      try { unsub(); } catch {}
+    });
   }, []);
 
   // ... existing code ...
@@ -1224,6 +1311,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const lastSyncTimestampRef = useRef<string>('');
 
   const loadCentralDatabase = useCallback(async (isInitial = false) => {
+    // 1. Nạp trực tiếp từ Cloud Firestore (Đảm bảo điện thoại di động & Netlify tải đúng 100% dữ liệu)
+    try {
+      const scoresSnap = await getDocs(collection(db, 'scores'));
+      if (!scoresSnap.empty) {
+        const cloudScores: ScoreLog[] = [];
+        scoresSnap.forEach((d) => {
+          cloudScores.push({ id: d.id, ...d.data() } as ScoreLog);
+        });
+        cloudScores.sort((a, b) => (b.id || '').localeCompare(a.id || ''));
+        setScoreLogs(cloudScores);
+        try {
+          localStorage.setItem(STORAGE_KEYS.SCORE_LOGS, JSON.stringify(cloudScores));
+        } catch {}
+      }
+    } catch (fbErr) {
+      console.warn('Lưu ý kết nối Firestore ban đầu:', fbErr);
+    }
+
     try {
       const res = await fetch('/api/bootstrap');
       if (res.ok) {

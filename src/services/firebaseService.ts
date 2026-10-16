@@ -4,11 +4,12 @@ import {
   getFirestore,
   doc,
   collection,
-  onSnapshot,
   setDoc,
   deleteDoc,
   getDocFromServer,
   writeBatch,
+  getDoc,
+  getDocs,
 } from 'firebase/firestore';
 import { firebaseConfig } from '../../firebase-config';
 
@@ -95,68 +96,7 @@ export const CLOUD_COLLECTIONS = {
 };
 
 /**
- * Real-time listener for a Firestore collection
- */
-export function subscribeCollection<T extends { id: string }>(
-  collectionName: string,
-  onData: (items: T[]) => void,
-  onError?: (err: any) => void
-): () => void {
-  if (!isFirebaseConfigured()) return () => {};
-  try {
-    const colRef = collection(db, collectionName);
-    return onSnapshot(
-      colRef,
-      (snapshot) => {
-        const items: T[] = [];
-        snapshot.forEach((d) => {
-          items.push({ id: d.id, ...d.data() } as T);
-        });
-        onData(items);
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.LIST, collectionName);
-        if (onError) onError(error);
-      }
-    );
-  } catch (e) {
-    handleFirestoreError(e, OperationType.LIST, collectionName);
-    return () => {};
-  }
-}
-
-/**
- * Real-time listener for a single Firestore document
- */
-export function subscribeDocument<T>(
-  collectionName: string,
-  documentId: string,
-  onData: (data: T | null) => void
-): () => void {
-  if (!isFirebaseConfigured()) return () => {};
-  try {
-    const docRef = doc(db, collectionName, documentId);
-    return onSnapshot(
-      docRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          onData({ id: snapshot.id, ...snapshot.data() } as T);
-        } else {
-          onData(null);
-        }
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.GET, `${collectionName}/${documentId}`);
-      }
-    );
-  } catch (e) {
-    handleFirestoreError(e, OperationType.GET, `${collectionName}/${documentId}`);
-    return () => {};
-  }
-}
-
-/**
- * Save / Update a document in Firestore in real-time
+ * Save / Update a document in Firestore
  */
 export async function saveCloudDoc(collectionName: string, documentId: string, data: any): Promise<boolean> {
   if (!isFirebaseConfigured()) return false;
@@ -190,7 +130,7 @@ export async function replaceCloudDoc(collectionName: string, documentId: string
 }
 
 /**
- * Delete a document from Firestore in real-time
+ * Delete a document from Firestore
  */
 export async function deleteCloudDoc(collectionName: string, documentId: string): Promise<boolean> {
   if (!isFirebaseConfigured()) return false;

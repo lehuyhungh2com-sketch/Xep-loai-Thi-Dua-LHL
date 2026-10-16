@@ -22,6 +22,7 @@ import {
   LogOut,
   KeyRound,
   Download,
+  RefreshCw,
 } from 'lucide-react';
 import { RoleType } from '../../types';
 import { ROLE_METADATA, isRoleTeacher } from '../../utils/rbac';
@@ -47,6 +48,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar, isMobileS
     currentActiveWeek,
     isWeekLocked,
     downloadSourceCodeZip,
+    loadDataFromFirebase,
     logout,
   } = useApp();
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
@@ -188,6 +190,14 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar, isMobileS
           {!isRoleTeacher(currentUser) && (
             <>
               <div className="hidden lg:flex items-center gap-1.5">
+                <button
+                  onClick={loadDataFromFirebase}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-blue-200 hover:border-blue-400 bg-white hover:bg-blue-50 text-blue-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                  title="Đồng bộ dữ liệu từ máy chủ"
+                >
+                  <RefreshCw size={15} />
+                  <span>Đồng Bộ</span>
+                </button>
                 <button
                   onClick={() => setShowAuditModal(true)}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 hover:border-indigo-300 bg-white hover:bg-indigo-50/60 text-slate-700 hover:text-indigo-800 text-xs font-bold transition-all cursor-pointer shadow-2xs"

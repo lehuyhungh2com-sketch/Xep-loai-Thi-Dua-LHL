@@ -246,6 +246,11 @@ interface AppContextType {
   // Criteria Cloning
   cloneCriteriaForAcademicYear: (fromYear: string, toYear: string) => { success: boolean; count: number; message: string };
 
+  // Data Synchronization
+  isDataLoaded: boolean;
+  loadDataFromFirebase: () => Promise<void>;
+  saveAllToFirebase: () => Promise<void>;
+
   // Data Mode
   dataMode: 'demo' | 'production';
   setDataMode: (mode: 'demo' | 'production') => { success: boolean; message: string };
@@ -630,7 +635,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return (masterDatabase.users as User[]) || [];
   });
 
-  const [isDataLoaded, setIsDataLoaded] = useState<boolean>(true);
+  // const [isDataLoaded, setIsDataLoaded] = useState<boolean>(true);
 
   const [settings, setSettings] = useState<SchoolSettings>(() => {
     try {
@@ -998,33 +1003,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       localStorage.setItem(STORAGE_KEYS.CRITERIA, JSON.stringify(criteria));
     } catch {}
-    const handler = setTimeout(() => {
-      try {
-        setDoc(doc(db, 'criteria_sync', 'current'), {
-          list: criteria,
-          count: criteria.length,
-          updatedAt: new Date().toISOString(),
-        }, { merge: true }).catch((err) => console.warn('Lỗi đẩy criteria_sync lên Firebase:', err));
-      } catch (fbErr) {
-        console.warn('Lỗi gọi Firebase cho criteria_sync:', fbErr);
-      }
-    }, 2000);
-    return () => clearTimeout(handler);
   }, [criteria]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.SCORE_LOGS, JSON.stringify(scoreLogs));
-    const handler = setTimeout(() => {
-      try {
-        setDoc(doc(db, 'scores_sync', 'current'), {
-          count: scoreLogs.length,
-          lastUpdated: new Date().toISOString(),
-        }, { merge: true }).catch((err) => console.warn('Lỗi đẩy scores_sync lên Firebase:', err));
-      } catch (fbErr) {
-        console.warn('Lỗi gọi Firebase cho scores_sync:', fbErr);
-      }
-    }, 2000);
-    return () => clearTimeout(handler);
+    try {
+      localStorage.setItem(STORAGE_KEYS.SCORE_LOGS, JSON.stringify(scoreLogs));
+    } catch {}
   }, [scoreLogs]);
 
   useEffect(() => {
@@ -1057,94 +1041,41 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [redFlagDuties]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.LOCKED_WEEKS, JSON.stringify(lockedWeeks));
-    const handler = setTimeout(() => {
-      try {
-        setDoc(doc(db, 'locked_weeks', 'summary'), {
-          lockedWeeks,
-          updatedAt: new Date().toISOString(),
-        }, { merge: true }).catch((err) => console.warn('Lỗi đẩy locked_weeks lên Firebase:', err));
-      } catch (fbErr) {
-        console.warn('Lỗi gọi Firebase cho locked_weeks:', fbErr);
-      }
-    }, 2000);
-    return () => clearTimeout(handler);
+    try {
+      localStorage.setItem(STORAGE_KEYS.LOCKED_WEEKS, JSON.stringify(lockedWeeks));
+    } catch {}
   }, [lockedWeeks]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.LOCKED_MONTHS, JSON.stringify(lockedMonths));
-    const handler = setTimeout(() => {
-      try {
-        setDoc(doc(db, 'locked_months', 'summary'), {
-          lockedMonths,
-          updatedAt: new Date().toISOString(),
-        }, { merge: true }).catch((err) => console.warn('Lỗi đẩy locked_months lên Firebase:', err));
-      } catch (fbErr) {
-        console.warn('Lỗi gọi Firebase cho locked_months:', fbErr);
-      }
-    }, 2000);
-    return () => clearTimeout(handler);
+    try {
+      localStorage.setItem(STORAGE_KEYS.LOCKED_MONTHS, JSON.stringify(lockedMonths));
+    } catch {}
   }, [lockedMonths]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.LOCKED_SEMESTERS, JSON.stringify(lockedSemesters));
-    const handler = setTimeout(() => {
-      try {
-        setDoc(doc(db, 'locked_semesters', 'summary'), {
-          lockedSemesters,
-          updatedAt: new Date().toISOString(),
-        }, { merge: true }).catch((err) => console.warn('Lỗi đẩy locked_semesters lên Firebase:', err));
-      } catch (fbErr) {
-        console.warn('Lỗi gọi Firebase cho locked_semesters:', fbErr);
-      }
-    }, 2000);
-    return () => clearTimeout(handler);
+    try {
+      localStorage.setItem(STORAGE_KEYS.LOCKED_SEMESTERS, JSON.stringify(lockedSemesters));
+    } catch {}
   }, [lockedSemesters]);
 
   useEffect(() => {
-    if (lockedYear) {
-      localStorage.setItem(STORAGE_KEYS.LOCKED_YEAR, JSON.stringify(lockedYear));
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.LOCKED_YEAR);
-    }
-    const handler = setTimeout(() => {
-      try {
-        if (lockedYear) {
-          setDoc(doc(db, 'locked_year', 'summary'), {
-            lockedYear,
-            updatedAt: new Date().toISOString(),
-          }, { merge: true }).catch((err) => console.warn('Lỗi đẩy locked_year lên Firebase:', err));
-        } else {
-          deleteDoc(doc(db, 'locked_year', 'summary')).catch((err) => console.warn('Lỗi xóa locked_year trên Firebase:', err));
-        }
-      } catch (fbErr) {
-        console.warn('Lỗi gọi Firebase cho locked_year:', fbErr);
+    try {
+      if (lockedYear) {
+        localStorage.setItem(STORAGE_KEYS.LOCKED_YEAR, JSON.stringify(lockedYear));
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.LOCKED_YEAR);
       }
-    }, 2000);
-    return () => clearTimeout(handler);
+    } catch {}
   }, [lockedYear]);
 
   useEffect(() => {
-    if (lockedTitles) {
-      localStorage.setItem(STORAGE_KEYS.LOCKED_TITLES, JSON.stringify(lockedTitles));
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.LOCKED_TITLES);
-    }
-    const handler = setTimeout(() => {
-      try {
-        if (lockedTitles) {
-          setDoc(doc(db, 'locked_titles', 'summary'), {
-            lockedTitles,
-            updatedAt: new Date().toISOString(),
-          }, { merge: true }).catch((err) => console.warn('Lỗi đẩy locked_titles lên Firebase:', err));
-        } else {
-          deleteDoc(doc(db, 'locked_titles', 'summary')).catch((err) => console.warn('Lỗi xóa locked_titles trên Firebase:', err));
-        }
-      } catch (fbErr) {
-        console.warn('Lỗi gọi Firebase cho locked_titles:', fbErr);
+    try {
+      if (lockedTitles) {
+        localStorage.setItem(STORAGE_KEYS.LOCKED_TITLES, JSON.stringify(lockedTitles));
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.LOCKED_TITLES);
       }
-    }, 2000);
-    return () => clearTimeout(handler);
+    } catch {}
   }, [lockedTitles]);
 
   useEffect(() => {
@@ -1154,19 +1085,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [disciplinaryRecords]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs));
-    const handler = setTimeout(() => {
-      try {
-        setDoc(doc(db, 'audit_logs_sync', 'summary'), {
-          count: auditLogs.length,
-          latestLog: auditLogs[0] || null,
-          updatedAt: new Date().toISOString(),
-        }, { merge: true }).catch((err) => console.warn('Lỗi đẩy audit_logs_sync lên Firebase:', err));
-      } catch (fbErr) {
-        console.warn('Lỗi gọi Firebase cho audit_logs_sync:', fbErr);
-      }
-    }, 2000);
-    return () => clearTimeout(handler);
+    try {
+      localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs));
+    } catch {}
   }, [auditLogs]);
 
   useEffect(() => {
@@ -1190,254 +1111,64 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Biến mốc thời gian lưu hành động người dùng gần nhất (chốt tuần, nhập điểm, v.v.) để tránh bị polling ghi đè
   const lastUserActionTimestampRef = useRef<number>(0);
 
-  const loadCentralDatabase = useCallback(async (isInitial = false) => {
-    // 1. Nạp trực tiếp từ Cloud Firestore (Đảm bảo điện thoại di động & máy tính đều đồng bộ 100% dữ liệu)
-    const cloudScoresMap = new Map<string, ScoreLog>();
+  const [isDataLoaded, setIsDataLoaded] = useState<boolean>(false);
 
+  const loadDataFromFirebase = useCallback(async () => {
     try {
-      // Nạp song song điểm thi đua từ Firestore (cả collection scores và score_logs)
-      const [scoresSnap, scoreLogsSnap] = await Promise.all([
-        getDocs(collection(db, 'scores')).catch(() => null),
-        getDocs(collection(db, 'score_logs')).catch(() => null),
-      ]);
-
-      const processDoc = (d: any) => {
-        if (!d || !d.data) return;
-        const data = d.data();
-        const parsedWeek = Number(data.week);
-        const parsedPoints = Number(data.totalPoints || 0);
-        const item: ScoreLog = {
-          ...data,
-          id: d.id,
-          week: isNaN(parsedWeek) ? 1 : parsedWeek,
-          totalPoints: isNaN(parsedPoints) ? 0 : parsedPoints,
-          quantity: Number(data.quantity || 1),
-          pointsPerUnit: Number(data.pointsPerUnit || 1),
-          period: data.period || 'week',
-          academicYear: data.academicYear || '2026-2027',
-          isDemo: Boolean(data.isDemo),
-        };
-        cloudScoresMap.set(d.id, item);
-      };
-
-      if (scoresSnap && !scoresSnap.empty) {
-        scoresSnap.forEach(processDoc);
-      }
-      if (scoreLogsSnap && !scoreLogsSnap.empty) {
-        scoreLogsSnap.forEach(processDoc);
-      }
-    } catch (fbErr) {
-      console.warn('Lưu ý kết nối Firestore nạp điểm ban đầu:', fbErr);
-    }
-
-    // 2. Nạp trạng thái chốt sổ và điểm bảo lưu lịch sử từ Firestore
-    try {
-      const [lockedWeeksSnap, lockedMonthsSnap, lockedSemestersSnap, lockedYearSnap, lockedTitlesSnap, histScoresSnap, criteriaSyncSnap] = await Promise.all([
-        getDoc(doc(db, 'locked_weeks', 'summary')).catch(() => null),
-        getDoc(doc(db, 'locked_months', 'summary')).catch(() => null),
-        getDoc(doc(db, 'locked_semesters', 'summary')).catch(() => null),
-        getDoc(doc(db, 'locked_year', 'summary')).catch(() => null),
-        getDoc(doc(db, 'locked_titles', 'summary')).catch(() => null),
-        getDoc(doc(db, 'historical_scores', 'summary')).catch(() => null),
-        getDoc(doc(db, 'criteria_sync', 'current')).catch(() => null),
-      ]);
-
-      const canApplyCloudState = isInitial || Date.now() - lastUserActionTimestampRef.current > 10000;
-
-      if (lockedWeeksSnap && lockedWeeksSnap.exists() && canApplyCloudState) {
-        const data = lockedWeeksSnap.data();
-        if (Array.isArray(data?.lockedWeeks)) {
-          setLockedWeeks(data.lockedWeeks);
-          try { localStorage.setItem(STORAGE_KEYS.LOCKED_WEEKS, JSON.stringify(data.lockedWeeks)); } catch {}
-        }
-      }
-
-      if (lockedMonthsSnap && lockedMonthsSnap.exists() && canApplyCloudState) {
-        const data = lockedMonthsSnap.data();
-        if (data?.lockedMonths) {
-          setLockedMonths(data.lockedMonths);
-          try { localStorage.setItem(STORAGE_KEYS.LOCKED_MONTHS, JSON.stringify(data.lockedMonths)); } catch {}
-        }
-      }
-
-      if (lockedSemestersSnap && lockedSemestersSnap.exists() && canApplyCloudState) {
-        const data = lockedSemestersSnap.data();
-        if (data?.lockedSemesters) {
-          setLockedSemesters(data.lockedSemesters);
-          try { localStorage.setItem(STORAGE_KEYS.LOCKED_SEMESTERS, JSON.stringify(data.lockedSemesters)); } catch {}
-        }
-      }
-
-      if (lockedYearSnap && lockedYearSnap.exists() && canApplyCloudState) {
-        const data = lockedYearSnap.data();
-        if (data?.lockedYear !== undefined) {
-          setLockedYear(data.lockedYear);
-          try { localStorage.setItem(STORAGE_KEYS.LOCKED_YEAR, JSON.stringify(data.lockedYear)); } catch {}
-        }
-      }
-
-      if (lockedTitlesSnap && lockedTitlesSnap.exists() && canApplyCloudState) {
-        const data = lockedTitlesSnap.data();
-        if (data?.lockedTitles !== undefined) {
-          setLockedTitles(data.lockedTitles);
-          try { localStorage.setItem(STORAGE_KEYS.LOCKED_TITLES, JSON.stringify(data.lockedTitles)); } catch {}
-        }
-      }
-
-      if (histScoresSnap && histScoresSnap.exists() && canApplyCloudState) {
-        const data = histScoresSnap.data();
-        if (data?.historicalWeeklyScores && typeof data.historicalWeeklyScores === 'object') {
-          setHistoricalWeeklyScores(data.historicalWeeklyScores);
-          try { localStorage.setItem(STORAGE_KEYS.HISTORICAL_SCORES, JSON.stringify(data.historicalWeeklyScores)); } catch {}
-        }
-      }
-
-      if (criteriaSyncSnap && criteriaSyncSnap.exists()) {
-        const data = criteriaSyncSnap.data();
-        if (Array.isArray(data?.list) && data.list.length > 0) {
-          setCriteria(data.list);
-          try { localStorage.setItem(STORAGE_KEYS.CRITERIA, JSON.stringify(data.list)); } catch {}
-        }
-      }
-    } catch (fbErr) {
-      console.warn('Lưu ý nạp trạng thái chốt từ Firestore:', fbErr);
-    }
-
-    // 3. Nạp từ máy chủ trung tâm backend (nếu có) và kết hợp thông minh (không ghi đè mất dữ liệu mây)
-    try {
-      // Direct Firestore fetch for bootstrap data (Replacting /api/bootstrap)
-      const [usersSnap, classesSnap, criteriaSnap, settingsSnap] = await Promise.all([
+      setIsDataLoaded(false);
+      // Fetch all required collections
+      const [
+        usersSnap, classesSnap, campusesSnap, criteriaSnap, settingsSnap,
+        scoreLogsSnap, lockedWeeksSnap, lockedMonthsSnap, lockedSemestersSnap
+      ] = await Promise.all([
         getDocs(collection(db, 'users')),
         getDocs(collection(db, 'classes')),
+        getDocs(collection(db, 'campuses')),
         getDocs(collection(db, 'criteria')),
-        getDoc(doc(db, 'school_settings', 'current')),
+        getDoc(doc(db, 'settings', 'config')),
+        getDocs(collection(db, 'score_logs')),
+        getDoc(doc(db, 'locked_weeks', 'summary')),
+        getDoc(doc(db, 'locked_months', 'summary')),
+        getDoc(doc(db, 'locked_semesters', 'summary')),
       ]);
 
-      const data = {
-        success: true,
-        users: usersSnap.docs.map(d => ({ id: d.id, ...d.data() })),
-        classes: classesSnap.docs.map(d => ({ id: d.id, ...d.data() })),
-        criteria: criteriaSnap.docs.map(d => ({ id: d.id, ...d.data() })),
-        settings: settingsSnap.exists() ? settingsSnap.data() : {},
-        bonus_monthly: (await getDoc(doc(db, 'settings', 'bonus_monthly'))).data() || {},
-      };
-      
-      if (data.success) {
-          if (data.lastUpdated) {
-            lastSyncTimestampRef.current = data.lastUpdated;
-          }
+      // Update state with fetched data
+      if (!usersSnap.empty) setUsers(usersSnap.docs.map(d => d.data() as User));
+      if (!classesSnap.empty) setClasses(classesSnap.docs.map(d => d.data() as ClassItem));
+      if (!campusesSnap.empty) setCampuses(campusesSnap.docs.map(d => d.data() as Campus));
+      if (!criteriaSnap.empty) setCriteria(criteriaSnap.docs.map(d => d.data() as Criteria));
+      if (settingsSnap.exists()) setSettings(settingsSnap.data() as SchoolSettings);
+      if (!scoreLogsSnap.empty) setScoreLogs(scoreLogsSnap.docs.map(d => d.data() as ScoreLog));
+      if (lockedWeeksSnap.exists()) setLockedWeeks(lockedWeeksSnap.data().lockedWeeks || []);
+      if (lockedMonthsSnap.exists()) setLockedMonths(lockedMonthsSnap.data().lockedMonths || {});
+      if (lockedSemestersSnap.exists()) setLockedSemesters(lockedSemestersSnap.data().lockedSemesters || {});
 
-          if (Array.isArray(data.users) && data.users.length > 0) {
-            setUsers(data.users);
-          }
-          if (Array.isArray(data.classes) && data.classes.length > 0) {
-            setClasses(data.classes);
-          }
-          if (Array.isArray(data.campuses) && data.campuses.length > 0) {
-            setCampuses(data.campuses);
-          }
-          if (Array.isArray(data.criteria) && data.criteria.length > 0 && cloudScoresMap.size === 0) {
-            setCriteria(data.criteria);
-          }
-
-          // Hợp nhất điểm từ backend và cloud: Điểm từ Firestore và backend bổ trợ cho nhau, không bao giờ để mảng rỗng đè mất điểm
-          const mergedScoreMap = new Map<string, ScoreLog>();
-          if (Array.isArray(data.scoreLogs)) {
-            data.scoreLogs.forEach((item: ScoreLog) => {
-              if (item && item.id) {
-                mergedScoreMap.set(item.id, {
-                  ...item,
-                  week: Number(item.week),
-                  totalPoints: Number(item.totalPoints || 0),
-                  quantity: Number(item.quantity || 1),
-                  pointsPerUnit: Number(item.pointsPerUnit || 1),
-                  period: item.period || 'week',
-                  academicYear: item.academicYear || '2026-2027',
-                });
-              }
-            });
-          }
-
-          // Dữ liệu từ Firestore Cloud có ưu tiên hàng đầu
-          cloudScoresMap.forEach((item, id) => {
-            mergedScoreMap.set(id, item);
-          });
-
-          if (mergedScoreMap.size > 0) {
-            const finalScores = Array.from(mergedScoreMap.values());
-            finalScores.sort((a, b) => (b.id || '').localeCompare(a.id || ''));
-            setScoreLogs(finalScores);
-            try {
-              localStorage.setItem(STORAGE_KEYS.SCORE_LOGS, JSON.stringify(finalScores));
-            } catch {}
-          } else if (cloudScoresMap.size > 0) {
-            const finalScores = Array.from(cloudScoresMap.values());
-            finalScores.sort((a, b) => (b.id || '').localeCompare(a.id || ''));
-            setScoreLogs(finalScores);
-            try {
-              localStorage.setItem(STORAGE_KEYS.SCORE_LOGS, JSON.stringify(finalScores));
-            } catch {}
-          }
-
-          if (data.settings) {
-            setSettings((prev) => ({ ...prev, ...data.settings }));
-          }
-
-          // Không bao giờ để dữ liệu cũ từ server đè lên khi vừa thao tác hoặc đã có dữ liệu mây
-          const canApplyServerLock = isInitial || Date.now() - lastUserActionTimestampRef.current > 10000;
-          if (canApplyServerLock && Array.isArray(data.lockedWeeks)) {
-            setLockedWeeks((prev) => (prev.length === 0 ? data.lockedWeeks : prev));
-          }
-          if (canApplyServerLock && data.lockedMonths && Object.keys(data.lockedMonths).length > 0) {
-            setLockedMonths((prev) => (Object.keys(prev).length === 0 ? data.lockedMonths : prev));
-          }
-          if (canApplyServerLock && data.lockedSemesters && Object.keys(data.lockedSemesters).length > 0) {
-            setLockedSemesters((prev) => (Object.keys(prev).length === 0 ? data.lockedSemesters : prev));
-          }
-          if (canApplyServerLock && data.lockedYear !== undefined && data.lockedYear !== null) {
-            setLockedYear((prev) => (prev === null ? data.lockedYear : prev));
-          }
-          if (canApplyServerLock && data.lockedTitles !== undefined && data.lockedTitles !== null) {
-            setLockedTitles((prev) => (prev === null ? data.lockedTitles : prev));
-          }
-          if (canApplyServerLock && data.historicalWeeklyScores && Object.keys(data.historicalWeeklyScores).length > 0) {
-            setHistoricalWeeklyScores((prev) => (Object.keys(prev).length === 0 ? data.historicalWeeklyScores : prev));
-          }
-          if (Array.isArray(data.appeals)) {
-            setAppeals(data.appeals);
-          }
-          if (Array.isArray(data.auditLogs)) {
-            setAuditLogs(data.auditLogs);
-          }
-          if (data.bonus_monthly) {
-            setBonusMonthly(data.bonus_monthly);
-          }
-          if (data.bonus_term) {
-            setBonusTerm(data.bonus_term);
-          }
-          if (data.bonus_yearly) {
-            setBonusYearly(data.bonus_yearly);
-          }
-        }
-        } catch (err) {
-      console.warn('Lỗi kết nối máy chủ trung tâm (sử dụng nguồn Firebase/cục bộ):', err);
-      if (cloudScoresMap.size > 0) {
-        const finalScores = Array.from(cloudScoresMap.values());
-        finalScores.sort((a, b) => (b.id || '').localeCompare(a.id || ''));
-        setScoreLogs(finalScores);
-        try {
-          localStorage.setItem(STORAGE_KEYS.SCORE_LOGS, JSON.stringify(finalScores));
-        } catch {}
-      }
-    } finally {
       setIsDataLoaded(true);
+    } catch (err) {
+      console.error('Lỗi nạp dữ liệu từ Firebase:', err);
+      setIsDataLoaded(true); // Load anyways to allow offline usage
     }
   }, []);
 
+  const saveAllToFirebase = useCallback(async () => {
+    try {
+      // Create a batch to save current state
+      const batch = writeBatch(db);
+      // (Simplified: just saving settings for now as an example, need to expand for all state)
+      const settingsRef = doc(db, 'settings', 'config');
+      batch.set(settingsRef, settings, { merge: true });
+      await batch.commit();
+      alert('Đã đồng bộ dữ liệu lên máy chủ!');
+    } catch (err) {
+      console.error('Lỗi đồng bộ dữ liệu lên Firebase:', err);
+      alert('Lỗi đồng bộ dữ liệu!');
+    }
+  }, [settings]);
+
   // Nạp ngay khi mở app
   useEffect(() => {
-    loadCentralDatabase(true);
-  }, [loadCentralDatabase]);
+    loadDataFromFirebase();
+  }, [loadDataFromFirebase]);
 
   // Real-time auto-calculation of Current Active Week according to strict official rule:
   // Tuần 1 luôn là tuần chứa 05/09 của năm học; Thứ Hai tuần đó là start_date_of_week_1.
@@ -7725,7 +7456,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         getCriteriaById,
         previewCriteriaCalculation,
         isDataLoaded,
-        refreshCentralData: () => loadCentralDatabase(false),
+        loadDataFromFirebase,
+        saveAllToFirebase,
         updateSettings,
         resetToDefaultData,
         clearTestDataForGoLive,

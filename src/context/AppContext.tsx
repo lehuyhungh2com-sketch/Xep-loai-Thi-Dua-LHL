@@ -1433,28 +1433,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, []);
 
-  // Nạp ngay khi mở app và tự động đồng bộ thời gian thực thông minh (20 giây khi tab active)
+  // Nạp ngay khi mở app
   useEffect(() => {
     loadCentralDatabase(true);
-
-    const intervalId = setInterval(() => {
-      // Chỉ tự động đồng bộ khi tab đang hiển thị và người dùng không thao tác nhập liệu gần đây
-      if (document.visibilityState === 'visible' && Date.now() - lastUserActionTimestampRef.current > 10000) {
-        loadCentralDatabase(false);
-      }
-    }, 20000);
-
-    const onFocus = () => {
-      if (Date.now() - lastUserActionTimestampRef.current > 10000) {
-        loadCentralDatabase(false);
-      }
-    };
-    window.addEventListener('focus', onFocus);
-
-    return () => {
-      clearInterval(intervalId);
-      window.removeEventListener('focus', onFocus);
-    };
   }, [loadCentralDatabase]);
 
   // Real-time auto-calculation of Current Active Week according to strict official rule:

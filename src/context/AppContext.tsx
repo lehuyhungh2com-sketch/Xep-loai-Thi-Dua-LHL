@@ -997,6 +997,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.CRITERIA, JSON.stringify(criteria));
+    } catch {}
+    const handler = setTimeout(() => {
       try {
         setDoc(doc(db, 'criteria_sync', 'current'), {
           list: criteria,
@@ -1006,12 +1008,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } catch (fbErr) {
         console.warn('Lỗi gọi Firebase cho criteria_sync:', fbErr);
       }
-    } catch {}
+    }, 2000);
+    return () => clearTimeout(handler);
   }, [criteria]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.SCORE_LOGS, JSON.stringify(scoreLogs));
+    localStorage.setItem(STORAGE_KEYS.SCORE_LOGS, JSON.stringify(scoreLogs));
+    const handler = setTimeout(() => {
       try {
         setDoc(doc(db, 'scores_sync', 'current'), {
           count: scoreLogs.length,
@@ -1020,7 +1023,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } catch (fbErr) {
         console.warn('Lỗi gọi Firebase cho scores_sync:', fbErr);
       }
-    } catch {}
+    }, 2000);
+    return () => clearTimeout(handler);
   }, [scoreLogs]);
 
   useEffect(() => {
@@ -1053,8 +1057,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [redFlagDuties]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.LOCKED_WEEKS, JSON.stringify(lockedWeeks));
+    localStorage.setItem(STORAGE_KEYS.LOCKED_WEEKS, JSON.stringify(lockedWeeks));
+    const handler = setTimeout(() => {
       try {
         setDoc(doc(db, 'locked_weeks', 'summary'), {
           lockedWeeks,
@@ -1063,12 +1067,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } catch (fbErr) {
         console.warn('Lỗi gọi Firebase cho locked_weeks:', fbErr);
       }
-    } catch {}
+    }, 2000);
+    return () => clearTimeout(handler);
   }, [lockedWeeks]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.LOCKED_MONTHS, JSON.stringify(lockedMonths));
+    localStorage.setItem(STORAGE_KEYS.LOCKED_MONTHS, JSON.stringify(lockedMonths));
+    const handler = setTimeout(() => {
       try {
         setDoc(doc(db, 'locked_months', 'summary'), {
           lockedMonths,
@@ -1077,12 +1082,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } catch (fbErr) {
         console.warn('Lỗi gọi Firebase cho locked_months:', fbErr);
       }
-    } catch {}
+    }, 2000);
+    return () => clearTimeout(handler);
   }, [lockedMonths]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.LOCKED_SEMESTERS, JSON.stringify(lockedSemesters));
+    localStorage.setItem(STORAGE_KEYS.LOCKED_SEMESTERS, JSON.stringify(lockedSemesters));
+    const handler = setTimeout(() => {
       try {
         setDoc(doc(db, 'locked_semesters', 'summary'), {
           lockedSemesters,
@@ -1091,55 +1097,54 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } catch (fbErr) {
         console.warn('Lỗi gọi Firebase cho locked_semesters:', fbErr);
       }
-    } catch {}
+    }, 2000);
+    return () => clearTimeout(handler);
   }, [lockedSemesters]);
 
   useEffect(() => {
-    try {
-      if (lockedYear) {
-        localStorage.setItem(STORAGE_KEYS.LOCKED_YEAR, JSON.stringify(lockedYear));
-        try {
+    if (lockedYear) {
+      localStorage.setItem(STORAGE_KEYS.LOCKED_YEAR, JSON.stringify(lockedYear));
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.LOCKED_YEAR);
+    }
+    const handler = setTimeout(() => {
+      try {
+        if (lockedYear) {
           setDoc(doc(db, 'locked_year', 'summary'), {
             lockedYear,
             updatedAt: new Date().toISOString(),
           }, { merge: true }).catch((err) => console.warn('Lỗi đẩy locked_year lên Firebase:', err));
-        } catch (fbErr) {
-          console.warn('Lỗi gọi Firebase cho locked_year:', fbErr);
+        } else {
+          deleteDoc(doc(db, 'locked_year', 'summary')).catch((err) => console.warn('Lỗi xóa locked_year trên Firebase:', err));
         }
-      } else {
-        localStorage.removeItem(STORAGE_KEYS.LOCKED_YEAR);
-        try {
-          deleteDoc(doc(db, 'locked_year', 'summary'))
-            .catch((err) => console.warn('Lỗi xóa locked_year trên Firebase:', err));
-        } catch (fbErr) {
-          console.warn('Lỗi gọi Firebase xóa locked_year:', fbErr);
-        }
+      } catch (fbErr) {
+        console.warn('Lỗi gọi Firebase cho locked_year:', fbErr);
       }
-    } catch {}
+    }, 2000);
+    return () => clearTimeout(handler);
   }, [lockedYear]);
 
   useEffect(() => {
-    try {
-      if (lockedTitles) {
-        localStorage.setItem(STORAGE_KEYS.LOCKED_TITLES, JSON.stringify(lockedTitles));
-        try {
+    if (lockedTitles) {
+      localStorage.setItem(STORAGE_KEYS.LOCKED_TITLES, JSON.stringify(lockedTitles));
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.LOCKED_TITLES);
+    }
+    const handler = setTimeout(() => {
+      try {
+        if (lockedTitles) {
           setDoc(doc(db, 'locked_titles', 'summary'), {
             lockedTitles,
             updatedAt: new Date().toISOString(),
           }, { merge: true }).catch((err) => console.warn('Lỗi đẩy locked_titles lên Firebase:', err));
-        } catch (fbErr) {
-          console.warn('Lỗi gọi Firebase cho locked_titles:', fbErr);
+        } else {
+          deleteDoc(doc(db, 'locked_titles', 'summary')).catch((err) => console.warn('Lỗi xóa locked_titles trên Firebase:', err));
         }
-      } else {
-        localStorage.removeItem(STORAGE_KEYS.LOCKED_TITLES);
-        try {
-          deleteDoc(doc(db, 'locked_titles', 'summary'))
-            .catch((err) => console.warn('Lỗi xóa locked_titles trên Firebase:', err));
-        } catch (fbErr) {
-          console.warn('Lỗi gọi Firebase xóa locked_titles:', fbErr);
-        }
+      } catch (fbErr) {
+        console.warn('Lỗi gọi Firebase cho locked_titles:', fbErr);
       }
-    } catch {}
+    }, 2000);
+    return () => clearTimeout(handler);
   }, [lockedTitles]);
 
   useEffect(() => {
@@ -1149,8 +1154,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [disciplinaryRecords]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs));
+    localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs));
+    const handler = setTimeout(() => {
       try {
         setDoc(doc(db, 'audit_logs_sync', 'summary'), {
           count: auditLogs.length,
@@ -1160,7 +1165,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } catch (fbErr) {
         console.warn('Lỗi gọi Firebase cho audit_logs_sync:', fbErr);
       }
-    } catch {}
+    }, 2000);
+    return () => clearTimeout(handler);
   }, [auditLogs]);
 
   useEffect(() => {
@@ -5859,6 +5865,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const next = { ...prev, [key]: val };
         try {
           localStorage.setItem('lhl_bonus_monthly', JSON.stringify(next));
+          saveCloudDoc('settings', 'bonus_monthly', next);
         } catch {}
         return next;
       });

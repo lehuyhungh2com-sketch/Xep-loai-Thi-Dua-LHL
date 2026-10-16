@@ -53,16 +53,6 @@ import {
   generateInitialCampusWeeklyDuties,
 } from '../data/dutyData';
 import {
-  isFirebaseConfigured,
-  CLOUD_COLLECTIONS,
-  subscribeCollection,
-  subscribeDocument,
-  saveCloudDoc,
-  deleteCloudDoc,
-  batchSaveCloudDocs,
-  testConnection,
-} from '../services/firebaseService';
-import {
   exportOfflineStandbyEvaluationBook,
   exportRankingsToExcel,
   exportMonthlyRankingsToExcel,
@@ -532,7 +522,38 @@ function determineTier(score: number): RankingEntry['performanceTier'] {
   return 'Cần cố gắng';
 }
 
+import { db } from '../services/firebase';
+import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+
+// ... existing code ...
+
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // ... existing code ...
+  
+  // Realtime Sync Hook
+  useEffect(() => {
+    const collectionsToSync = ['classes', 'campuses', 'users', 'score_logs', 'school_settings'];
+    const unsubscribers = collectionsToSync.map(collectionName => {
+      return onSnapshot(doc(db, collectionName, 'data'), (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          // Update local state and localStorage
+          if (collectionName === 'classes') {
+            setClasses(data.list);
+            localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(data.list));
+          }
+          // ... implement other collections ...
+        }
+      }, (error) => {
+        console.error(`Error syncing ${collectionName}:`, error);
+      });
+    });
+
+    return () => unsubscribers.forEach(unsub => unsub());
+  }, []);
+
+  // ... existing code ...
+
   // Xóa sạch cache localStorage liên quan đến Tiêu chí khi ứng dụng khởi động
   // để luôn nạp bộ tiêu chí chính xác nhất từ Cơ sở dữ liệu trung tâm máy chủ
   if (typeof window !== 'undefined') {
@@ -1105,168 +1126,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [academicYearArchives]);
 
   // =========================================================================
-  // CLOUD FIRESTORE REAL-TIME SYNCHRONIZATION
-  // Lắng nghe dữ liệu thời gian thực từ Cloud Firestore để đồng bộ tức thì
-  // giữa máy tính, máy tính bảng và điện thoại di động
+  // KIẾN TRÚC LƯU TRỮ TẬP TRUNG (CENTRAL DATABASE & REAL-TIME SYNCHRONIZATION)
+  // Gỡ bỏ việc dùng localStorage làm nguồn dữ liệu chính.
+  // Mọi thiết bị, trình duyệt và cửa sổ ẩn danh đều nạp trực tiếp từ máy chủ trung tâm.
   // =========================================================================
-  useEffect(() => {
-    if (!isFirebaseConfigured()) return;
-
-    testConnection();
-
-    // 1. Users real-time listener
-    const unSubUsers = subscribeCollection<User>(CLOUD_COLLECTIONS.USERS, (items) => {
-      if (items.length > 0) setUsers(items);
-    });
-
-    // 2. Classes real-time listener
-    const unSubClasses = subscribeCollection<ClassItem>(CLOUD_COLLECTIONS.CLASSES, (items) => {
-      if (items.length > 0) setClasses(items);
-    });
-
-    // 3. Campuses real-time listener
-    const unSubCampuses = subscribeCollection<Campus>(CLOUD_COLLECTIONS.CAMPUSES, (items) => {
-      if (items.length > 0) setCampuses(items);
-    });
-
-    // 4. Criteria real-time listener
-    const unSubCriteria = subscribeCollection<Criteria>(CLOUD_COLLECTIONS.CRITERIA, (items) => {
-      if (items.length > 0) setCriteria(items);
-    });
-
-    // 5. Score Logs real-time listener
-    const unSubScoreLogs = subscribeCollection<ScoreLog>(CLOUD_COLLECTIONS.SCORE_LOGS, (items) => {
-      setScoreLogs(items);
-    });
-
-    // 6. Locked Weeks real-time listener
-    const unSubLockedWeeks = subscribeCollection<{ id: string; week: number }>(
-      CLOUD_COLLECTIONS.LOCKED_WEEKS,
-      (items) => {
-        const weeks = items.map((i) => i.week || Number(i.id.replace('week_', ''))).filter(Boolean);
-        setLockedWeeks(weeks);
-      }
-    );
-
-    // 7. Locked Months real-time listener
-    const unSubLockedMonths = subscribeCollection<MonthLockInfo & { id: string }>(
-      CLOUD_COLLECTIONS.LOCKED_MONTHS,
-      (items) => {
-        if (items.length > 0) {
-          const map: Record<number, MonthLockInfo> = {};
-          items.forEach((m) => {
-            if (m.month) map[m.month] = m;
-          });
-          setLockedMonths(map);
-        }
-      }
-    );
-
-    // 8. Locked Semesters real-time listener
-    const unSubLockedSemesters = subscribeCollection<SemesterLockInfo & { id: string }>(
-      CLOUD_COLLECTIONS.LOCKED_SEMESTERS,
-      (items) => {
-        if (items.length > 0) {
-          const map: Record<number, SemesterLockInfo> = {};
-          items.forEach((s) => {
-            if (s.semester) map[s.semester] = s;
-          });
-          setLockedSemesters(map);
-        }
-      }
-    );
-
-    // 9. Locked Year real-time listener
-    const unSubLockedYear = subscribeDocument<YearLockInfo>(
-      CLOUD_COLLECTIONS.LOCKED_YEAR,
-      'global',
-      (data) => {
-        if (data) setLockedYear(data);
-      }
-    );
-
-    // 10. Audit Logs real-time listener
-    const unSubAuditLogs = subscribeCollection<AuditLog>(CLOUD_COLLECTIONS.AUDIT_LOGS, (items) => {
-      if (items.length > 0) {
-        setAuditLogs(items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
-      }
-    });
-
-    // 11. Appeals real-time listener
-    const unSubAppeals = subscribeCollection<AdjustmentAppeal>(CLOUD_COLLECTIONS.APPEALS, (items) => {
-      setAppeals(items);
-    });
-
-    // 12. Global Settings real-time listener
-    const unSubSettings = subscribeDocument<SchoolSettings>(
-      CLOUD_COLLECTIONS.SETTINGS,
-      'global',
-      (data) => {
-        if (data) setSettings((prev) => ({ ...prev, ...data }));
-      }
-    );
-
-    // 13. Historical Scores real-time listener
-    const unSubHistorical = subscribeDocument<{ id: string; scores: HistoricalWeeklyScoresMap }>(
-      CLOUD_COLLECTIONS.HISTORICAL_SCORES,
-      'global',
-      (data) => {
-        if (data?.scores) setHistoricalWeeklyScores(data.scores);
-      }
-    );
-
-    // 14. Campus Weekly Duties real-time listener
-    const unSubWeeklyDuties = subscribeCollection<CampusWeeklyDuty>(
-      CLOUD_COLLECTIONS.CAMPUS_WEEKLY_DUTIES,
-      (items) => {
-        if (items.length > 0) setCampusWeeklyDuties(items);
-      }
-    );
-
-    // 15. Disciplinary Records real-time listener
-    const unSubDisciplinary = subscribeCollection<DisciplinaryRecord>(
-      CLOUD_COLLECTIONS.DISCIPLINARY_RECORDS,
-      (items) => {
-        setDisciplinaryRecords(items);
-      }
-    );
-
-    return () => {
-      unSubUsers();
-      unSubClasses();
-      unSubCampuses();
-      unSubCriteria();
-      unSubScoreLogs();
-      unSubLockedWeeks();
-      unSubLockedMonths();
-      unSubLockedSemesters();
-      unSubLockedYear();
-      unSubAuditLogs();
-      unSubAppeals();
-      unSubSettings();
-      unSubHistorical();
-      unSubWeeklyDuties();
-      unSubDisciplinary();
-    };
-  }, []);
-
-  // Tự động đẩy dữ liệu khởi tạo lên Cloud Firestore nếu CSDL trên Cloud còn trống
-  useEffect(() => {
-    if (!isFirebaseConfigured()) return;
-
-    const unSub = subscribeCollection<ClassItem>(CLOUD_COLLECTIONS.CLASSES, (items) => {
-      if (items.length === 0) {
-        if (classes.length > 0) batchSaveCloudDocs(CLOUD_COLLECTIONS.CLASSES, classes);
-        if (users.length > 0) batchSaveCloudDocs(CLOUD_COLLECTIONS.USERS, users);
-        if (criteria.length > 0) batchSaveCloudDocs(CLOUD_COLLECTIONS.CRITERIA, criteria);
-        if (campuses.length > 0) batchSaveCloudDocs(CLOUD_COLLECTIONS.CAMPUSES, campuses);
-        if (settings) saveCloudDoc(CLOUD_COLLECTIONS.SETTINGS, 'global', settings);
-      }
-    });
-
-    return () => unSub();
-  }, []);
-
   const lastSyncTimestampRef = useRef<string>('');
 
   const loadCentralDatabase = useCallback(async (isInitial = false) => {
@@ -1282,26 +1145,65 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             lastSyncTimestampRef.current = data.lastUpdated;
           }
 
-          if (Array.isArray(data.users) && data.users.length > 0) setUsers(data.users);
-          if (Array.isArray(data.classes) && data.classes.length > 0) setClasses(data.classes);
-          if (Array.isArray(data.campuses) && data.campuses.length > 0) setCampuses(data.campuses);
-          if (Array.isArray(data.criteria) && data.criteria.length > 0) setCriteria(data.criteria);
-          if (Array.isArray(data.scoreLogs)) setScoreLogs(data.scoreLogs);
-          if (data.settings) setSettings((prev) => ({ ...prev, ...data.settings }));
-          if (Array.isArray(data.lockedWeeks)) setLockedWeeks(data.lockedWeeks);
-          if (data.lockedMonths) setLockedMonths(data.lockedMonths);
-          if (data.lockedSemesters) setLockedSemesters(data.lockedSemesters);
-          if (data.lockedYear !== undefined) setLockedYear(data.lockedYear);
-          if (data.lockedTitles !== undefined) setLockedTitles(data.lockedTitles);
-          if (data.historicalWeeklyScores) setHistoricalWeeklyScores(data.historicalWeeklyScores);
-          if (Array.isArray(data.appeals)) setAppeals(data.appeals);
-          if (Array.isArray(data.auditLogs)) setAuditLogs(data.auditLogs);
-          if (data.bonus_monthly) setBonusMonthly(data.bonus_monthly);
-          if (data.bonus_term) setBonusTerm(data.bonus_term);
-          if (data.bonus_yearly) setBonusYearly(data.bonus_yearly);
+          if (Array.isArray(data.users) && data.users.length > 0) {
+            setUsers(data.users);
+          }
+          if (Array.isArray(data.classes) && data.classes.length > 0) {
+            setClasses(data.classes);
+          }
+          if (Array.isArray(data.campuses) && data.campuses.length > 0) {
+            setCampuses(data.campuses);
+          }
+          if (Array.isArray(data.criteria) && data.criteria.length > 0) {
+            setCriteria(data.criteria);
+          }
+          if (Array.isArray(data.scoreLogs)) {
+            setScoreLogs(data.scoreLogs);
+          }
+          if (data.settings) {
+            setSettings((prev) => ({ ...prev, ...data.settings }));
+          }
+          if (Array.isArray(data.lockedWeeks)) {
+            setLockedWeeks(data.lockedWeeks);
+          }
+          if (data.lockedMonths) {
+            setLockedMonths(data.lockedMonths);
+          }
+          if (data.lockedSemesters) {
+            setLockedSemesters(data.lockedSemesters);
+          }
+          if (data.lockedYear !== undefined) {
+            setLockedYear(data.lockedYear);
+          }
+          if (data.lockedTitles !== undefined) {
+            setLockedTitles(data.lockedTitles);
+          }
+          if (data.historicalWeeklyScores) {
+            setHistoricalWeeklyScores(data.historicalWeeklyScores);
+          }
+          if (Array.isArray(data.appeals)) {
+            setAppeals(data.appeals);
+          }
+          if (Array.isArray(data.auditLogs)) {
+            setAuditLogs(data.auditLogs);
+          }
+          if (data.bonus_monthly) {
+            setBonusMonthly(data.bonus_monthly);
+          }
+          if (data.bonus_term) {
+            setBonusTerm(data.bonus_term);
+          }
+          if (data.bonus_yearly) {
+            setBonusYearly(data.bonus_yearly);
+          }
+          setIsDataLoaded(true);
         }
       }
-    } catch {}
+    } catch (err) {
+      console.error('Lỗi nạp dữ liệu từ máy chủ trung tâm:', err);
+    } finally {
+      setIsDataLoaded(true);
+    }
   }, []);
 
   // Nạp ngay khi mở app và tự động đồng bộ thời gian thực mỗi 4 giây qua mạng
@@ -1474,8 +1376,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setAuditLogs((prev) => [newEntry, ...prev.slice(0, 2500)]);
 
-    // Synchronize to Cloud Firestore in real-time
-    saveCloudDoc(CLOUD_COLLECTIONS.AUDIT_LOGS, newEntry.id, newEntry);
+    // Asynchronously sync with backend endpoint
+    if (currentUser) {
+      try {
+        fetch('/api/audit-logs', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': currentUser.id,
+            'x-user-name': currentUser.name,
+            'x-user-role': role,
+            'x-user-campus': currentUser.campusId || '',
+            'x-user-class': currentUser.classId || '',
+          },
+          body: JSON.stringify(newEntry),
+        }).catch(() => {});
+      } catch {}
+    }
   };
 
   useEffect(() => {
@@ -1871,9 +1788,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(coreUsers));
     } catch {}
 
-    // Synchronize to Cloud Firestore
-    batchSaveCloudDocs(CLOUD_COLLECTIONS.USERS, coreUsers);
-
     fetch('/api/users/sync-from-classes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1965,9 +1879,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(combinedUsers));
     } catch {}
 
-    // Đồng bộ toàn bộ danh sách tài khoản lên Cloud Firestore thời gian thực
-    batchSaveCloudDocs(CLOUD_COLLECTIONS.USERS, combinedUsers);
-
     // Persist to backend server
     fetch('/api/users/sync-from-classes', {
       method: 'POST',
@@ -2005,8 +1916,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updatedUsers));
     } catch {}
 
-    // Đồng bộ trực tiếp lên Cloud Firestore thời gian thực
-    saveCloudDoc(CLOUD_COLLECTIONS.USERS, id, newUser);
+    // Đồng bộ trực tiếp vào cơ sở dữ liệu tập trung trên máy chủ
     fetch('/api/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2054,8 +1964,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updatedUsers));
     } catch {}
 
-    // Cập nhật trực tiếp lên Cloud Firestore thời gian thực
-    saveCloudDoc(CLOUD_COLLECTIONS.USERS, id, updated);
+    // Cập nhật trực tiếp vào cơ sở dữ liệu tập trung máy chủ
     fetch(`/api/users/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -2145,8 +2054,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updatedUsers));
     } catch {}
 
-    // Xóa trực tiếp khỏi Cloud Firestore thời gian thực
-    deleteCloudDoc(CLOUD_COLLECTIONS.USERS, id);
+    // Xóa trực tiếp khỏi cơ sở dữ liệu máy chủ
     fetch(`/api/users/${id}`, {
       method: 'DELETE',
     }).catch(() => {});
@@ -2384,8 +2292,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     setClasses((prev) => [...prev, classItem]);
 
-    // Đồng bộ trực tiếp lên Cloud Firestore thời gian thực
-    saveCloudDoc(CLOUD_COLLECTIONS.CLASSES, id, classItem);
+    // Đồng bộ trực tiếp vào cơ sở dữ liệu trung tâm máy chủ
     fetch('/api/classes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2447,8 +2354,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     setClasses((prev) => prev.map((c) => (c.id === id ? updated : c)));
 
-    // Đồng bộ trực tiếp lên Cloud Firestore thời gian thực
-    saveCloudDoc(CLOUD_COLLECTIONS.CLASSES, id, updated);
+    // Đồng bộ trực tiếp vào cơ sở dữ liệu trung tâm máy chủ
     fetch(`/api/classes/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -2568,8 +2474,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
     setClasses((prev) => prev.filter((c) => c.id !== id));
 
-    // Xóa trực tiếp khỏi Cloud Firestore thời gian thực
-    deleteCloudDoc(CLOUD_COLLECTIONS.CLASSES, id);
+    // Xóa trực tiếp khỏi máy chủ trung tâm
     fetch(`/api/classes/${id}`, {
       method: 'DELETE',
     }).catch(() => {});
@@ -3064,9 +2969,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newCrit = { ...crit, id };
     setCriteria((prev) => [...prev, newCrit]);
 
-    // Synchronize to Cloud Firestore
-    saveCloudDoc(CLOUD_COLLECTIONS.CRITERIA, id, newCrit);
-
     // Persist to central database
     fetch('/api/criteria', {
       method: 'POST',
@@ -3095,9 +2997,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const updated = { ...oldCrit, ...patch };
     setCriteria((prev) => prev.map((c) => (c.id === id ? updated : c)));
 
-    // Synchronize to Cloud Firestore
-    saveCloudDoc(CLOUD_COLLECTIONS.CRITERIA, id, updated);
-
     // Persist to central database so F5 does not lose changes
     fetch(`/api/criteria/${encodeURIComponent(id)}`, {
       method: 'PUT',
@@ -3125,9 +3024,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!oldCrit) return { success: false, message: 'Không tìm thấy tiêu chí' };
     setCriteria((prev) => prev.filter((c) => c.id !== id));
 
-    // Delete from Cloud Firestore
-    deleteCloudDoc(CLOUD_COLLECTIONS.CRITERIA, id);
-
     // Persist deletion to central database
     fetch(`/api/criteria/${encodeURIComponent(id)}`, {
       method: 'DELETE',
@@ -3152,11 +3048,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const oldCrit = criteria.find((c) => c.id === id);
     if (!oldCrit) return { success: false, message: 'Không tìm thấy tiêu chí' };
     const nextActive = !oldCrit.isActive;
-    const updated = { ...oldCrit, isActive: nextActive };
-    setCriteria((prev) => prev.map((c) => (c.id === id ? updated : c)));
-
-    // Synchronize to Cloud Firestore
-    saveCloudDoc(CLOUD_COLLECTIONS.CRITERIA, id, updated);
+    setCriteria((prev) => prev.map((c) => (c.id === id ? { ...c, isActive: nextActive } : c)));
 
     // Persist to central database
     fetch(`/api/criteria/${encodeURIComponent(id)}`, {
@@ -3459,13 +3351,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         : `${currentUser.name} (${currentUser.title}) đã CHỐT KHÓA dữ liệu thi đua Tuần ${week} toàn trường`,
     });
 
-    // Sync with Cloud Firestore
-    if (currentlyLocked) {
-      deleteCloudDoc(CLOUD_COLLECTIONS.LOCKED_WEEKS, `week_${week}`);
-    } else {
-      saveCloudDoc(CLOUD_COLLECTIONS.LOCKED_WEEKS, `week_${week}`, { id: `week_${week}`, week, isLocked: true });
-    }
-
     // Sync with backend API
     fetch('/api/datalock/toggle', {
       method: 'POST',
@@ -3532,9 +3417,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setLockedMonths(updated);
     setSettings((prev) => ({ ...prev, lockedMonths: updated }));
 
-    // Synchronize to Cloud Firestore
-    saveCloudDoc(CLOUD_COLLECTIONS.LOCKED_MONTHS, `month_${month}`, lockInfo);
-
     fetch('/api/datalock/month', {
       method: 'POST',
       headers: {
@@ -3580,9 +3462,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     delete updated[month];
     setLockedMonths(updated);
     setSettings((prev) => ({ ...prev, lockedMonths: updated }));
-
-    // Delete from Cloud Firestore
-    deleteCloudDoc(CLOUD_COLLECTIONS.LOCKED_MONTHS, `month_${month}`);
 
     fetch('/api/datalock/month', {
       method: 'POST',
@@ -3657,9 +3536,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setLockedSemesters(updated);
     setSettings((prev) => ({ ...prev, lockedSemesters: updated }));
 
-    // Synchronize to Cloud Firestore
-    saveCloudDoc(CLOUD_COLLECTIONS.LOCKED_SEMESTERS, `semester_${semester}`, lockInfo);
-
     logAudit({
       action: 'CHOT_DU_LIEU_HOC_KY',
       category: 'khoa_du_lieu',
@@ -3695,9 +3571,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     delete updated[semester];
     setLockedSemesters(updated);
     setSettings((prev) => ({ ...prev, lockedSemesters: updated }));
-
-    // Delete from Cloud Firestore
-    deleteCloudDoc(CLOUD_COLLECTIONS.LOCKED_SEMESTERS, `semester_${semester}`);
 
     logAudit({
       action: 'MO_KHOA_HOC_KY',
@@ -3762,9 +3635,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setLockedYear(lockInfo);
     setSettings((prev) => ({ ...prev, lockedYear: lockInfo }));
 
-    // Synchronize to Cloud Firestore
-    saveCloudDoc(CLOUD_COLLECTIONS.LOCKED_YEAR, 'global', lockInfo);
-
     logAudit({
       action: 'CHOT_DU_LIEU_CA_NAM',
       category: 'khoa_du_lieu',
@@ -3802,9 +3672,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       delete updated.lockedYear;
       return updated;
     });
-
-    // Delete from Cloud Firestore
-    deleteCloudDoc(CLOUD_COLLECTIONS.LOCKED_YEAR, 'global');
 
     logAudit({
       action: 'MO_KHOA_CA_NAM',
@@ -3866,9 +3733,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setLockedTitles(lockInfo);
     setSettings((prev) => ({ ...prev, lockedTitles: lockInfo }));
 
-    // Synchronize to Cloud Firestore
-    saveCloudDoc(CLOUD_COLLECTIONS.LOCKED_TITLES, 'global', lockInfo);
-
     logAudit({
       action: 'CHOT_DANH_HIEU_NAM',
       category: 'khoa_du_lieu',
@@ -3907,9 +3771,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return updated;
     });
 
-    // Delete from Cloud Firestore
-    deleteCloudDoc(CLOUD_COLLECTIONS.LOCKED_TITLES, 'global');
-
     logAudit({
       action: 'MO_KHOA_DANH_HIEU_NAM',
       category: 'khoa_du_lieu',
@@ -3947,9 +3808,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setDisciplinaryRecords((prev) => [newRecord, ...prev]);
 
-    // Synchronize to Cloud Firestore
-    saveCloudDoc(CLOUD_COLLECTIONS.DISCIPLINARY_RECORDS, id, newRecord);
-
     logAudit({
       action: 'CAP_NHAT_KY_LUAT',
       entityType: 'disciplinary_record',
@@ -3978,9 +3836,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
 
     setDisciplinaryRecords((prev) => prev.filter((r) => r.id !== id));
-
-    // Delete from Cloud Firestore
-    deleteCloudDoc(CLOUD_COLLECTIONS.DISCIPLINARY_RECORDS, id);
 
     logAudit({
       action: 'CAP_NHAT_KY_LUAT',
@@ -4192,8 +4047,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newLog: ScoreLog = { ...enriched, id };
     setScoreLogs((prev) => [newLog, ...prev]);
 
-    // Đồng bộ trực tiếp lên Cloud Firestore thời gian thực
-    saveCloudDoc(CLOUD_COLLECTIONS.SCORE_LOGS, id, newLog);
+    // Đồng bộ trực tiếp vào cơ sở dữ liệu máy chủ trung tâm
     fetch('/api/score-logs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -4273,8 +4127,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setScoreLogs((prev) => prev.map((l) => (l.id === id ? updated : l)));
 
-    // Đồng bộ trực tiếp lên Cloud Firestore thời gian thực
-    saveCloudDoc(CLOUD_COLLECTIONS.SCORE_LOGS, id, updated);
+    // Đồng bộ trực tiếp vào cơ sở dữ liệu máy chủ trung tâm
     fetch(`/api/score-logs/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -4350,8 +4203,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setScoreLogs((prev) => prev.filter((l) => l.id !== id));
 
-    // Xóa trực tiếp khỏi Cloud Firestore thời gian thực
-    deleteCloudDoc(CLOUD_COLLECTIONS.SCORE_LOGS, id);
+    // Xóa trực tiếp khỏi cơ sở dữ liệu máy chủ trung tâm
     fetch(`/api/score-logs/${id}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },

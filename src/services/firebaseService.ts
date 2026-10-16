@@ -173,6 +173,23 @@ export async function saveCloudDoc(collectionName: string, documentId: string, d
 }
 
 /**
+ * Replace a document in Firestore (full overwrite)
+ */
+export async function replaceCloudDoc(collectionName: string, documentId: string, data: any): Promise<boolean> {
+  if (!isFirebaseConfigured()) return false;
+  try {
+    const docRef = doc(db, collectionName, documentId);
+    // Sanitize undefined fields to null for Firestore compatibility
+    const cleanData = JSON.parse(JSON.stringify(data));
+    await setDoc(docRef, cleanData);
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `${collectionName}/${documentId}`);
+    return false;
+  }
+}
+
+/**
  * Delete a document from Firestore in real-time
  */
 export async function deleteCloudDoc(collectionName: string, documentId: string): Promise<boolean> {

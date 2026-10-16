@@ -98,6 +98,12 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
 
   // Compute full rankings for the selected campus / scope (Requirement VI & VII)
   const displayRankings = useMemo(() => {
+    // Nếu có rankings được truyền vào qua props, ưu tiên sử dụng nó để đảm bảo tính đồng bộ dữ liệu
+    if (initialRankings && initialRankings.length > 0) {
+       if (activeCampusId === 'all') return initialRankings;
+       return initialRankings.filter((r) => r.campus.id === activeCampusId);
+    }
+    
     switch (periodType) {
       case 'week':
         return getWeeklyRankings(periodNumber, activeCampusId, 'all');
@@ -108,8 +114,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
       case 'year':
         return getYearlyRankings(activeCampusId, 'all');
       default:
-        if (activeCampusId === 'all') return initialRankings;
-        return initialRankings.filter((r) => r.campus.id === activeCampusId);
+        return [];
     }
   }, [
     periodType,

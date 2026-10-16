@@ -76,14 +76,26 @@ export const HistoricalScoresManager: React.FC = () => {
 
   // Initialize or update scores input whenever selectedWeek changes or historicalWeeklyScores updates
   useEffect(() => {
-    const existingWeekData = historicalWeeklyScores[selectedWeek];
+    const weekNum = Number(selectedWeek);
+    const existingWeekData = historicalWeeklyScores[weekNum] || historicalWeeklyScores[String(weekNum)];
     const initialMap: Record<string, { score: string; note: string }> = {};
 
     classes.forEach((cls) => {
       if (existingWeekData && existingWeekData[cls.id] !== undefined) {
+        const item = existingWeekData[cls.id];
+        let val: any = 100;
+        let note = '';
+        if (typeof item === 'number') {
+          val = item;
+        } else if (typeof item === 'string') {
+          val = item;
+        } else if (item && typeof item === 'object') {
+          val = (item as any).finalScore ?? (item as any).score ?? 100;
+          note = item.note || '';
+        }
         initialMap[cls.id] = {
-          score: String(existingWeekData[cls.id].finalScore),
-          note: existingWeekData[cls.id].note || '',
+          score: String(val),
+          note,
         };
       } else {
         // If no historical score exists, provide reference score (from logs) or default 100
@@ -101,18 +113,20 @@ export const HistoricalScoresManager: React.FC = () => {
 
   // Check if current week has saved historical data
   const hasSavedHistoricalData = useMemo(() => {
-    return !!(historicalWeeklyScores[selectedWeek] && Object.keys(historicalWeeklyScores[selectedWeek]).length > 0);
+    const weekData = historicalWeeklyScores[selectedWeek] || historicalWeeklyScores[String(selectedWeek)];
+    return !!(weekData && Object.keys(weekData).length > 0);
   }, [historicalWeeklyScores, selectedWeek]);
 
   const historicalInfo = useMemo(() => {
     if (!hasSavedHistoricalData) return null;
-    const weekData = historicalWeeklyScores[selectedWeek];
+    const weekData = historicalWeeklyScores[selectedWeek] || historicalWeeklyScores[String(selectedWeek)];
+    if (!weekData) return null;
     const firstKey = Object.keys(weekData)[0];
     const sample = weekData[firstKey];
     return {
       classesCount: Object.keys(weekData).length,
-      updatedBy: sample?.updatedBy || 'Quản trị viên / BGH',
-      updatedAt: sample?.updatedAt || '',
+      updatedBy: (sample as any)?.updatedBy || 'Quản trị viên / BGH',
+      updatedAt: (sample as any)?.updatedAt || '',
     };
   }, [hasSavedHistoricalData, historicalWeeklyScores, selectedWeek]);
 

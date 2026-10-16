@@ -9,15 +9,27 @@
  * 4. Vào Cài đặt dự án (Project Settings) -> Thêm ứng dụng Web -> Sao chép cấu hình bên dưới và dán vào đây:
  */
 
-export const firebaseConfig = {
-  apiKey: "AIzaSyApSYsBgGfP8KCSGdzAPHvXa2EbRrVULMk",
-  authDomain: "mindful-range-853bd.firebaseapp.com",
-  projectId: "mindful-range-853bd",
-  storageBucket: "mindful-range-853bd.firebasestorage.app",
-  messagingSenderId: "302161623693",
-  appId: "1:302161623693:web:3c7ed3d90a16088da240c4",
-  firestoreDatabaseId: "ai-studio-lhlclassrankingt-83560724-b04d-433b-b1de-904dc275f188"
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCpW-PxHIo9FQ0IIspMhBW6Sc0VN6l15f4",
+  authDomain: "neneplhl.firebaseapp.com",
+  projectId: "neneplhl",
+  storageBucket: "neneplhl.firebasestorage.app",
+  messagingSenderId: "879961923597",
+  appId: "1:879961923597:web:753b8273faf2e9ac8cf544",
+  measurementId: "G-VTQ7BYWZ4R"
 };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
 /**
  * Các bộ sưu tập chính (Collections) trong Firestore Database:

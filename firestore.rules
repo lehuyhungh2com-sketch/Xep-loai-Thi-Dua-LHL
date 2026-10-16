@@ -1,67 +1,76 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default allow read and write for app operational collections
-    match /users/{userId} {
-      allow read, write: if true;
+    // Global fallback deny
+    match /{document=**} {
+      allow read, write: if false;
     }
-    match /classes/{classId} {
-      allow read, write: if true;
-    }
-    match /campuses/{campusId} {
-      allow read, write: if true;
-    }
-    match /criteria/{criteriaId} {
+
+    // Scores & Score logs (Nhập điểm, Sửa điểm, Xóa điểm)
+    match /scores/{scoreId} {
       allow read, write: if true;
     }
     match /score_logs/{logId} {
       allow read, write: if true;
     }
-    match /settings/{docId} {
+    match /scores_sync/{docId} {
       allow read, write: if true;
     }
-    match /locked_weeks/{docId} {
+
+    // Chốt tuần (Locked Weeks)
+    match /locked_weeks/{weekId} {
       allow read, write: if true;
     }
-    match /locked_months/{docId} {
+
+    // Chốt tháng (Locked Months)
+    match /locked_months/{monthId} {
       allow read, write: if true;
     }
+
+    // Chốt học kỳ (Locked Semesters)
     match /locked_semesters/{docId} {
       allow read, write: if true;
     }
+
+    // Chốt năm & Chốt danh hiệu (Locked Year & Titles)
     match /locked_year/{docId} {
       allow read, write: if true;
     }
     match /locked_titles/{docId} {
       allow read, write: if true;
     }
-    match /audit_logs/{logId} {
+
+    // Cấu hình tiêu chí (Criteria & Version History)
+    match /criteria/{criteriaId} {
       allow read, write: if true;
     }
-    match /appeals/{appealId} {
+    match /criteria_sync/{docId} {
       allow read, write: if true;
     }
-    match /historical_scores/{docId} {
-      allow read, write: if true;
-    }
-    match /periodic_bonus/{docId} {
-      allow read, write: if true;
-    }
-    match /campus_weekly_duties/{dutyId} {
-      allow read, write: if true;
-    }
-    match /red_flag_members/{memberId} {
-      allow read, write: if true;
-    }
-    match /red_flag_briefings/{briefingId} {
-      allow read, write: if true;
-    }
-    match /red_flag_activity_logs/{logId} {
+    match /criteria_versions/{versionId} {
       allow read, write: if true;
     }
 
-    match /{document=**} {
-      allow read, write: if false;
+    // Nhật ký kiểm toán (Audit Logs)
+    match /audit_logs/{auditId} {
+      allow read, write: if true;
+    }
+    match /audit_logs_sync/{docId} {
+      allow read, write: if true;
+    }
+
+    // Cấu hình trường học & Danh mục
+    match /school_settings/{docId} {
+      allow read, write: if true;
+    }
+    match /campuses/{docId} {
+      allow read, write: if true;
+    }
+    match /classes/{docId} {
+      allow read, write: if true;
+    }
+    match /users/{docId} {
+      allow read, write: if true;
     }
   }
 }

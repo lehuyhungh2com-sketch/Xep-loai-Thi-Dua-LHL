@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback, ReactNode } from 'react';
 import masterDatabase from '../../data/server_db.json';
+import { db } from '../../firebase-config';
+import { doc, setDoc, deleteDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import {
   Campus,
   ClassItem,
@@ -522,11 +524,6 @@ function determineTier(score: number): RankingEntry['performanceTier'] {
   return 'Cần cố gắng';
 }
 
-import { db } from '../services/firebase';
-import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
-
-// ... existing code ...
-
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // ... existing code ...
   
@@ -534,19 +531,35 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     const collectionsToSync = ['classes', 'campuses', 'users', 'score_logs', 'school_settings'];
     const unsubscribers = collectionsToSync.map(collectionName => {
-      return onSnapshot(doc(db, collectionName, 'data'), (snapshot) => {
-        if (snapshot.exists()) {
-          const data = snapshot.data();
-          // Update local state and localStorage
-          if (collectionName === 'classes') {
-            setClasses(data.list);
-            localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(data.list));
+      try {
+        return onSnapshot(doc(db, collectionName, 'data'), (snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.data();
+            // Update local state and localStorage
+            if (collectionName === 'classes' && data.list) {
+              setClasses(data.list);
+              localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(data.list));
+            } else if (collectionName === 'campuses' && data.list) {
+              setCampuses(data.list);
+              localStorage.setItem(STORAGE_KEYS.CAMPUSES, JSON.stringify(data.list));
+            } else if (collectionName === 'users' && data.list) {
+              setUsers(data.list);
+              localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(data.list));
+            } else if (collectionName === 'score_logs' && data.list) {
+              setScoreLogs(data.list);
+              localStorage.setItem(STORAGE_KEYS.SCORE_LOGS, JSON.stringify(data.list));
+            } else if (collectionName === 'school_settings') {
+              setSettings((prev) => ({ ...prev, ...data }));
+              localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify({ ...settings, ...data }));
+            }
           }
-          // ... implement other collections ...
-        }
-      }, (error) => {
-        console.error(`Error syncing ${collectionName}:`, error);
-      });
+        }, (error) => {
+          console.error(`Error syncing ${collectionName}:`, error);
+        });
+      } catch (e) {
+        console.error(`Failed to setup snapshot for ${collectionName}:`, e);
+        return () => {};
+      }
     });
 
     return () => unsubscribers.forEach(unsub => unsub());
@@ -1025,12 +1038,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.CRITERIA, JSON.stringify(criteria));
+      try {
+        setDoc(doc(db, 'criteria_sync', 'current'), {
+          list: criteria,
+          count: criteria.length,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true }).catch((err) => console.warn('Lỗi đẩy criteria_sync lên Firebase:', err));
+      } catch (fbErr) {
+        console.warn('Lỗi gọi Firebase cho criteria_sync:', fbErr);
+      }
     } catch {}
   }, [criteria]);
 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.SCORE_LOGS, JSON.stringify(scoreLogs));
+      try {
+        setDoc(doc(db, 'scores_sync', 'current'), {
+          count: scoreLogs.length,
+          lastUpdated: new Date().toISOString(),
+        }, { merge: true }).catch((err) => console.warn('Lỗi đẩy scores_sync lên Firebase:', err));
+      } catch (fbErr) {
+        console.warn('Lỗi gọi Firebase cho scores_sync:', fbErr);
+      }
     } catch {}
   }, [scoreLogs]);
 
@@ -1066,18 +1096,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.LOCKED_WEEKS, JSON.stringify(lockedWeeks));
+      try {
+        setDoc(doc(db, 'locked_weeks', 'summary'), {
+          lockedWeeks,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true }).catch((err) => console.warn('Lỗi đẩy locked_weeks lên Firebase:', err));
+      } catch (fbErr) {
+        console.warn('Lỗi gọi Firebase cho locked_weeks:', fbErr);
+      }
     } catch {}
   }, [lockedWeeks]);
 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.LOCKED_MONTHS, JSON.stringify(lockedMonths));
+      try {
+        setDoc(doc(db, 'locked_months', 'summary'), {
+          lockedMonths,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true }).catch((err) => console.warn('Lỗi đẩy locked_months lên Firebase:', err));
+      } catch (fbErr) {
+        console.warn('Lỗi gọi Firebase cho locked_months:', fbErr);
+      }
     } catch {}
   }, [lockedMonths]);
 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.LOCKED_SEMESTERS, JSON.stringify(lockedSemesters));
+      try {
+        setDoc(doc(db, 'locked_semesters', 'summary'), {
+          lockedSemesters,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true }).catch((err) => console.warn('Lỗi đẩy locked_semesters lên Firebase:', err));
+      } catch (fbErr) {
+        console.warn('Lỗi gọi Firebase cho locked_semesters:', fbErr);
+      }
     } catch {}
   }, [lockedSemesters]);
 
@@ -1085,8 +1139,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       if (lockedYear) {
         localStorage.setItem(STORAGE_KEYS.LOCKED_YEAR, JSON.stringify(lockedYear));
+        try {
+          setDoc(doc(db, 'locked_year', 'summary'), {
+            lockedYear,
+            updatedAt: new Date().toISOString(),
+          }, { merge: true }).catch((err) => console.warn('Lỗi đẩy locked_year lên Firebase:', err));
+        } catch (fbErr) {
+          console.warn('Lỗi gọi Firebase cho locked_year:', fbErr);
+        }
       } else {
         localStorage.removeItem(STORAGE_KEYS.LOCKED_YEAR);
+        try {
+          deleteDoc(doc(db, 'locked_year', 'summary'))
+            .catch((err) => console.warn('Lỗi xóa locked_year trên Firebase:', err));
+        } catch (fbErr) {
+          console.warn('Lỗi gọi Firebase xóa locked_year:', fbErr);
+        }
       }
     } catch {}
   }, [lockedYear]);
@@ -1095,8 +1163,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       if (lockedTitles) {
         localStorage.setItem(STORAGE_KEYS.LOCKED_TITLES, JSON.stringify(lockedTitles));
+        try {
+          setDoc(doc(db, 'locked_titles', 'summary'), {
+            lockedTitles,
+            updatedAt: new Date().toISOString(),
+          }, { merge: true }).catch((err) => console.warn('Lỗi đẩy locked_titles lên Firebase:', err));
+        } catch (fbErr) {
+          console.warn('Lỗi gọi Firebase cho locked_titles:', fbErr);
+        }
       } else {
         localStorage.removeItem(STORAGE_KEYS.LOCKED_TITLES);
+        try {
+          deleteDoc(doc(db, 'locked_titles', 'summary'))
+            .catch((err) => console.warn('Lỗi xóa locked_titles trên Firebase:', err));
+        } catch (fbErr) {
+          console.warn('Lỗi gọi Firebase xóa locked_titles:', fbErr);
+        }
       }
     } catch {}
   }, [lockedTitles]);
@@ -1110,6 +1192,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs));
+      try {
+        setDoc(doc(db, 'audit_logs_sync', 'summary'), {
+          count: auditLogs.length,
+          latestLog: auditLogs[0] || null,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true }).catch((err) => console.warn('Lỗi đẩy audit_logs_sync lên Firebase:', err));
+      } catch (fbErr) {
+        console.warn('Lỗi gọi Firebase cho audit_logs_sync:', fbErr);
+      }
     } catch {}
   }, [auditLogs]);
 
@@ -1375,6 +1466,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     setAuditLogs((prev) => [newEntry, ...prev.slice(0, 2500)]);
+
+    // Hybrid sync: Đẩy nhật ký kiểm toán lên Firebase (collection audit_logs)
+    try {
+      const cleanEntry = JSON.parse(JSON.stringify(newEntry));
+      setDoc(doc(db, 'audit_logs', newEntry.id), cleanEntry)
+        .catch((err) => console.warn('Lỗi đẩy nhật ký kiểm toán lên Firebase:', err));
+    } catch (fbErr) {
+      console.warn('Lỗi gọi Firebase logAudit:', fbErr);
+    }
 
     // Asynchronously sync with backend endpoint
     if (currentUser) {
@@ -2969,6 +3069,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newCrit = { ...crit, id };
     setCriteria((prev) => [...prev, newCrit]);
 
+    // Hybrid sync: Đẩy tiêu chí mới lên Firebase (collection criteria)
+    try {
+      const cleanCrit = JSON.parse(JSON.stringify(newCrit));
+      setDoc(doc(db, 'criteria', id), cleanCrit)
+        .catch((err) => console.warn('Lỗi đẩy tiêu chí mới lên Firebase (collection criteria):', err));
+    } catch (fbErr) {
+      console.warn('Lỗi gọi Firebase addCriteria:', fbErr);
+    }
+
     // Persist to central database
     fetch('/api/criteria', {
       method: 'POST',
@@ -2997,6 +3106,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const updated = { ...oldCrit, ...patch };
     setCriteria((prev) => prev.map((c) => (c.id === id ? updated : c)));
 
+    // Hybrid sync: Cập nhật tiêu chí lên Firebase (collection criteria)
+    try {
+      const cleanUpdated = JSON.parse(JSON.stringify(updated));
+      setDoc(doc(db, 'criteria', id), cleanUpdated, { merge: true })
+        .catch((err) => console.warn('Lỗi cập nhật tiêu chí lên Firebase (collection criteria):', err));
+    } catch (fbErr) {
+      console.warn('Lỗi gọi Firebase updateCriteria:', fbErr);
+    }
+
     // Persist to central database so F5 does not lose changes
     fetch(`/api/criteria/${encodeURIComponent(id)}`, {
       method: 'PUT',
@@ -3024,6 +3142,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!oldCrit) return { success: false, message: 'Không tìm thấy tiêu chí' };
     setCriteria((prev) => prev.filter((c) => c.id !== id));
 
+    // Hybrid sync: Xóa tiêu chí trên Firebase (collection criteria)
+    try {
+      deleteDoc(doc(db, 'criteria', id))
+        .catch((err) => console.warn('Lỗi xóa tiêu chí trên Firebase (collection criteria):', err));
+    } catch (fbErr) {
+      console.warn('Lỗi gọi Firebase deleteCriteria:', fbErr);
+    }
+
     // Persist deletion to central database
     fetch(`/api/criteria/${encodeURIComponent(id)}`, {
       method: 'DELETE',
@@ -3048,7 +3174,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const oldCrit = criteria.find((c) => c.id === id);
     if (!oldCrit) return { success: false, message: 'Không tìm thấy tiêu chí' };
     const nextActive = !oldCrit.isActive;
-    setCriteria((prev) => prev.map((c) => (c.id === id ? { ...c, isActive: nextActive } : c)));
+    const updated = { ...oldCrit, isActive: nextActive };
+    setCriteria((prev) => prev.map((c) => (c.id === id ? updated : c)));
+
+    // Hybrid sync: Cập nhật trạng thái tiêu chí lên Firebase (collection criteria)
+    try {
+      setDoc(doc(db, 'criteria', id), { isActive: nextActive }, { merge: true })
+        .catch((err) => console.warn('Lỗi cập nhật trạng thái tiêu chí lên Firebase:', err));
+    } catch (fbErr) {
+      console.warn('Lỗi gọi Firebase toggleCriteriaActive:', fbErr);
+    }
 
     // Persist to central database
     fetch(`/api/criteria/${encodeURIComponent(id)}`, {
@@ -3063,7 +3198,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       entityType: 'criteria',
       entityId: id,
       beforeData: oldCrit,
-      afterData: { ...oldCrit, isActive: nextActive },
+      afterData: updated,
       details: `${nextActive ? 'Kích hoạt' : 'Tạm ngưng'} tiêu chí: ${oldCrit.code} - ${oldCrit.name}`,
     });
     return { success: true, message: 'Cập nhật trạng thái tiêu chí thành công' };
@@ -3135,6 +3270,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const next = [historyItem, ...prev];
       try {
         localStorage.setItem('lhl_criteria_versions', JSON.stringify(next));
+        try {
+          const cleanHistory = JSON.parse(JSON.stringify(historyItem));
+          setDoc(doc(db, 'criteria_versions', historyItem.id), cleanHistory)
+            .catch((err) => console.warn('Lỗi lưu criteria_versions lên Firebase:', err));
+        } catch (fbErr) {
+          console.warn('Lỗi gọi Firebase createNewCriteriaVersion:', fbErr);
+        }
       } catch (e) {}
       return next;
     });
@@ -3337,6 +3479,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setLockedWeeks(updated);
     setSettings((prev) => ({ ...prev, lockedWeeks: updated }));
 
+    // Hybrid sync: Đẩy trạng thái chốt tuần lên Firestore
+    try {
+      const lockPayload = {
+        week,
+        isLocked: !currentlyLocked,
+        updatedAt: new Date().toISOString(),
+        updatedBy: currentUser.name,
+        userRole,
+        reason: reason || (currentlyLocked ? 'Mở khóa tuần' : 'Chốt khóa tuần'),
+      };
+      setDoc(doc(db, 'locked_weeks', `week_${week}`), lockPayload)
+        .catch((err) => console.warn('Lỗi đẩy chốt tuần lên Firebase (locked_weeks):', err));
+      setDoc(doc(db, 'locked_weeks', 'summary'), {
+        lockedWeeks: updated,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true }).catch((err) => console.warn('Lỗi cập nhật summary locked_weeks lên Firebase:', err));
+    } catch (fbErr) {
+      console.warn('Lỗi gọi Firebase toggleWeekLock:', fbErr);
+    }
+
     // Record Audit Log with before and after
     logAudit({
       action: currentlyLocked ? 'MO_KHOA_TUAN' : 'CHOT_DU_LIEU_TUAN',
@@ -3417,6 +3579,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setLockedMonths(updated);
     setSettings((prev) => ({ ...prev, lockedMonths: updated }));
 
+    // Hybrid sync: Đẩy trạng thái chốt tháng lên Firestore
+    try {
+      const cleanLockInfo = JSON.parse(JSON.stringify(lockInfo));
+      setDoc(doc(db, 'locked_months', `month_${month}`), cleanLockInfo)
+        .catch((err) => console.warn('Lỗi đẩy chốt tháng lên Firebase (locked_months):', err));
+      setDoc(doc(db, 'locked_months', 'summary'), {
+        ...updated,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true }).catch((err) => console.warn('Lỗi cập nhật summary locked_months lên Firebase:', err));
+    } catch (fbErr) {
+      console.warn('Lỗi gọi Firebase lockMonth:', fbErr);
+    }
+
     fetch('/api/datalock/month', {
       method: 'POST',
       headers: {
@@ -3462,6 +3637,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     delete updated[month];
     setLockedMonths(updated);
     setSettings((prev) => ({ ...prev, lockedMonths: updated }));
+
+    // Hybrid sync: Cập nhật mở khóa tháng lên Firestore
+    try {
+      const unlockPayload = {
+        month,
+        isLocked: false,
+        unlockedAt: new Date().toISOString(),
+        unlockedBy: currentUser.name,
+        reason: reason.trim(),
+      };
+      setDoc(doc(db, 'locked_months', `month_${month}`), unlockPayload)
+        .catch((err) => console.warn('Lỗi cập nhật mở khóa tháng lên Firebase (locked_months):', err));
+      setDoc(doc(db, 'locked_months', 'summary'), {
+        ...updated,
+        updatedAt: new Date().toISOString(),
+      }).catch((err) => console.warn('Lỗi cập nhật summary locked_months sau mở khóa lên Firebase:', err));
+    } catch (fbErr) {
+      console.warn('Lỗi gọi Firebase unlockMonth:', fbErr);
+    }
 
     fetch('/api/datalock/month', {
       method: 'POST',
@@ -4047,6 +4241,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newLog: ScoreLog = { ...enriched, id };
     setScoreLogs((prev) => [newLog, ...prev]);
 
+    // Hybrid sync: Đẩy bản sao lên Firestore (collection scores và score_logs)
+    try {
+      const cleanLog = JSON.parse(JSON.stringify(newLog));
+      setDoc(doc(db, 'scores', id), cleanLog)
+        .catch((err) => console.warn('Lỗi đẩy điểm lên Firebase (collection scores):', err));
+      setDoc(doc(db, 'score_logs', id), cleanLog)
+        .catch((err) => console.warn('Lỗi đẩy điểm lên Firebase (collection score_logs):', err));
+    } catch (fbErr) {
+      console.warn('Lỗi gọi Firebase addScoreLog:', fbErr);
+    }
+
     // Đồng bộ trực tiếp vào cơ sở dữ liệu máy chủ trung tâm
     fetch('/api/score-logs', {
       method: 'POST',
@@ -4127,6 +4332,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setScoreLogs((prev) => prev.map((l) => (l.id === id ? updated : l)));
 
+    // Hybrid sync: Cập nhật bản sao lên Firestore (collection scores và score_logs)
+    try {
+      const cleanUpdated = JSON.parse(JSON.stringify(updated));
+      setDoc(doc(db, 'scores', id), cleanUpdated, { merge: true })
+        .catch((err) => console.warn('Lỗi cập nhật điểm lên Firebase (collection scores):', err));
+      setDoc(doc(db, 'score_logs', id), cleanUpdated, { merge: true })
+        .catch((err) => console.warn('Lỗi cập nhật điểm lên Firebase (collection score_logs):', err));
+    } catch (fbErr) {
+      console.warn('Lỗi gọi Firebase updateScoreLog:', fbErr);
+    }
+
     // Đồng bộ trực tiếp vào cơ sở dữ liệu máy chủ trung tâm
     fetch(`/api/score-logs/${id}`, {
       method: 'PUT',
@@ -4203,6 +4419,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setScoreLogs((prev) => prev.filter((l) => l.id !== id));
 
+    // Hybrid sync: Xóa bản sao trên Firestore (collection scores và score_logs)
+    try {
+      deleteDoc(doc(db, 'scores', id))
+        .catch((err) => console.warn('Lỗi xóa điểm trên Firebase (collection scores):', err));
+      deleteDoc(doc(db, 'score_logs', id))
+        .catch((err) => console.warn('Lỗi xóa điểm trên Firebase (collection score_logs):', err));
+    } catch (fbErr) {
+      console.warn('Lỗi gọi Firebase deleteScoreLog:', fbErr);
+    }
+
     // Xóa trực tiếp khỏi cơ sở dữ liệu máy chủ trung tâm
     fetch(`/api/score-logs/${id}`, {
       method: 'DELETE',
@@ -4265,6 +4491,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }));
 
     setScoreLogs((prev) => [...items, ...prev]);
+
+    // Hybrid sync: Đẩy danh sách bản sao lên Firestore
+    try {
+      items.forEach((item) => {
+        const cleanItem = JSON.parse(JSON.stringify(item));
+        setDoc(doc(db, 'scores', item.id), cleanItem)
+          .catch((err) => console.warn('Lỗi đẩy điểm hàng loạt lên Firebase (collection scores):', err));
+        setDoc(doc(db, 'score_logs', item.id), cleanItem)
+          .catch((err) => console.warn('Lỗi đẩy điểm hàng loạt lên Firebase (collection score_logs):', err));
+      });
+    } catch (fbErr) {
+      console.warn('Lỗi gọi Firebase bulkAddScoreLogs:', fbErr);
+    }
 
     // Đồng bộ trực tiếp danh sách biên bản vào máy chủ trung tâm
     fetch('/api/score-logs/batch', {

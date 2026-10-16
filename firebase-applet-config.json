@@ -1,12 +1,9 @@
 {
-  "projectId": "mindful-range-853bd",
-  "appId": "1:302161623693:web:3c7ed3d90a16088da240c4",
-  "apiKey": "AIzaSyApSYsBgGfP8KCSGdzAPHvXa2EbRrVULMk",
-  "authDomain": "mindful-range-853bd.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-lhlclassrankingt-83560724-b04d-433b-b1de-904dc275f188",
-  "storageBucket": "mindful-range-853bd.firebasestorage.app",
-  "messagingSenderId": "302161623693",
-  "measurementId": "",
-  "oAuthClientId": "302161623693-f7hp9jcu38lqi2a915un1m374nembmgp.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "projectId": "neneplhl",
+  "appId": "1:879961923597:web:753b8273faf2e9ac8cf544",
+  "apiKey": "AIzaSyCpW-PxHIo9FQ0IIspMhBW6Sc0VN6l15f4",
+  "authDomain": "neneplhl.firebaseapp.com",
+  "storageBucket": "neneplhl.firebasestorage.app",
+  "messagingSenderId": "879961923597",
+  "measurementId": "G-VTQ7BYWZ4R"
 }

@@ -77,7 +77,7 @@ export const HistoricalScoresManager: React.FC = () => {
   // Initialize or update scores input whenever selectedWeek changes or historicalWeeklyScores updates
   useEffect(() => {
     const weekNum = Number(selectedWeek);
-    const existingWeekData = historicalWeeklyScores[weekNum] || historicalWeeklyScores[String(weekNum)];
+    const existingWeekData = historicalWeeklyScores[weekNum] || (historicalWeeklyScores as any)[String(weekNum)];
     const initialMap: Record<string, { score: string; note: string }> = {};
 
     classes.forEach((cls) => {
@@ -113,13 +113,13 @@ export const HistoricalScoresManager: React.FC = () => {
 
   // Check if current week has saved historical data
   const hasSavedHistoricalData = useMemo(() => {
-    const weekData = historicalWeeklyScores[selectedWeek] || historicalWeeklyScores[String(selectedWeek)];
+    const weekData = historicalWeeklyScores[selectedWeek] || (historicalWeeklyScores as any)[String(selectedWeek)];
     return !!(weekData && Object.keys(weekData).length > 0);
   }, [historicalWeeklyScores, selectedWeek]);
 
   const historicalInfo = useMemo(() => {
     if (!hasSavedHistoricalData) return null;
-    const weekData = historicalWeeklyScores[selectedWeek] || historicalWeeklyScores[String(selectedWeek)];
+    const weekData = historicalWeeklyScores[selectedWeek] || (historicalWeeklyScores as any)[String(selectedWeek)];
     if (!weekData) return null;
     const firstKey = Object.keys(weekData)[0];
     const sample = weekData[firstKey];

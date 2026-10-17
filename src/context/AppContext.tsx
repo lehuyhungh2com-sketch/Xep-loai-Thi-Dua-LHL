@@ -1119,7 +1119,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       // Fetch all required collections
       const [
         usersSnap, classesSnap, campusesSnap, criteriaSnap, settingsSnap,
-        scoreLogsSnap, lockedWeeksSnap, lockedMonthsSnap, lockedSemestersSnap
+        scoreLogsSnap, lockedWeeksSnap, lockedMonthsSnap, lockedSemestersSnap,
+        lockedTitlesSnap, disciplinaryRecordsSnap, monthlyBonusesSnap
       ] = await Promise.all([
         getDocs(collection(db, 'users')),
         getDocs(collection(db, 'classes')),
@@ -1130,6 +1131,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         getDoc(doc(db, 'locked_weeks', 'summary')),
         getDoc(doc(db, 'locked_months', 'summary')),
         getDoc(doc(db, 'locked_semesters', 'summary')),
+        getDoc(doc(db, 'locked_titles', 'summary')),
+        getDocs(collection(db, 'disciplinary_records')),
+        getDoc(doc(db, 'monthly_bonuses', 'summary')),
       ]);
 
       // Update state with fetched data
@@ -1142,6 +1146,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (lockedWeeksSnap.exists()) setLockedWeeks(lockedWeeksSnap.data().lockedWeeks || []);
       if (lockedMonthsSnap.exists()) setLockedMonths(lockedMonthsSnap.data().lockedMonths || {});
       if (lockedSemestersSnap.exists()) setLockedSemesters(lockedSemestersSnap.data().lockedSemesters || {});
+      if (lockedTitlesSnap.exists()) setLockedTitles(lockedTitlesSnap.data().lockedTitles || null);
+      if (!disciplinaryRecordsSnap.empty) setDisciplinaryRecords(disciplinaryRecordsSnap.docs.map(d => d.data() as DisciplinaryRecord));
+      if (monthlyBonusesSnap.exists()) setBonusMonthly(monthlyBonusesSnap.data().bonusMonthly || {});
 
       setIsDataLoaded(true);
     } catch (err) {
@@ -3346,6 +3353,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } catch {}
 
     // Hybrid sync: Đẩy trạng thái chốt tuần lên Firestore
+    updateDoc(doc(db, 'locked_weeks', 'summary'), { lockedWeeks: updated }).catch(console.error);
     try {
       const lockPayload = {
         week,
@@ -5578,7 +5586,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const next = { ...prev, [key]: val };
         try {
           localStorage.setItem('lhl_bonus_monthly', JSON.stringify(next));
-          saveCloudDoc('settings', 'bonus_monthly', next);
+          updateDoc(doc(db, 'monthly_bonuses', 'summary'), { bonusMonthly: next }).catch(console.error);
         } catch {}
         return next;
       });

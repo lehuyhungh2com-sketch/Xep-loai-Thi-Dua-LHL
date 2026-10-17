@@ -1116,19 +1116,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const loadDataFromFirebase = useCallback(async () => {
     try {
       setIsDataLoaded(false);
-      // Fetch all required collections
+      // Fetch all required collections (classes, score_logs, locked_weeks moved to onSnapshot)
       const [
-        usersSnap, classesSnap, campusesSnap, criteriaSnap, settingsSnap,
-        scoreLogsSnap, lockedWeeksSnap, lockedMonthsSnap, lockedSemestersSnap,
+        usersSnap, campusesSnap, criteriaSnap, settingsSnap,
+        lockedMonthsSnap, lockedSemestersSnap,
         lockedTitlesSnap, disciplinaryRecordsSnap, monthlyBonusesSnap
       ] = await Promise.all([
         getDocs(collection(db, 'users')),
-        getDocs(collection(db, 'classes')),
         getDocs(collection(db, 'campuses')),
         getDocs(collection(db, 'criteria')),
         getDoc(doc(db, 'settings', 'config')),
-        getDocs(collection(db, 'score_logs')),
-        getDoc(doc(db, 'locked_weeks', 'summary')),
         getDoc(doc(db, 'locked_months', 'summary')),
         getDoc(doc(db, 'locked_semesters', 'summary')),
         getDoc(doc(db, 'locked_titles', 'summary')),
@@ -1138,12 +1135,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       // Update state with fetched data
       if (!usersSnap.empty) setUsers(usersSnap.docs.map(d => d.data() as User));
-      if (!classesSnap.empty) setClasses(classesSnap.docs.map(d => d.data() as ClassItem));
       if (!campusesSnap.empty) setCampuses(campusesSnap.docs.map(d => d.data() as Campus));
       if (!criteriaSnap.empty) setCriteria(criteriaSnap.docs.map(d => d.data() as Criteria));
       if (settingsSnap.exists()) setSettings(settingsSnap.data() as SchoolSettings);
-      if (!scoreLogsSnap.empty) setScoreLogs(scoreLogsSnap.docs.map(d => d.data() as ScoreLog));
-      if (lockedWeeksSnap.exists()) setLockedWeeks(lockedWeeksSnap.data().lockedWeeks || []);
       if (lockedMonthsSnap.exists()) setLockedMonths(lockedMonthsSnap.data().lockedMonths || {});
       if (lockedSemestersSnap.exists()) setLockedSemesters(lockedSemestersSnap.data().lockedSemesters || {});
       if (lockedTitlesSnap.exists()) setLockedTitles(lockedTitlesSnap.data().lockedTitles || null);
@@ -1171,6 +1165,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       alert('Lỗi đồng bộ dữ liệu!');
     }
   }, [settings]);
+
+  // Real-time synchronization listeners
+  useEffect(() => {
+    // Listen to classes
+    const unsubClasses = onSnapshot(collection(db, 'classes'), (snapshot) => {
+      setClasses(snapshot.docs.map(d => d.data() as ClassItem));
+    });
+
+    // Listen to score_logs
+    const unsubScoreLogs = onSnapshot(collection(db, 'score_logs'), (snapshot) => {
+      setScoreLogs(snapshot.docs.map(d => d.data() as ScoreLog));
+    });
+
+    // Listen to locked_weeks
+    const unsubLockedWeeks = onSnapshot(doc(db, 'locked_weeks', 'summary'), (snapshot) => {
+      if (snapshot.exists()) {
+        setLockedWeeks(snapshot.data().lockedWeeks || []);
+      }
+    });
+
+    return () => {
+      unsubClasses();
+      unsubScoreLogs();
+      unsubLockedWeeks();
+    };
+  }, []);
 
   // Nạp ngay khi mở app
   useEffect(() => {

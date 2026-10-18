@@ -1,11 +1,10 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAnalytics, isSupported } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// Your web app's Firebase configuration
-export const firebaseConfig = {
+// 1. Khai báo biến cấu hình (KHÔNG có chữ export ở đầu)
+const firebaseConfig = {
   apiKey: "AIzaSyCpW-PxHIo9FQ0IIspMhBW6Sc0VN6l15f4",
   authDomain: "neneplhl.firebaseapp.com",
   projectId: "neneplhl",
@@ -16,16 +15,18 @@ export const firebaseConfig = {
   firestoreDatabaseId: "ai-studio-lhlclassrankingt-83560724-b04d-433b-b1de-904dc275f188"
 };
 
-// Initialize Firebase App (Chỉ khai báo 1 lần duy nhất)
+// 2. Xuất biến cấu hình theo đúng chuẩn Named Export
+export { firebaseConfig };
+
+// 3. Khởi tạo app
 export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Firestore & Auth
+// 4. Khởi tạo Database và Auth
 export const db = firebaseConfig.firestoreDatabaseId 
   ? getFirestore(app, firebaseConfig.firestoreDatabaseId) 
   : getFirestore(app);
 export const auth = getAuth(app);
 
-// Initialize Analytics safely in browser environment (Chỉ khai báo 1 lần duy nhất)
 export let analytics = null;
 if (typeof window !== 'undefined') {
   isSupported().then((supported) => {
@@ -34,5 +35,3 @@ if (typeof window !== 'undefined') {
     }
   }).catch(() => {});
 }
-
-export default firebaseConfig;

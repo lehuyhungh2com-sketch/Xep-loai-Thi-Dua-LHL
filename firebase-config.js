@@ -4,15 +4,14 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 // 1. Khai báo biến cấu hình (KHÔNG có chữ export ở đầu)
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyCpW-PxHIo9FQ0IIspMhBW6Sc0VN6l15f4",
   authDomain: "neneplhl.firebaseapp.com",
   projectId: "neneplhl",
   storageBucket: "neneplhl.firebasestorage.app",
   messagingSenderId: "879961923597",
   appId: "1:879961923597:web:753b8273faf2e9ac8cf544",
-  measurementId: "G-VTQ7BYWZ4R",
-  firestoreDatabaseId: "ai-studio-lhlclassrankingt-83560724-b04d-433b-b1de-904dc275f188"
+  measurementId: "G-VTQ7BYWZ4R"
 };
 
 // 2. Xuất biến cấu hình theo đúng chuẩn Named Export

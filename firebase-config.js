@@ -1,4 +1,3 @@
-
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAnalytics, isSupported } from "firebase/analytics";
@@ -17,7 +16,8 @@ export const firebaseConfig = {
   storageBucket: "neneplhl.firebasestorage.app",
   messagingSenderId: "879961923597",
   appId: "1:879961923597:web:753b8273faf2e9ac8cf544",
-  measurementId: "G-VTQ7BYWZ4R"
+  measurementId: "G-VTQ7BYWZ4R",
+  firestoreDatabaseId: "ai-studio-lhlclassrankingt-83560724-b04d-433b-b1de-904dc275f188"
 };
 
 // Initialize Firebase

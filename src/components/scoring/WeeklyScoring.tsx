@@ -68,6 +68,10 @@ export const WeeklyScoring: React.FC = () => {
 
   if (!currentUser) return null;
 
+  const roleNorm = normalizeRole(currentUser.role);
+  const isAdmin = roleNorm === 'super_admin' || roleNorm === 'bgh' || roleNorm === 'tpt_doi';
+  const availableCampuses = isAdmin ? campuses : campuses.filter((c) => c.id === currentUser.campusId);
+
   const isLocked = isWeekLocked(selectedWeek);
   const canLock = canLockWeek(currentUser);
   const canUnlock = canUnlockWeek(currentUser);
@@ -130,6 +134,12 @@ export const WeeklyScoring: React.FC = () => {
       if (scoringNavigationContext.inspectorName) setCustomInspectorName(scoringNavigationContext.inspectorName);
     }
   }, [scoringNavigationContext, setSelectedWeek]);
+
+  useEffect(() => {
+    if (!isAdmin && currentUser.campusId && selectedCampusId !== currentUser.campusId) {
+      setSelectedCampusId(currentUser.campusId);
+    }
+  }, [isAdmin, currentUser.campusId, selectedCampusId]);
 
   // Ensure selected class belongs to selected campus
   useEffect(() => {
@@ -795,7 +805,7 @@ export const WeeklyScoring: React.FC = () => {
                 <span>Chọn Phân hiệu cơ sở:</span>
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {campuses.map((camp) => (
+                {availableCampuses.map((camp) => (
                   <button
                     key={camp.id}
                     type="button"

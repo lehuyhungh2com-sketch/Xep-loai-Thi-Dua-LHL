@@ -1137,7 +1137,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       // Fetch all required collections
       const [
         usersSnap, classesSnap, campusesSnap, criteriaSnap, settingsSnap,
-        scoreLogsSnap, lockedWeeksSnap, lockedMonthsSnap, lockedSemestersSnap,
+        scoreLogsSnap, lockedWeeksSnap, lockedMonthsDocsSnap, lockedSemestersSnap,
         lockedTitlesSnap, disciplinaryRecordsSnap, monthlyBonusesSnap, historicalScoresSnap
       ] = await Promise.all([
         getDocs(collection(db, 'users')),
@@ -1147,7 +1147,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         getDoc(doc(db, 'settings', 'config')),
         getDocs(collection(db, 'score_logs')),
         getDoc(doc(db, 'locked_weeks', 'summary')),
-        getDoc(doc(db, 'locked_months', 'summary')),
+        getDocs(collection(db, 'locked_months')),
         getDoc(doc(db, 'locked_semesters', 'summary')),
         getDoc(doc(db, 'locked_titles', 'summary')),
         getDocs(collection(db, 'disciplinary_records')),
@@ -1163,7 +1163,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (settingsSnap.exists()) setSettings(settingsSnap.data() as SchoolSettings);
       if (!scoreLogsSnap.empty) setScoreLogs(scoreLogsSnap.docs.map(d => d.data() as ScoreLog));
       if (lockedWeeksSnap.exists()) setLockedWeeks(lockedWeeksSnap.data().lockedWeeks || []);
-      if (lockedMonthsSnap.exists()) setLockedMonths(lockedMonthsSnap.data().lockedMonths || {});
+      if (!lockedMonthsDocsSnap.empty) {
+        const monthMap: Record<number, MonthLockInfo> = {};
+        lockedMonthsDocsSnap.docs.forEach(d => {
+          const data = d.data();
+          if (d.id === 'summary') {
+            if (data.lockedMonths) {
+              Object.assign(monthMap, data.lockedMonths);
+            } else {
+              Object.entries(data).forEach(([k, v]) => {
+                const num = Number(k);
+                if (!isNaN(num) && v && typeof v === 'object') {
+                  monthMap[num] = v as MonthLockInfo;
+                }
+              });
+            }
+          } else if (d.id.startsWith('month_')) {
+            const mNum = Number(d.id.replace('month_', ''));
+            if (!isNaN(mNum) && data) {
+              monthMap[mNum] = data as MonthLockInfo;
+            }
+          }
+        });
+        setLockedMonths(monthMap);
+      }
       if (lockedSemestersSnap.exists()) setLockedSemesters(lockedSemestersSnap.data().lockedSemesters || {});
       if (lockedTitlesSnap.exists()) setLockedTitles(lockedTitlesSnap.data().lockedTitles || null);
       if (!disciplinaryRecordsSnap.empty) setDisciplinaryRecords(disciplinaryRecordsSnap.docs.map(d => d.data() as DisciplinaryRecord));
@@ -5768,9 +5791,38 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const baseScore = settings.basePointsPerWeek || 100;
     const targetWeekNum = Number(week);
 
-    // 1. Kiểm tra Điểm bảo lưu lịch sử (Historical Preserved Scores)
-    // Nếu tuần này đã được Admin/BGH nhập điểm bảo lưu cho lớp, lấy trực tiếp làm 'Điểm tổng kết' hợp lệ
-    // mà KHÔNG bắt buộc phải có các bản ghi vi phạm chi tiết. Tự động tính vào Xếp hạng Tháng, Học kỳ, Cả năm.
+    const logs = scoreLogs.filter((l) => {
+      if (l.classId !== classId || Number(l.week) !== targetWeekNum) return false;
+      return true;
+    });
+
+    if (logs.length > 0) {
+      let bonusPoints = 0;
+      let penaltyPoints = 0;
+
+      logs.forEach((l) => {
+        const pts = Number(l.totalPoints) || 0;
+        if (l.type === 'bonus' || pts > 0) {
+          bonusPoints += Math.abs(pts);
+        } else if (l.type === 'penalty' || pts < 0) {
+          penaltyPoints += Math.abs(pts);
+        }
+      });
+
+      const finalScore = Number((baseScore + bonusPoints - Math.abs(penaltyPoints)).toFixed(2));
+
+      return {
+        classId,
+        week: targetWeekNum,
+        baseScore,
+        bonusPoints,
+        penaltyPoints,
+        finalScore,
+        logCount: logs.length,
+      };
+    }
+
+    // 1. Kiểm tra Điểm bảo lưu lịch sử (Historical Preserved Scores) nếu không có log chi tiết
     const histWeek = historicalWeeklyScores?.[targetWeekNum] || (historicalWeeklyScores as any)?.[String(targetWeekNum)] || settings.historicalWeeklyScores?.[targetWeekNum] || (settings.historicalWeeklyScores as any)?.[String(targetWeekNum)];
     const histEntry = histWeek?.[classId];
     if (histEntry !== undefined && typeof histEntry.finalScore === 'number' && !isNaN(histEntry.finalScore)) {
@@ -5791,37 +5843,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       };
     }
 
-    const isProd = settings.dataMode === 'production';
-    const activeYear = settings.academicYear || '2026-2027';
-    const logs = scoreLogs.filter((l) => {
-      if (l.classId !== classId || Number(l.week) !== targetWeekNum || (l.period && l.period !== 'week')) return false;
-      if (isProd && l.isDemo === true) return false;
-      if (l.academicYear && l.academicYear !== activeYear) return false;
-      return true;
-    });
-
-    let bonusPoints = 0;
-    let penaltyPoints = 0;
-
-    logs.forEach((l) => {
-      const pts = Number(l.totalPoints) || 0;
-      if (l.type === 'bonus' || pts > 0) {
-        bonusPoints += Math.abs(pts);
-      } else {
-        penaltyPoints += Math.abs(pts);
-      }
-    });
-
-    const finalScore = Number((baseScore + bonusPoints - penaltyPoints).toFixed(2));
-
     return {
       classId,
       week: targetWeekNum,
       baseScore,
-      bonusPoints,
-      penaltyPoints,
-      finalScore,
-      logCount: logs.length,
+      bonusPoints: 0,
+      penaltyPoints: 0,
+      finalScore: baseScore,
+      logCount: 0,
     };
   };
 

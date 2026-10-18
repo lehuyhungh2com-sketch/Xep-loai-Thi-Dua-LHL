@@ -11,7 +11,7 @@ import {
   getDoc,
   getDocs,
 } from 'firebase/firestore';
-import { firebaseConfig } from '../../firebase-config';
+import { firebaseConfig } from '../firebase-config';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const dbId = (firebaseConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId;

@@ -387,7 +387,7 @@ export const MonthlyRankingsHub: React.FC = () => {
                   Dữ liệu Tháng {selectedMonth} đã được CHỐT KHÓA CHÍNH THỨC
                 </p>
                 <p className="text-slate-600 text-[11px]">
-                  Người chốt: <strong className="text-indigo-800">{lockInfo.lockedBy.name}</strong> ({lockInfo.lockedBy.title || lockInfo.lockedBy.role}) • Thời gian:{' '}
+                  Người chốt: <strong className="text-indigo-800">{lockInfo?.lockedBy?.name || 'BGH'}</strong> ({lockInfo?.lockedBy?.title || lockInfo?.lockedBy?.role || 'Quản trị'}) • Thời gian:{' '}
                   {new Date(lockInfo.lockedAt).toLocaleString('vi-VN')}
                   {lockInfo.notes && ` • Ghi chú: ${lockInfo.notes}`}
                 </p>
@@ -826,7 +826,7 @@ export const MonthlyRankingsHub: React.FC = () => {
               <p className="italic text-slate-500 mt-0.5">(Duyệt và ký tên đóng dấu)</p>
               <div className="h-16" />
               <p className="font-semibold">
-                {lockInfo ? lockInfo.lockedBy.name : '...........................................'}
+                {lockInfo?.lockedBy?.name || '...........................................'}
               </p>
             </div>
           </div>

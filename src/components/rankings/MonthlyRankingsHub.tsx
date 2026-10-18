@@ -25,6 +25,9 @@ import {
   Building,
   UserCheck,
   Check,
+  RefreshCw,
+  CloudUpload,
+  Save,
 } from 'lucide-react';
 
 const getTierBadgeClass = (tier: string) => {
@@ -64,6 +67,9 @@ export const MonthlyRankingsHub: React.FC = () => {
     setCurrentTab,
     setSelectedWeek,
     updatePeriodicBonus,
+    saveMonthlyBonusesToCloud,
+    syncLatestCloudData,
+    isSyncing,
   } = useApp();
 
   const canEditBonus = userRole === 'super_admin' || userRole === 'bgh' || userRole === 'tpt_doi' || userRole === 'admin';
@@ -76,6 +82,21 @@ export const MonthlyRankingsHub: React.FC = () => {
   const [lockNotes, setLockNotes] = useState('');
   const [actionMessage, setActionMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [isSavingBonus, setIsSavingBonus] = useState(false);
+
+  const handleSaveAllBonuses = async () => {
+    setIsSavingBonus(true);
+    try {
+      const res = await saveMonthlyBonusesToCloud(selectedMonth);
+      if (res.success) {
+        setActionMessage({ text: res.message, type: 'success' });
+      } else {
+        setActionMessage({ text: res.message, type: 'error' });
+      }
+    } finally {
+      setIsSavingBonus(false);
+    }
+  };
 
   // Month calculation data
   const rankingData = useMemo(() => {
@@ -99,6 +120,10 @@ export const MonthlyRankingsHub: React.FC = () => {
       rows: filteredRows,
     };
   }, [getMonthRankingData, selectedMonth, selectedCampusId, selectedGrade]);
+
+  const bonusClassesCount = useMemo(() => {
+    return rankingData.rows.filter((r) => (r.bonus_points_monthly || 0) > 0).length;
+  }, [rankingData.rows]);
 
   const monthIsLocked = isMonthLocked(selectedMonth);
   const lockInfo = getMonthLockInfo(selectedMonth);
@@ -254,6 +279,29 @@ export const MonthlyRankingsHub: React.FC = () => {
               <FileSpreadsheet size={15} />
               Xuất Excel
             </button>
+
+            <button
+              onClick={() => syncLatestCloudData(true)}
+              disabled={isSyncing}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors shadow-sm disabled:opacity-50"
+              title="Đồng bộ lại điểm thưởng phong trào và dữ liệu xếp hạng từ máy chủ Firebase"
+            >
+              <RefreshCw size={15} className={isSyncing ? 'animate-spin text-indigo-600' : 'text-indigo-600'} />
+              <span>{isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ'}</span>
+            </button>
+
+            {/* Nút Lưu & Đồng Bộ Điểm Thưởng Tháng Lên Đám Mây */}
+            {canEditBonus && (
+              <button
+                onClick={handleSaveAllBonuses}
+                disabled={isSavingBonus}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-amber-600 text-white hover:bg-amber-700 transition-colors shadow-sm disabled:opacity-50"
+                title="Lưu và đẩy toàn bộ điểm thưởng phong trào tháng này lên cơ sở dữ liệu đám mây Firebase"
+              >
+                <CloudUpload size={15} className={isSavingBonus ? 'animate-bounce' : ''} />
+                <span>{isSavingBonus ? 'Đang lưu lên đám mây...' : 'Lưu Điểm Thưởng'}</span>
+              </button>
+            )}
 
             <button
               onClick={() => setShowPrintModal(true)}
@@ -494,7 +542,7 @@ export const MonthlyRankingsHub: React.FC = () => {
 
         {/* Table Top Controls & Summary Banner */}
         <div className="p-4 lg:p-5 bg-slate-50/60 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <span className="text-xs font-semibold text-slate-700">
               Tổng số lớp tham gia thi đua: <strong className="text-indigo-600 text-sm">{rankingData.rows.length} lớp</strong>
             </span>
@@ -502,11 +550,29 @@ export const MonthlyRankingsHub: React.FC = () => {
             <span className="text-xs text-slate-500">
               Phạm vi: <span className="font-medium text-slate-700">{scopeTitle}</span>
             </span>
+            <span className="h-4 w-px bg-slate-200" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <Sparkles size={13} className="text-emerald-600" />
+              Điểm thưởng phong trào: <strong>{bonusClassesCount} lớp</strong>
+            </span>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <Info size={14} className="text-slate-400" />
-            <span>Bấm vào một lớp bất kỳ để xem chi tiết từng khoản cộng/trừ các tuần</span>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            {canEditBonus && (
+              <button
+                onClick={handleSaveAllBonuses}
+                disabled={isSavingBonus}
+                className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors shadow-xs disabled:opacity-50"
+                title="Lưu và đẩy các điểm thưởng phong trào Tháng này lên máy chủ đám mây Firebase"
+              >
+                <CloudUpload size={13} className={isSavingBonus ? 'animate-bounce' : ''} />
+                <span>{isSavingBonus ? 'Đang lưu...' : 'Lưu Điểm Thưởng'}</span>
+              </button>
+            )}
+            <span className="hidden md:inline-flex items-center gap-1 text-slate-400">
+              <Info size={14} />
+              <span>Bấm vào một lớp để xem chi tiết tuần</span>
+            </span>
           </div>
         </div>
 

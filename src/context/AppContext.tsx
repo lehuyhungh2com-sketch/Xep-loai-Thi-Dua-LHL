@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback, ReactNode } from 'react';
 import masterDatabase from '../../data/server_db.json';
 import { db } from '../../firebase-config';
-import { doc, setDoc, deleteDoc, onSnapshot, updateDoc, collection, getDocs, getDoc } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, onSnapshot, updateDoc, collection, getDocs, getDoc, writeBatch } from 'firebase/firestore';
+import { saveCloudDoc } from '../services/firebaseService';
 import {
   Campus,
   ClassItem,
@@ -249,6 +250,7 @@ interface AppContextType {
   // Data Synchronization
   isDataLoaded: boolean;
   loadDataFromFirebase: () => Promise<void>;
+  refreshCentralData: () => Promise<void>;
   saveAllToFirebase: () => Promise<void>;
 
   // Data Mode
@@ -341,9 +343,13 @@ interface AppContextType {
     week?: number
   ) => CalculationPreviewResult;
 
-  // Central Database & Realtime Status
-  isDataLoaded: boolean;
-  refreshCentralData: () => Promise<void>;
+
+  // Cloud Sync Helpers
+  syncToastMessage: string | null;
+  isSyncing: boolean;
+  syncLatestCloudData: (showAlert?: boolean) => Promise<void>;
+  saveMonthlyBonusesToCloud: (monthNum?: number) => Promise<{ success: boolean; message: string }>;
+  pushAllHistoricalWeeksToFirebase: (weeksArr?: number[]) => Promise<{ success: boolean; message: string }>;
 
   // Settings, Multi-Year & Full Backup
   updateSettings: (newSettings: Partial<SchoolSettings>) => { success: boolean; message?: string };
@@ -638,14 +644,36 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // const [isDataLoaded, setIsDataLoaded] = useState<boolean>(true);
 
   const [settings, setSettings] = useState<SchoolSettings>(() => {
+    const defaultMap = {
+      9: [1, 2, 3, 4],
+      10: [5, 6, 7, 8],
+      11: [9, 10, 11, 12, 13],
+      12: [14, 15, 16, 17, 18],
+      1: [19, 20, 21, 22],
+      2: [23, 24, 25, 26],
+      3: [27, 28, 29, 30],
+      4: [31, 32, 33, 34],
+      5: [35],
+    };
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === 'object') return parsed;
+        if (parsed && typeof parsed === 'object') {
+          return {
+            ...parsed,
+            monthWeeksMap: parsed.monthWeeksMap || defaultMap,
+          };
+        }
       }
     } catch {}
-    if (masterDatabase.settings) return masterDatabase.settings as SchoolSettings;
+    if (masterDatabase.settings) {
+      const dbSettings = masterDatabase.settings as unknown as SchoolSettings;
+      return {
+        ...dbSettings,
+        monthWeeksMap: dbSettings.monthWeeksMap || defaultMap,
+      };
+    }
     const academicYear = '2026-2027';
     const startWeek1 = calculateNaturalWeek1StartDate(academicYear);
     const { currentWeek: calculatedActive } = calculateCurrentActiveWeek(startWeek1, 35);
@@ -661,17 +689,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       current_active_week: calculatedActive,
       start_date_of_week_1: startWeek1,
       max_weeks: 35,
-      monthWeeksMap: {
-        9: [1, 2, 3, 4],
-        10: [5, 6, 7, 8],
-        11: [9, 10, 11, 12, 13],
-        12: [14, 15, 16, 17, 18],
-        1: [19, 20, 21, 22],
-        2: [23, 24, 25, 26],
-        3: [27, 28, 29, 30],
-        4: [31, 32, 33, 34],
-        5: [35],
-      },
+      monthWeeksMap: defaultMap,
       yearFormula: '(HK1 + HK2 * 2) / 3',
       evaluationConfig: DEFAULT_EVALUATION_CONFIG,
       dataMode: 'production',
@@ -1116,33 +1134,43 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const loadDataFromFirebase = useCallback(async () => {
     try {
       setIsDataLoaded(false);
-      // Fetch all required collections (classes, score_logs, locked_weeks moved to onSnapshot)
+      // Fetch all required collections
       const [
-        usersSnap, campusesSnap, criteriaSnap, settingsSnap,
-        lockedMonthsSnap, lockedSemestersSnap,
-        lockedTitlesSnap, disciplinaryRecordsSnap, monthlyBonusesSnap
+        usersSnap, classesSnap, campusesSnap, criteriaSnap, settingsSnap,
+        scoreLogsSnap, lockedWeeksSnap, lockedMonthsSnap, lockedSemestersSnap,
+        lockedTitlesSnap, disciplinaryRecordsSnap, monthlyBonusesSnap, historicalScoresSnap
       ] = await Promise.all([
         getDocs(collection(db, 'users')),
+        getDocs(collection(db, 'classes')),
         getDocs(collection(db, 'campuses')),
         getDocs(collection(db, 'criteria')),
         getDoc(doc(db, 'settings', 'config')),
+        getDocs(collection(db, 'score_logs')),
+        getDoc(doc(db, 'locked_weeks', 'summary')),
         getDoc(doc(db, 'locked_months', 'summary')),
         getDoc(doc(db, 'locked_semesters', 'summary')),
         getDoc(doc(db, 'locked_titles', 'summary')),
         getDocs(collection(db, 'disciplinary_records')),
         getDoc(doc(db, 'monthly_bonuses', 'summary')),
+        getDoc(doc(db, 'historical_scores', 'summary')),
       ]);
 
       // Update state with fetched data
       if (!usersSnap.empty) setUsers(usersSnap.docs.map(d => d.data() as User));
+      if (!classesSnap.empty) setClasses(classesSnap.docs.map(d => d.data() as ClassItem));
       if (!campusesSnap.empty) setCampuses(campusesSnap.docs.map(d => d.data() as Campus));
       if (!criteriaSnap.empty) setCriteria(criteriaSnap.docs.map(d => d.data() as Criteria));
       if (settingsSnap.exists()) setSettings(settingsSnap.data() as SchoolSettings);
+      if (!scoreLogsSnap.empty) setScoreLogs(scoreLogsSnap.docs.map(d => d.data() as ScoreLog));
+      if (lockedWeeksSnap.exists()) setLockedWeeks(lockedWeeksSnap.data().lockedWeeks || []);
       if (lockedMonthsSnap.exists()) setLockedMonths(lockedMonthsSnap.data().lockedMonths || {});
       if (lockedSemestersSnap.exists()) setLockedSemesters(lockedSemestersSnap.data().lockedSemesters || {});
       if (lockedTitlesSnap.exists()) setLockedTitles(lockedTitlesSnap.data().lockedTitles || null);
       if (!disciplinaryRecordsSnap.empty) setDisciplinaryRecords(disciplinaryRecordsSnap.docs.map(d => d.data() as DisciplinaryRecord));
       if (monthlyBonusesSnap.exists()) setBonusMonthly(monthlyBonusesSnap.data().bonusMonthly || {});
+      if (historicalScoresSnap.exists() && historicalScoresSnap.data().historicalWeeklyScores) {
+        setHistoricalWeeklyScores(historicalScoresSnap.data().historicalWeeklyScores);
+      }
 
       setIsDataLoaded(true);
     } catch (err) {
@@ -1150,6 +1178,46 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setIsDataLoaded(true); // Load anyways to allow offline usage
     }
   }, []);
+
+  const refreshCentralData = useCallback(async () => {
+    await loadDataFromFirebase();
+  }, [loadDataFromFirebase]);
+
+  const [syncToastMessage, setSyncToastMessage] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  const syncLatestCloudData = useCallback(async (showAlert = false) => {
+    setIsSyncing(true);
+    try {
+      await loadDataFromFirebase();
+      setSyncToastMessage('Đã đồng bộ dữ liệu mới nhất từ cloud!');
+      setTimeout(() => setSyncToastMessage(null), 3000);
+      if (showAlert) alert('Đã đồng bộ dữ liệu mới nhất từ máy chủ thành công!');
+    } catch (e) {
+      console.error(e);
+      if (showAlert) alert('Lỗi đồng bộ dữ liệu!');
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [loadDataFromFirebase]);
+
+  const saveMonthlyBonusesToCloud = useCallback(async (_monthNum?: number) => {
+    try {
+      await setDoc(doc(db, 'monthly_bonuses', 'summary'), { bonusMonthly }, { merge: true });
+      return { success: true, message: 'Đã lưu điểm thưởng tháng lên cloud thành công!' };
+    } catch (e) {
+      return { success: false, message: 'Lỗi lưu cloud điểm thưởng tháng!' };
+    }
+  }, [bonusMonthly]);
+
+  const pushAllHistoricalWeeksToFirebase = useCallback(async (_weeksArr?: number[]) => {
+    try {
+      await setDoc(doc(db, 'historical_scores', 'summary'), { historicalWeeklyScores }, { merge: true });
+      return { success: true, message: 'Đã đẩy dữ liệu lịch sử tuần lên cloud thành công!' };
+    } catch (e) {
+      return { success: false, message: 'Lỗi đẩy cloud dữ liệu lịch sử tuần!' };
+    }
+  }, [historicalWeeklyScores]);
 
   const saveAllToFirebase = useCallback(async () => {
     try {
@@ -1165,32 +1233,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       alert('Lỗi đồng bộ dữ liệu!');
     }
   }, [settings]);
-
-  // Real-time synchronization listeners
-  useEffect(() => {
-    // Listen to classes
-    const unsubClasses = onSnapshot(collection(db, 'classes'), (snapshot) => {
-      setClasses(snapshot.docs.map(d => d.data() as ClassItem));
-    });
-
-    // Listen to score_logs
-    const unsubScoreLogs = onSnapshot(collection(db, 'score_logs'), (snapshot) => {
-      setScoreLogs(snapshot.docs.map(d => d.data() as ScoreLog));
-    });
-
-    // Listen to locked_weeks
-    const unsubLockedWeeks = onSnapshot(doc(db, 'locked_weeks', 'summary'), (snapshot) => {
-      if (snapshot.exists()) {
-        setLockedWeeks(snapshot.data().lockedWeeks || []);
-      }
-    });
-
-    return () => {
-      unsubClasses();
-      unsubScoreLogs();
-      unsubLockedWeeks();
-    };
-  }, []);
 
   // Nạp ngay khi mở app
   useEffect(() => {
@@ -3251,6 +3293,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   };
 
+  const getMonthWeeksList = (m: number): number[] => {
+    const map = settings?.monthWeeksMap || {
+      9: [1, 2, 3, 4],
+      10: [5, 6, 7, 8],
+      11: [9, 10, 11, 12, 13],
+      12: [14, 15, 16, 17, 18],
+      1: [19, 20, 21, 22],
+      2: [23, 24, 25, 26],
+      3: [27, 28, 29, 30],
+      4: [31, 32, 33, 34],
+      5: [35],
+    };
+    return (map[m] || [1, 2, 3, 4]).map(Number);
+  };
+
   // Helper to enrich a score log with complete criteria engine metadata
   const enrichScoreLog = (log: Omit<ScoreLog, 'id'>): Omit<ScoreLog, 'id'> => {
     const targetClass = classes.find((c) => c.id === log.classId);
@@ -3445,7 +3502,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       };
     }
 
-    const weeksInMonth = settings.monthWeeksMap[month] || [1, 2, 3, 4];
+    const weeksInMonth = getMonthWeeksList(month);
     const unlockedWeeks = weeksInMonth.filter((w) => !lockedWeeks.includes(w));
 
     if (unlockedWeeks.length > 0) {
@@ -3472,6 +3529,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const updated = { ...lockedMonths, [month]: lockInfo };
     setLockedMonths(updated);
     setSettings((prev) => ({ ...prev, lockedMonths: updated }));
+    try {
+      localStorage.setItem(STORAGE_KEYS.LOCKED_MONTHS, JSON.stringify(updated));
+    } catch {}
 
     // Hybrid sync: Đẩy trạng thái chốt tháng lên Firestore
     try {
@@ -3531,6 +3591,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     delete updated[month];
     setLockedMonths(updated);
     setSettings((prev) => ({ ...prev, lockedMonths: updated }));
+    try {
+      localStorage.setItem(STORAGE_KEYS.LOCKED_MONTHS, JSON.stringify(updated));
+    } catch {}
 
     // Hybrid sync: Cập nhật mở khóa tháng lên Firestore
     try {
@@ -3623,6 +3686,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const updated = { ...lockedSemesters, [semester]: lockInfo };
     setLockedSemesters(updated);
     setSettings((prev) => ({ ...prev, lockedSemesters: updated }));
+    try {
+      localStorage.setItem(STORAGE_KEYS.LOCKED_SEMESTERS, JSON.stringify(updated));
+    } catch {}
 
     logAudit({
       action: 'CHOT_DU_LIEU_HOC_KY',
@@ -3659,6 +3725,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     delete updated[semester];
     setLockedSemesters(updated);
     setSettings((prev) => ({ ...prev, lockedSemesters: updated }));
+    try {
+      localStorage.setItem(STORAGE_KEYS.LOCKED_SEMESTERS, JSON.stringify(updated));
+    } catch {}
 
     logAudit({
       action: 'MO_KHOA_HOC_KY',
@@ -3722,6 +3791,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setLockedYear(lockInfo);
     setSettings((prev) => ({ ...prev, lockedYear: lockInfo }));
+    try {
+      localStorage.setItem(STORAGE_KEYS.LOCKED_YEAR, JSON.stringify(lockInfo));
+    } catch {}
 
     logAudit({
       action: 'CHOT_DU_LIEU_CA_NAM',
@@ -3760,6 +3832,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       delete updated.lockedYear;
       return updated;
     });
+    try {
+      localStorage.setItem(STORAGE_KEYS.LOCKED_YEAR, JSON.stringify(null));
+    } catch {}
 
     logAudit({
       action: 'MO_KHOA_CA_NAM',
@@ -3820,6 +3895,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setLockedTitles(lockInfo);
     setSettings((prev) => ({ ...prev, lockedTitles: lockInfo }));
+    try {
+      localStorage.setItem(STORAGE_KEYS.LOCKED_TITLES, JSON.stringify(lockInfo));
+    } catch {}
 
     logAudit({
       action: 'CHOT_DANH_HIEU_NAM',
@@ -3858,6 +3936,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       delete updated.lockedTitles;
       return updated;
     });
+    try {
+      localStorage.setItem(STORAGE_KEYS.LOCKED_TITLES, JSON.stringify(null));
+    } catch {}
 
     logAudit({
       action: 'MO_KHOA_DANH_HIEU_NAM',
@@ -4788,23 +4869,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     try {
       localStorage.setItem(STORAGE_KEYS.HISTORICAL_SCORES, JSON.stringify(nextState));
-      try {
-        setDoc(doc(db, 'historical_scores', 'summary'), {
-          historicalWeeklyScores: nextState,
-          updatedAt: new Date().toISOString(),
-          updatedBy: currentUser.name,
-        }, { merge: true }).catch((err) => console.warn('Lỗi đẩy historical_scores lên Firebase:', err));
-
-        setDoc(doc(db, 'historical_scores', `week_${week}`), {
-          week,
-          scores: updatedWeekMap,
-          updatedAt: new Date().toISOString(),
-          updatedBy: currentUser.name,
-        }).catch(() => {});
-      } catch (fbErr) {
-        console.warn('Lỗi gọi Firebase cho historical_scores:', fbErr);
-      }
     } catch {}
+
+    try {
+      await setDoc(doc(db, 'historical_scores', 'summary'), {
+        historicalWeeklyScores: nextState,
+        updatedAt: new Date().toISOString(),
+        updatedBy: currentUser.name,
+      }, { merge: true });
+
+      await setDoc(doc(db, 'historical_scores', `week_${week}`), {
+        week,
+        scores: updatedWeekMap,
+        updatedAt: new Date().toISOString(),
+        updatedBy: currentUser.name,
+      });
+    } catch (fbErr) {
+      console.error('Lỗi đẩy điểm bảo lưu lên Firebase:', fbErr);
+      return {
+        success: false,
+        message: `Lỗi đồng bộ điểm bảo lưu lên Firebase: ${fbErr instanceof Error ? fbErr.message : String(fbErr)}`,
+      };
+    }
 
     // Auto-lock the week so it automatically counts towards Month, Semester, and Year rankings
     let nextLockedWeeks = [...lockedWeeks];
@@ -4842,7 +4928,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setSettings(updatedSettings);
     try {
       localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(updatedSettings));
-    } catch {}
+      await setDoc(doc(db, 'settings', 'config'), updatedSettings, { merge: true });
+    } catch (err) {
+      console.warn('Lỗi đồng bộ settings lên Firebase:', err);
+    }
 
     // Synchronize to backend
     try {
@@ -5565,7 +5654,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setClasses(payload.classes);
       setCriteria(payload.criteria);
       if (payload.scoreLogs) setScoreLogs(payload.scoreLogs);
-      if (payload.settings) setSettings(payload.settings);
+      if (payload.settings) {
+        setSettings({
+          ...payload.settings,
+          monthWeeksMap: payload.settings.monthWeeksMap || {
+            9: [1, 2, 3, 4],
+            10: [5, 6, 7, 8],
+            11: [9, 10, 11, 12, 13],
+            12: [14, 15, 16, 17, 18],
+            1: [19, 20, 21, 22],
+            2: [23, 24, 25, 26],
+            3: [27, 28, 29, 30],
+            4: [31, 32, 33, 34],
+            5: [35],
+          },
+        });
+      }
       if (payload.users) setUsers(payload.users);
       if (payload.redFlagDuties) setRedFlagDuties(payload.redFlagDuties);
       if (payload.lockedWeeks) setLockedWeeks(payload.lockedWeeks);
@@ -5807,7 +5911,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     campusId = 'all',
     grade: number | 'all' = 'all'
   ): RankingEntry[] => {
-    const weeksInMonth = settings.monthWeeksMap[month] || [1, 2, 3, 4];
+    const weeksInMonth = getMonthWeeksList(month);
     const sem1Months = [9, 10, 11, 12];
     const isSem1Month = sem1Months.includes(month);
 
@@ -5913,7 +6017,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     campusId: string = 'all',
     grade: number | 'all' = 'all'
   ) => {
-    const weeksInMonth = (settings.monthWeeksMap[month] || [1, 2, 3, 4]).map(Number);
+    const weeksInMonth = getMonthWeeksList(month);
     const lockedNumList = lockedWeeks.map(Number);
     const lockedWeeksInMonth = weeksInMonth.filter((w) => lockedNumList.includes(w));
     const unlockedWeeksInMonth = weeksInMonth.filter((w) => !lockedNumList.includes(w));
@@ -6140,7 +6244,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const exportMonthlyRankingsExcel = (month: number = selectedMonth, scopeTitle: string = 'Toàn trường') => {
     const data = getMonthRankingData(month, selectedCampusId, selectedGrade);
-    const weeksInMonth = settings.monthWeeksMap[month] || [1, 2, 3, 4];
+    const weeksInMonth = getMonthWeeksList(month);
     const signatures = getExportSignatures(selectedCampusId, scopeTitle);
     exportMonthlyRankingsToExcel(data.rows, month, settings.academicYear, scopeTitle, weeksInMonth, signatures);
   };
@@ -6792,7 +6896,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // 1. Dữ liệu đầu vào: Điểm xếp hạng cả năm từ Module Xếp Hạng Cả Năm
     const yearData = getYearRankingData('all', 'all');
     const isYearLockedStatus = isYearLocked();
-    const config = settings.evaluationConfig;
+    const config = settings?.evaluationConfig || DEFAULT_EVALUATION_CONFIG;
 
     const advRatio = config.advancedClassesRatio ?? 0.70;
     const excRatio = config.excellentClassesRatio ?? 0.35;
@@ -7485,6 +7589,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         previewCriteriaCalculation,
         isDataLoaded,
         loadDataFromFirebase,
+        refreshCentralData,
+        syncToastMessage,
+        isSyncing,
+        syncLatestCloudData,
+        saveMonthlyBonusesToCloud,
+        pushAllHistoricalWeeksToFirebase,
         saveAllToFirebase,
         updateSettings,
         resetToDefaultData,

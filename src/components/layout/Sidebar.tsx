@@ -25,6 +25,7 @@ import {
   Database,
   LogOut,
   Download,
+  RefreshCw,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -52,6 +53,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     appeals,
     auditLogs,
     downloadSourceCodeZip,
+    syncLatestCloudData,
+    isSyncing,
     logout,
   } = useApp();
 
@@ -224,19 +227,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           })}
         </div>
 
-        {/* Export / Download Source Code ZIP (Ẩn đối với Role 4: Giáo viên) */}
-        {!isRoleTeacher(currentUser) && (
-          <div className="px-3 py-2 border-t border-[#16365c] bg-[#071629]">
-            <button
-              onClick={downloadSourceCodeZip}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black text-xs shadow-md shadow-amber-950/40 transition-all cursor-pointer active:scale-98"
-              title="Tải toàn bộ mã nguồn (.zip) dự án về máy tính để đưa lên Vercel / Netlify"
-            >
-              <Download size={15} className="animate-bounce" />
-              <span>TẢI XUỐNG MÃ NGUỒN (.ZIP)</span>
-            </button>
-          </div>
-        )}
+
+        {/* Nút Đồng Bộ Dữ Liệu Từ Máy Chủ (Hiển thị cho tất cả tài khoản) */}
+        <div className="px-3 py-2 border-t border-[#16365c] bg-[#091b31]">
+          <button
+            onClick={() => syncLatestCloudData(true)}
+            disabled={isSyncing}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#15345a] hover:bg-[#1a4273] text-blue-200 hover:text-white font-bold text-xs border border-blue-500/30 transition-all cursor-pointer active:scale-98 disabled:opacity-50"
+            title="Xóa bộ đệm và tải lại dữ liệu mới nhất từ Firebase máy chủ"
+          >
+            <RefreshCw size={14} className={`text-blue-400 shrink-0 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Đang đồng bộ...' : 'ĐỒNG BỘ DỮ LIỆU'}</span>
+          </button>
+        </div>
 
         {/* User Card & RBAC Badge */}
         <div className="p-3 border-t border-[#16365c] bg-[#091b31]">

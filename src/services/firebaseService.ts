@@ -75,11 +75,11 @@ export async function testConnection(): Promise<boolean> {
 
 export const CLOUD_COLLECTIONS = {
   USERS: 'users',
-  CLASSES: 'classes',
-  CAMPUSES: 'campuses',
-  CRITERIA: 'criteria',
-  SCORE_LOGS: 'score_logs',
-  SETTINGS: 'settings',
+  CLASSES: 'lhl_ranking_classes_v2',
+  CAMPUSES: 'lhl_ranking_campuses_v2',
+  CRITERIA: 'lhl_ranking_criteria_v2',
+  SCORE_LOGS: 'lhl_ranking_score_logs_v2',
+  SETTINGS: 'lhl_ranking_settings_v2',
   LOCKED_WEEKS: 'locked_weeks',
   LOCKED_MONTHS: 'locked_months',
   LOCKED_SEMESTERS: 'locked_semesters',

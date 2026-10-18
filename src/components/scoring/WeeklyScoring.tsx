@@ -142,8 +142,8 @@ export const WeeklyScoring: React.FC = () => {
 
   // Selected Class object
   const currentClass = useMemo(() => {
-    return classes.find((c) => c.id === selectedClassId) || campusClasses[0] || classes[0];
-  }, [classes, selectedClassId, campusClasses]);
+    return classes.find((c) => c.id === selectedClassId) || campusClasses[0] || classes[0] || { id: 'default', name: 'Chưa xác định', grade: 6, campusId: selectedCampusId };
+  }, [classes, selectedClassId, campusClasses, selectedCampusId]);
 
   // Duty Class assigned for this campus in this week
   const dutyAssignmentThisWeek = useMemo(() => {
@@ -152,7 +152,7 @@ export const WeeklyScoring: React.FC = () => {
 
   // Selected Campus object
   const currentCampus = useMemo(() => {
-    return campuses.find((c) => c.id === selectedCampusId) || campuses[0];
+    return campuses.find((c) => c.id === selectedCampusId) || campuses[0] || { id: 'default', name: 'Chưa xác định', type: 'sub', leaderName: '', phone: '', address: '', colorTheme: 'slate' };
   }, [campuses, selectedCampusId]);
 
   // Criteria Selection State
@@ -1585,3 +1585,4 @@ export const WeeklyScoring: React.FC = () => {
     </div>
   );
 };
+

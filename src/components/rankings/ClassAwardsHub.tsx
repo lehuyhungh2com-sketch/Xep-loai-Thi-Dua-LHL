@@ -121,7 +121,7 @@ export const ClassAwardsHub: React.FC = () => {
   });
 
   // Config Form State
-  const [configForm, setConfigForm] = useState({ ...settings.evaluationConfig });
+  const [configForm, setConfigForm] = useState({ ...(settings?.evaluationConfig || {}) });
   const [configSuccessMessage, setConfigSuccessMessage] = useState(false);
 
   // Calculate Data
@@ -360,7 +360,7 @@ export const ClassAwardsHub: React.FC = () => {
             <p className="text-xs sm:text-sm text-blue-200/90 leading-relaxed max-w-3xl">
               ✓ <strong>Dữ liệu đầu vào:</strong> Sử dụng ĐIỂM XẾP HẠNG CẢ NĂM đã được Ban Giám Hiệu CHỐT KHÓA.
               <br />
-              ✓ <strong>Quy chế xét danh hiệu:</strong> Phân bổ theo tỷ lệ cấu hình hệ thống: <strong>Lớp Xuất Sắc</strong> (mặc định Top {(settings.evaluationConfig.excellentClassesRatio * 100).toFixed(0)}%), <strong>Lớp Tiên Tiến</strong> (mặc định Top {(settings.evaluationConfig.advancedClassesRatio * 100).toFixed(0)}%).
+              ✓ <strong>Quy chế xét danh hiệu:</strong> Phân bổ theo tỷ lệ cấu hình hệ thống: <strong>Lớp Xuất Sắc</strong> (mặc định Top {((settings.evaluationConfig?.excellentClassesRatio ?? 0.35) * 100).toFixed(0)}%), <strong>Lớp Tiên Tiến</strong> (mặc định Top {((settings.evaluationConfig?.advancedClassesRatio ?? 0.7) * 100).toFixed(0)}%).
               <br />
               ✓ <strong>Quy tắc loại trừ nghiêm ngặt:</strong> Lớp có học sinh bị <em>Hội đồng kỷ luật xử lý</em> thì <strong>KHÔNG ĐƯỢC XẾP LOẠI CẢ NĂM</strong>.
               <br />
@@ -1201,7 +1201,7 @@ export const ClassAwardsHub: React.FC = () => {
                 Ghi chú chốt khóa (tùy chọn):
               </label>
               <textarea
-                value={lockNotes}
+                value={lockNotes || ''}
                 onChange={(e) => setLockNotes(e.target.value)}
                 placeholder="Ví dụ: Hội đồng thi đua nhà trường đã họp và thống nhất phê chuẩn danh hiệu năm học 2026-2027..."
                 className="w-full text-xs p-3 rounded-xl border border-slate-200 focus:border-purple-500 outline-hidden h-20"
@@ -1251,7 +1251,7 @@ export const ClassAwardsHub: React.FC = () => {
                 Lý do mở khóa <span className="text-rose-600">*</span>
               </label>
               <textarea
-                value={unlockReason}
+                value={unlockReason || ''}
                 onChange={(e) => setUnlockReason(e.target.value)}
                 placeholder="Nhập lý do mở khóa chính thức (Bắt buộc để ghi nhật ký)..."
                 rows={2}
@@ -1300,7 +1300,7 @@ export const ClassAwardsHub: React.FC = () => {
                   Lớp vi phạm:
                 </label>
                 <select
-                  value={discForm.classId}
+                  value={discForm.classId || ''}
                   onChange={(e) => setDiscForm({ ...discForm, classId: e.target.value })}
                   className="w-full bg-slate-50 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 outline-hidden"
                 >
@@ -1321,7 +1321,7 @@ export const ClassAwardsHub: React.FC = () => {
                     type="text"
                     required
                     placeholder="Ví dụ: Lê Tuấn Kiệt"
-                    value={discForm.studentName}
+                    value={discForm.studentName || ''}
                     onChange={(e) => setDiscForm({ ...discForm, studentName: e.target.value })}
                     className="w-full bg-slate-50 text-xs px-3 py-2 rounded-xl border border-slate-200 outline-hidden"
                   />
@@ -1334,7 +1334,7 @@ export const ClassAwardsHub: React.FC = () => {
                     type="text"
                     required
                     placeholder="Ví dụ: 12/QĐ-KL-LHL"
-                    value={discForm.decisionNumber}
+                    value={discForm.decisionNumber || ''}
                     onChange={(e) => setDiscForm({ ...discForm, decisionNumber: e.target.value })}
                     className="w-full bg-slate-50 text-xs px-3 py-2 rounded-xl border border-slate-200 outline-hidden"
                   />
@@ -1349,7 +1349,7 @@ export const ClassAwardsHub: React.FC = () => {
                   <input
                     type="date"
                     required
-                    value={discForm.decisionDate}
+                    value={discForm.decisionDate || ''}
                     onChange={(e) => setDiscForm({ ...discForm, decisionDate: e.target.value })}
                     className="w-full bg-slate-50 text-xs px-3 py-2 rounded-xl border border-slate-200 outline-hidden"
                   />
@@ -1360,7 +1360,7 @@ export const ClassAwardsHub: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={discForm.councilLevel}
+                    value={discForm.councilLevel || ''}
                     onChange={(e) => setDiscForm({ ...discForm, councilLevel: e.target.value })}
                     className="w-full bg-slate-50 text-xs px-3 py-2 rounded-xl border border-slate-200 outline-hidden"
                   />
@@ -1374,7 +1374,7 @@ export const ClassAwardsHub: React.FC = () => {
                 <textarea
                   required
                   placeholder="Ví dụ: Sử dụng thuốc lá điện tử trong trường học, vi phạm nghiêm trọng nề nếp..."
-                  value={discForm.reason}
+                  value={discForm.reason || ''}
                   onChange={(e) => setDiscForm({ ...discForm, reason: e.target.value })}
                   className="w-full bg-slate-50 text-xs p-3 rounded-xl border border-slate-200 outline-hidden h-16"
                 />

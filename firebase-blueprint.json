@@ -106,20 +106,29 @@
         "role": { "type": "string" }
       },
       "required": ["id", "name"]
+    },
+    "HistoricalScore": {
+      "title": "HistoricalScore",
+      "description": "Preserved weekly historical scores for all school classes",
+      "type": "object",
+      "properties": {
+        "week": { "type": "number" },
+        "scores": { "type": "array" },
+        "isLocked": { "type": "boolean" },
+        "totalClasses": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["week"]
     }
   },
   "firestore": {
+    "/historical_scores/{docId}": {
+      "schema": { "$ref": "HistoricalScore" },
+      "description": "Historical preserved weekly scores for classes"
+    },
     "/scores/{scoreId}": {
       "schema": { "$ref": "ScoreLog" },
       "description": "Individual score logs and infractions"
-    },
-    "/score_logs/{scoreLogId}": {
-      "schema": { "$ref": "ScoreLog" },
-      "description": "Score log mirror collection"
-    },
-    "/scores_sync/{docId}": {
-      "schema": { "$ref": "ScoreLog" },
-      "description": "Score synchronization status and state summaries"
     },
     "/locked_weeks/{weekId}": {
       "schema": { "$ref": "LockedWeek" },
@@ -145,17 +154,9 @@
       "schema": { "$ref": "Criteria" },
       "description": "Emulation criteria database"
     },
-    "/criteria_sync/{docId}": {
-      "schema": { "$ref": "Criteria" },
-      "description": "Criteria synchronization snapshot"
-    },
     "/audit_logs/{auditId}": {
       "schema": { "$ref": "AuditLog" },
       "description": "Audit trails for system security"
-    },
-    "/audit_logs_sync/{docId}": {
-      "schema": { "$ref": "AuditLog" },
-      "description": "Audit logs synchronization snapshot"
     },
     "/school_settings/{docId}": {
       "schema": { "$ref": "SchoolSettings" },

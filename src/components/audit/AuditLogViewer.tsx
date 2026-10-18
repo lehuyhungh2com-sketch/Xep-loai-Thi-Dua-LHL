@@ -298,7 +298,7 @@ export const AuditLogViewer: React.FC = () => {
         isActive: true,
         description: 'Chuyên cần',
       };
-      const calcCC01 = calculateCriteriaPoints(critCC01, 1, sampleClass, sampleCampus, settings.evaluationConfig);
+      const calcCC01 = calculateCriteriaPoints(critCC01, 1, sampleClass, sampleCampus, settings?.evaluationConfig);
       const isCC01Passed = calcCC01.totalPoints === -2;
       results.push({
         step: 2,
@@ -325,7 +325,7 @@ export const AuditLogViewer: React.FC = () => {
         isActive: true,
         description: 'Không sơ vin',
       };
-      const calcTP02 = calculateCriteriaPoints(critTP02, 2, sampleClass, sampleCampus, settings.evaluationConfig);
+      const calcTP02 = calculateCriteriaPoints(critTP02, 2, sampleClass, sampleCampus, settings?.evaluationConfig);
       const isTP02CalcPass = calcTP02.totalPoints === -2;
       const expectedScore98 = 100 + calcTP02.totalPoints; // 98
       results.push({
@@ -355,7 +355,7 @@ export const AuditLogViewer: React.FC = () => {
         isActive: true,
         description: 'Thưởng',
       };
-      const calcBonus = calculateCriteriaPoints(critBonus, 1, sampleClass, sampleCampus, settings.evaluationConfig);
+      const calcBonus = calculateCriteriaPoints(critBonus, 1, sampleClass, sampleCampus, settings?.evaluationConfig);
       const isBonusPassed = calcBonus.totalPoints > 0;
       results.push({
         step: 4,
@@ -384,7 +384,7 @@ export const AuditLogViewer: React.FC = () => {
         isActive: true,
         description: 'Bán trú',
       };
-      const calcBT = calculateCriteriaPoints(critBT, 4, sampleClass, sampleCampus, settings.evaluationConfig);
+      const calcBT = calculateCriteriaPoints(critBT, 4, sampleClass, sampleCampus, settings?.evaluationConfig);
       const isCapApplied = calcBT.appliedCap === 3 && calcBT.totalPoints === -3;
       results.push({
         step: 5,

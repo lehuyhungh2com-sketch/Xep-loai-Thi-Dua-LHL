@@ -50,11 +50,18 @@ export function canAccessTab(user?: User | null, tab?: ViewTab): boolean {
     case 'rankings':
     case 'month_rankings':
     case 'semester_rankings':
+      // Xếp hạng tuần, tháng, học kỳ: hiển thị theo phân quyền thông thường
+      return true;
+
     case 'year_rankings':
     case 'title_evaluation':
     case 'reports':
-      // Public / all roles can view
-      return true;
+      // PHÂN QUYỀN CHÍNH THỨC: Hai menu 'Xét danh hiệu lớp' và 'Báo cáo' (kèm theo các tab con như Xếp Hạng Cả Năm)
+      // CHỈ ĐƯỢC PHÉP hiển thị đối với tài khoản Quản trị viên hệ thống (admin / super_admin) và Tổng phụ trách Đội (tpt_doi / bgh).
+      // Tài khoản Giáo viên chủ nhiệm (GVCN) hoặc Giám thị truy cập vào sẽ KHÔNG nhìn thấy các menu này.
+      if (isTeacher) return false;
+      // Only Admin and TPT are allowed
+      return ['super_admin', 'admin', 'tpt_doi'].includes(role);
 
     case 'campuses':
       // Super Admin, BGH, Campus Admin, TPT Đội

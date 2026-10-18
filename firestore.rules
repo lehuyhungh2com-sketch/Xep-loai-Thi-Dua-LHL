@@ -65,7 +65,16 @@ service cloud.firestore {
     }
 
     // Cấu hình trường học & Danh mục
+    match /settings/{docId} {
+      allow read, write: if true;
+    }
     match /school_settings/{docId} {
+      allow read, write: if true;
+    }
+    match /disciplinary_records/{docId} {
+      allow read, write: if true;
+    }
+    match /monthly_bonuses/{docId=**} {
       allow read, write: if true;
     }
     match /campuses/{docId} {

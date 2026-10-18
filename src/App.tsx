@@ -21,9 +21,10 @@ import { YearRankingsHub } from './components/rankings/YearRankingsHub';
 import { ClassAwardsHub } from './components/rankings/ClassAwardsHub';
 import { AcademicCatalogManager } from './components/admin/AcademicCatalogManager';
 import { LoginScreen } from './components/auth/LoginScreen';
+import { CheckCircle2, CloudCheck } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
-  const { currentTab, setCurrentTab, isAuthenticated, currentUser, canAccessTab } = useApp();
+  const { currentTab, setCurrentTab, isAuthenticated, currentUser, canAccessTab, syncToastMessage } = useApp();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Tự động chuyển hướng sang Bảng Xếp Hạng nếu tab hiện tại bị chặn theo phân quyền (ví dụ Role 4 Giáo viên)
@@ -105,6 +106,14 @@ const MainLayout: React.FC = () => {
           {renderActiveView()}
         </main>
       </div>
+
+      {/* Floating Sync Notification Toast */}
+      {syncToastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900/95 text-white text-xs sm:text-sm font-bold rounded-2xl shadow-2xl border border-slate-700/80 backdrop-blur-md animate-in slide-in-from-bottom-5 fade-in duration-200">
+          <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
+          <span>{syncToastMessage}</span>
+        </div>
+      )}
     </div>
   );
 };

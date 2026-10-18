@@ -21,6 +21,8 @@ export const firebaseConfig = {
 };
 
 // Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 // Initialize Firestore & Auth for Hybrid Synchronization

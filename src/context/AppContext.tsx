@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback, ReactNode } from 'react';
 import masterDatabase from '../../data/server_db.json';
-import { db } from '../../firebase-config';
+import { db } from '../firebase-config';
 import { doc, setDoc, deleteDoc, onSnapshot, updateDoc, collection, getDocs, getDoc, writeBatch } from 'firebase/firestore';
 import { saveCloudDoc } from '../services/firebaseService';
 import {
@@ -86,6 +86,18 @@ import {
   DEFAULT_EVALUATION_CONFIG,
   OFFICIAL_CRITERIA_DATABASE,
 } from '../utils/criteriaEngine';
+
+export const DEFAULT_MONTH_WEEKS_MAP: Record<number, number[]> = {
+  9: [1, 2, 3, 4],
+  10: [5, 6, 7, 8],
+  11: [9, 10, 11, 12, 13],
+  12: [14, 15, 16, 17, 18],
+  1: [19, 20, 21, 22],
+  2: [23, 24, 25, 26],
+  3: [27, 28, 29, 30],
+  4: [31, 32, 33, 34],
+  5: [35],
+};
 import {
   getUserRole,
   canAccessTab as checkCanAccessTab,
@@ -250,13 +262,13 @@ interface AppContextType {
   // Data Synchronization
   isDataLoaded: boolean;
   loadDataFromFirebase: () => Promise<void>;
-  refreshCentralData: () => Promise<void>;
   saveAllToFirebase: () => Promise<void>;
 
   // Data Mode
   dataMode: 'demo' | 'production';
   setDataMode: (mode: 'demo' | 'production') => { success: boolean; message: string };
   purgeDemoData: () => { success: boolean; count: number; message: string };
+  purgeAllData: () => { success: boolean; message: string };
 
   // Data Integrity
   checkDataIntegrity: () => DataIntegrityReport;
@@ -343,18 +355,13 @@ interface AppContextType {
     week?: number
   ) => CalculationPreviewResult;
 
-
-  // Cloud Sync Helpers
-  syncToastMessage: string | null;
-  isSyncing: boolean;
-  syncLatestCloudData: (showAlert?: boolean) => Promise<void>;
-  saveMonthlyBonusesToCloud: (monthNum?: number) => Promise<{ success: boolean; message: string }>;
-  pushAllHistoricalWeeksToFirebase: (weeksArr?: number[]) => Promise<{ success: boolean; message: string }>;
+  // Central Database & Realtime Status
+  refreshCentralData: () => Promise<void>;
 
   // Settings, Multi-Year & Full Backup
   updateSettings: (newSettings: Partial<SchoolSettings>) => { success: boolean; message?: string };
   resetToDefaultData: () => void;
-  clearTestDataForGoLive: () => Promise<{ success: boolean; message: string }>;
+  clearTestDataForGoLive: (options?: { clearScores?: boolean; clearClasses?: boolean; clearTeachers?: boolean }) => Promise<{ success: boolean; message: string }>;
   resetDatabase: () => Promise<{ success: boolean; message: string }>;
   exportDataBackup: () => string;
   importDataBackup: (jsonStr: string) => { success: boolean; message: string };
@@ -644,17 +651,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // const [isDataLoaded, setIsDataLoaded] = useState<boolean>(true);
 
   const [settings, setSettings] = useState<SchoolSettings>(() => {
-    const defaultMap = {
-      9: [1, 2, 3, 4],
-      10: [5, 6, 7, 8],
-      11: [9, 10, 11, 12, 13],
-      12: [14, 15, 16, 17, 18],
-      1: [19, 20, 21, 22],
-      2: [23, 24, 25, 26],
-      3: [27, 28, 29, 30],
-      4: [31, 32, 33, 34],
-      5: [35],
-    };
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
       if (raw) {
@@ -662,16 +658,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (parsed && typeof parsed === 'object') {
           return {
             ...parsed,
-            monthWeeksMap: parsed.monthWeeksMap || defaultMap,
+            monthWeeksMap: (parsed.monthWeeksMap && Object.keys(parsed.monthWeeksMap).length > 0)
+              ? parsed.monthWeeksMap
+              : DEFAULT_MONTH_WEEKS_MAP,
           };
         }
       }
     } catch {}
     if (masterDatabase.settings) {
-      const dbSettings = masterDatabase.settings as unknown as SchoolSettings;
+      const dbSettings = masterDatabase.settings as SchoolSettings;
       return {
         ...dbSettings,
-        monthWeeksMap: dbSettings.monthWeeksMap || defaultMap,
+        monthWeeksMap: (dbSettings.monthWeeksMap && Object.keys(dbSettings.monthWeeksMap).length > 0)
+          ? dbSettings.monthWeeksMap
+          : DEFAULT_MONTH_WEEKS_MAP,
       };
     }
     const academicYear = '2026-2027';
@@ -689,7 +689,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       current_active_week: calculatedActive,
       start_date_of_week_1: startWeek1,
       max_weeks: 35,
-      monthWeeksMap: defaultMap,
+      monthWeeksMap: {
+        9: [1, 2, 3, 4],
+        10: [5, 6, 7, 8],
+        11: [9, 10, 11, 12, 13],
+        12: [14, 15, 16, 17, 18],
+        1: [19, 20, 21, 22],
+        2: [23, 24, 25, 26],
+        3: [27, 28, 29, 30],
+        4: [31, 32, 33, 34],
+        5: [35],
+      },
       yearFormula: '(HK1 + HK2 * 2) / 3',
       evaluationConfig: DEFAULT_EVALUATION_CONFIG,
       dataMode: 'production',
@@ -1134,66 +1144,43 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const loadDataFromFirebase = useCallback(async () => {
     try {
       setIsDataLoaded(false);
-      // Fetch all required collections
+      // Fetch all required collections (classes, score_logs, locked_weeks moved to onSnapshot)
       const [
-        usersSnap, classesSnap, campusesSnap, criteriaSnap, settingsSnap,
-        scoreLogsSnap, lockedWeeksSnap, lockedMonthsDocsSnap, lockedSemestersSnap,
-        lockedTitlesSnap, disciplinaryRecordsSnap, monthlyBonusesSnap, historicalScoresSnap
+        usersSnap, campusesSnap, criteriaSnap, settingsSnap,
+        lockedMonthsSnap, lockedSemestersSnap,
+        lockedTitlesSnap, disciplinaryRecordsSnap, monthlyBonusesSnap
       ] = await Promise.all([
         getDocs(collection(db, 'users')),
-        getDocs(collection(db, 'classes')),
         getDocs(collection(db, 'campuses')),
         getDocs(collection(db, 'criteria')),
         getDoc(doc(db, 'settings', 'config')),
-        getDocs(collection(db, 'score_logs')),
-        getDoc(doc(db, 'locked_weeks', 'summary')),
-        getDocs(collection(db, 'locked_months')),
+        getDoc(doc(db, 'locked_months', 'summary')),
         getDoc(doc(db, 'locked_semesters', 'summary')),
         getDoc(doc(db, 'locked_titles', 'summary')),
         getDocs(collection(db, 'disciplinary_records')),
         getDoc(doc(db, 'monthly_bonuses', 'summary')),
-        getDoc(doc(db, 'historical_scores', 'summary')),
       ]);
 
       // Update state with fetched data
       if (!usersSnap.empty) setUsers(usersSnap.docs.map(d => d.data() as User));
-      if (!classesSnap.empty) setClasses(classesSnap.docs.map(d => d.data() as ClassItem));
       if (!campusesSnap.empty) setCampuses(campusesSnap.docs.map(d => d.data() as Campus));
       if (!criteriaSnap.empty) setCriteria(criteriaSnap.docs.map(d => d.data() as Criteria));
-      if (settingsSnap.exists()) setSettings(settingsSnap.data() as SchoolSettings);
-      if (!scoreLogsSnap.empty) setScoreLogs(scoreLogsSnap.docs.map(d => d.data() as ScoreLog));
-      if (lockedWeeksSnap.exists()) setLockedWeeks(lockedWeeksSnap.data().lockedWeeks || []);
-      if (!lockedMonthsDocsSnap.empty) {
-        const monthMap: Record<number, MonthLockInfo> = {};
-        lockedMonthsDocsSnap.docs.forEach(d => {
-          const data = d.data();
-          if (d.id === 'summary') {
-            if (data.lockedMonths) {
-              Object.assign(monthMap, data.lockedMonths);
-            } else {
-              Object.entries(data).forEach(([k, v]) => {
-                const num = Number(k);
-                if (!isNaN(num) && v && typeof v === 'object') {
-                  monthMap[num] = v as MonthLockInfo;
-                }
-              });
-            }
-          } else if (d.id.startsWith('month_')) {
-            const mNum = Number(d.id.replace('month_', ''));
-            if (!isNaN(mNum) && data) {
-              monthMap[mNum] = data as MonthLockInfo;
-            }
-          }
-        });
-        setLockedMonths(monthMap);
+      if (settingsSnap.exists()) {
+        const cloudData = settingsSnap.data() as Partial<SchoolSettings>;
+        setSettings((prev) => ({
+          ...prev,
+          ...cloudData,
+          monthWeeksMap: (cloudData.monthWeeksMap && Object.keys(cloudData.monthWeeksMap).length > 0)
+            ? cloudData.monthWeeksMap
+            : (prev.monthWeeksMap || DEFAULT_MONTH_WEEKS_MAP),
+          evaluationConfig: cloudData.evaluationConfig || prev.evaluationConfig || DEFAULT_EVALUATION_CONFIG,
+        }));
       }
+      if (lockedMonthsSnap.exists()) setLockedMonths(lockedMonthsSnap.data().lockedMonths || {});
       if (lockedSemestersSnap.exists()) setLockedSemesters(lockedSemestersSnap.data().lockedSemesters || {});
       if (lockedTitlesSnap.exists()) setLockedTitles(lockedTitlesSnap.data().lockedTitles || null);
       if (!disciplinaryRecordsSnap.empty) setDisciplinaryRecords(disciplinaryRecordsSnap.docs.map(d => d.data() as DisciplinaryRecord));
       if (monthlyBonusesSnap.exists()) setBonusMonthly(monthlyBonusesSnap.data().bonusMonthly || {});
-      if (historicalScoresSnap.exists() && historicalScoresSnap.data().historicalWeeklyScores) {
-        setHistoricalWeeklyScores(historicalScoresSnap.data().historicalWeeklyScores);
-      }
 
       setIsDataLoaded(true);
     } catch (err) {
@@ -1205,42 +1192,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const refreshCentralData = useCallback(async () => {
     await loadDataFromFirebase();
   }, [loadDataFromFirebase]);
-
-  const [syncToastMessage, setSyncToastMessage] = useState<string | null>(null);
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
-
-  const syncLatestCloudData = useCallback(async (showAlert = false) => {
-    setIsSyncing(true);
-    try {
-      await loadDataFromFirebase();
-      setSyncToastMessage('Đã đồng bộ dữ liệu mới nhất từ cloud!');
-      setTimeout(() => setSyncToastMessage(null), 3000);
-      if (showAlert) alert('Đã đồng bộ dữ liệu mới nhất từ máy chủ thành công!');
-    } catch (e) {
-      console.error(e);
-      if (showAlert) alert('Lỗi đồng bộ dữ liệu!');
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [loadDataFromFirebase]);
-
-  const saveMonthlyBonusesToCloud = useCallback(async (_monthNum?: number) => {
-    try {
-      await setDoc(doc(db, 'monthly_bonuses', 'summary'), { bonusMonthly }, { merge: true });
-      return { success: true, message: 'Đã lưu điểm thưởng tháng lên cloud thành công!' };
-    } catch (e) {
-      return { success: false, message: 'Lỗi lưu cloud điểm thưởng tháng!' };
-    }
-  }, [bonusMonthly]);
-
-  const pushAllHistoricalWeeksToFirebase = useCallback(async (_weeksArr?: number[]) => {
-    try {
-      await setDoc(doc(db, 'historical_scores', 'summary'), { historicalWeeklyScores }, { merge: true });
-      return { success: true, message: 'Đã đẩy dữ liệu lịch sử tuần lên cloud thành công!' };
-    } catch (e) {
-      return { success: false, message: 'Lỗi đẩy cloud dữ liệu lịch sử tuần!' };
-    }
-  }, [historicalWeeklyScores]);
 
   const saveAllToFirebase = useCallback(async () => {
     try {
@@ -1256,6 +1207,52 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       alert('Lỗi đồng bộ dữ liệu!');
     }
   }, [settings]);
+
+  // Real-time synchronization listeners
+  useEffect(() => {
+    // Listen to classes (keep existing if snapshot empty)
+    const unsubClasses = onSnapshot(collection(db, 'classes'), (snapshot) => {
+      if (!snapshot.empty) {
+        setClasses(snapshot.docs.map(d => d.data() as ClassItem));
+      }
+    }, (err) => {
+      console.warn('Classes listener warning:', err.message);
+    });
+
+    // Listen to score_logs (keep existing if snapshot empty)
+    const unsubScoreLogs = onSnapshot(collection(db, 'score_logs'), (snapshot) => {
+      if (!snapshot.empty) {
+        setScoreLogs(snapshot.docs.map(d => d.data() as ScoreLog));
+      }
+    }, (err) => {
+      console.warn('Score logs listener warning:', err.message);
+    });
+
+    // Listen to locked_weeks
+    const unsubLockedWeeks = onSnapshot(doc(db, 'locked_weeks', 'summary'), (snapshot) => {
+      if (snapshot.exists()) {
+        setLockedWeeks(snapshot.data().lockedWeeks || []);
+      }
+    }, (err) => {
+      console.warn('Locked weeks listener warning:', err.message);
+    });
+
+    // Listen to locked_months
+    const unsubLockedMonths = onSnapshot(doc(db, 'locked_months', 'summary'), (snapshot) => {
+      if (snapshot.exists()) {
+        setLockedMonths(snapshot.data().lockedMonths || {});
+      }
+    }, (err) => {
+      console.warn('Locked months listener warning:', err.message);
+    });
+
+    return () => {
+      unsubClasses();
+      unsubScoreLogs();
+      unsubLockedWeeks();
+      unsubLockedMonths();
+    };
+  }, []);
 
   // Nạp ngay khi mở app
   useEffect(() => {
@@ -2242,6 +2239,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       body: JSON.stringify(patch),
     }).catch((err) => console.error('Error persisting campus update:', err));
 
+    // Sync to Firestore
+    updateDoc(doc(db, 'campuses', id), patch as any).catch((err) => console.error('Lỗi cập nhật phân hiệu trong Firebase:', err));
+
+
     logAudit({
       action: 'SUA_PHAN_HIEU',
       entityType: 'campus',
@@ -2307,6 +2308,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: nextStatus }),
     }).catch((err) => console.error('Error toggling campus status:', err));
+
+    // Sync to Firestore
+    updateDoc(doc(db, 'campuses', id), { status: nextStatus } as any).catch((err) => console.error('Lỗi cập nhật trạng thái phân hiệu trong Firebase:', err));
+
 
     logAudit({
       action: 'SUA_PHAN_HIEU',
@@ -2406,6 +2411,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updated),
     }).catch(() => {});
+
+    // Sync to Firestore (clean undefined values)
+    const cleanUpdated = Object.fromEntries(
+      Object.entries(updated).filter(([_, v]) => v !== undefined)
+    );
+    updateDoc(doc(db, 'classes', id), cleanUpdated as any).catch((err) => console.error('Lỗi cập nhật lớp trong Firebase:', err));
+
 
     // Two-way synchronization with teacher users
     if (updated.teacherId || (updated.homeroomTeacher && updated.homeroomTeacher !== 'Chưa phân công')) {
@@ -2777,19 +2789,37 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const deleteTeacher = (id: string) => {
+    console.log('Attempting to delete teacher:', id);
     if (userRole !== 'super_admin') {
+      console.log('Permission denied');
       return { success: false, message: 'Chỉ Quản trị viên mới có quyền xóa giáo viên!' };
     }
     const oldTeacher = teachers.find((t) => t.id === id);
-    if (!oldTeacher) return { success: false, message: 'Không tìm thấy giáo viên' };
-    const isAssigned = classes.some((c) => c.homeroomTeacher === oldTeacher.fullName || c.id === oldTeacher.homeroomClassId);
-    if (isAssigned) {
+    if (!oldTeacher) {
+      console.log('Teacher not found');
+      return { success: false, message: 'Không tìm thấy giáo viên' };
+    }
+    const isAssigned = classes.some((c) => c.homeroomTeacher === oldTeacher.fullName || c.homeroomTeacher === oldTeacher.code || c.id === oldTeacher.homeroomClassId);
+    // Check if user exists in the system as an active user or has logs
+    const isUserReferenced = scoreLogs.some((l) => l.recordedBy.includes(oldTeacher.fullName));
+    
+    // Only block if teacher is active AND assigned/referenced
+    if (oldTeacher.status === 'active' && (isAssigned || isUserReferenced)) {
+      console.log('Deletion blocked by validation');
       return {
         success: false,
-        message: `Không thể xóa giáo viên ${oldTeacher.fullName} vì đang làm chủ nhiệm lớp hoặc có dữ liệu lịch sử! Vui lòng chuyển trạng thái sang "Không hoạt động".`,
+        message: `Không thể xóa giáo viên ${oldTeacher.fullName} vì đang được phân công chủ nhiệm hoặc đã ghi nhận dữ liệu! Vui lòng chuyển trạng thái sang "Không hoạt động".`,
       };
     }
+    console.log('Proceeding with deletion');
     setUsers((prev) => prev.filter((u) => u.id !== id));
+
+    // Sync to Firestore
+    deleteDoc(doc(db, 'users', id)).catch((err) => {
+      console.error('Lỗi xóa giáo viên trong Firebase:', err);
+      // We don't return here because state was updated
+    });
+
     logAudit({
       action: 'XOA_NGUOI_DUNG',
       entityType: 'user',
@@ -2798,6 +2828,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       afterData: null,
       details: `Xóa giáo viên: ${oldTeacher.fullName}`,
     });
+    console.log('Deletion successful');
     return { success: true, message: `Đã xóa giáo viên ${oldTeacher.fullName}.` };
   };
 
@@ -2859,7 +2890,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Also update settings.monthWeeksMap if month changed
     if (patch.month && patch.month !== old.month) {
       setSettings((prev) => {
-        const nextMap: Record<number, number[]> = { ...prev.monthWeeksMap };
+        const nextMap: Record<number, number[]> = { ...(prev.monthWeeksMap || DEFAULT_MONTH_WEEKS_MAP) };
         // Remove from old month
         if (nextMap[old.month]) {
           nextMap[old.month] = nextMap[old.month].filter((w) => w !== week);
@@ -2994,6 +3025,38 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       message: `Đã dọn dẹp ${demoLogs.length} biên bản điểm mẫu (Demo) thành công.`,
     };
   };
+
+  const purgeAllData = () => {
+    if (userRole !== 'super_admin') {
+      return { success: false, message: 'Chỉ Quản trị viên mới có quyền dọn dẹp toàn bộ dữ liệu!' };
+    }
+    
+    // Clear state
+    setUsers([]);
+    setClasses([]);
+    setScoreLogs([]);
+    setHistoricalWeeklyScores({});
+    setDisciplinaryRecords([]);
+    setAppeals([]);
+    
+    // Clear LocalStorage
+    localStorage.removeItem(STORAGE_KEYS.USERS);
+    localStorage.removeItem(STORAGE_KEYS.CLASSES);
+    localStorage.removeItem(STORAGE_KEYS.SCORE_LOGS);
+    localStorage.removeItem(STORAGE_KEYS.HISTORICAL_SCORES);
+    localStorage.removeItem(STORAGE_KEYS.DISCIPLINARY_RECORDS);
+    localStorage.removeItem(STORAGE_KEYS.APPEALS);
+    
+    logAudit({
+      action: 'DON_DEP_DU_LIEU_CHAY_THU',
+      entityType: 'settings',
+      entityId: 'purge_all',
+      details: 'Quản trị viên đã dọn sạch toàn bộ dữ liệu người dùng và lớp học',
+    });
+
+    return { success: true, message: 'Đã xóa toàn bộ dữ liệu người dùng và lớp học thành công. Vui lòng tải lại trang.' };
+  };
+
 
   // Data Integrity Audit
   const checkDataIntegrity = () => {
@@ -3316,21 +3379,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   };
 
-  const getMonthWeeksList = (m: number): number[] => {
-    const map = settings?.monthWeeksMap || {
-      9: [1, 2, 3, 4],
-      10: [5, 6, 7, 8],
-      11: [9, 10, 11, 12, 13],
-      12: [14, 15, 16, 17, 18],
-      1: [19, 20, 21, 22],
-      2: [23, 24, 25, 26],
-      3: [27, 28, 29, 30],
-      4: [31, 32, 33, 34],
-      5: [35],
-    };
-    return (map[m] || [1, 2, 3, 4]).map(Number);
-  };
-
   // Helper to enrich a score log with complete criteria engine metadata
   const enrichScoreLog = (log: Omit<ScoreLog, 'id'>): Omit<ScoreLog, 'id'> => {
     const targetClass = classes.find((c) => c.id === log.classId);
@@ -3525,7 +3573,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       };
     }
 
-    const weeksInMonth = getMonthWeeksList(month);
+    const weeksInMonth = (settings.monthWeeksMap?.[month] || DEFAULT_MONTH_WEEKS_MAP[month] || [1, 2, 3, 4]);
     const unlockedWeeks = weeksInMonth.filter((w) => !lockedWeeks.includes(w));
 
     if (unlockedWeeks.length > 0) {
@@ -3552,9 +3600,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const updated = { ...lockedMonths, [month]: lockInfo };
     setLockedMonths(updated);
     setSettings((prev) => ({ ...prev, lockedMonths: updated }));
-    try {
-      localStorage.setItem(STORAGE_KEYS.LOCKED_MONTHS, JSON.stringify(updated));
-    } catch {}
 
     // Hybrid sync: Đẩy trạng thái chốt tháng lên Firestore
     try {
@@ -3562,7 +3607,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setDoc(doc(db, 'locked_months', `month_${month}`), cleanLockInfo)
         .catch((err) => console.warn('Lỗi đẩy chốt tháng lên Firebase (locked_months):', err));
       setDoc(doc(db, 'locked_months', 'summary'), {
-        ...updated,
+        lockedMonths: updated,
         updatedAt: new Date().toISOString(),
       }, { merge: true }).catch((err) => console.warn('Lỗi cập nhật summary locked_months lên Firebase:', err));
     } catch (fbErr) {
@@ -3614,9 +3659,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     delete updated[month];
     setLockedMonths(updated);
     setSettings((prev) => ({ ...prev, lockedMonths: updated }));
-    try {
-      localStorage.setItem(STORAGE_KEYS.LOCKED_MONTHS, JSON.stringify(updated));
-    } catch {}
 
     // Hybrid sync: Cập nhật mở khóa tháng lên Firestore
     try {
@@ -3709,9 +3751,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const updated = { ...lockedSemesters, [semester]: lockInfo };
     setLockedSemesters(updated);
     setSettings((prev) => ({ ...prev, lockedSemesters: updated }));
-    try {
-      localStorage.setItem(STORAGE_KEYS.LOCKED_SEMESTERS, JSON.stringify(updated));
-    } catch {}
 
     logAudit({
       action: 'CHOT_DU_LIEU_HOC_KY',
@@ -3748,9 +3787,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     delete updated[semester];
     setLockedSemesters(updated);
     setSettings((prev) => ({ ...prev, lockedSemesters: updated }));
-    try {
-      localStorage.setItem(STORAGE_KEYS.LOCKED_SEMESTERS, JSON.stringify(updated));
-    } catch {}
 
     logAudit({
       action: 'MO_KHOA_HOC_KY',
@@ -3814,9 +3850,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setLockedYear(lockInfo);
     setSettings((prev) => ({ ...prev, lockedYear: lockInfo }));
-    try {
-      localStorage.setItem(STORAGE_KEYS.LOCKED_YEAR, JSON.stringify(lockInfo));
-    } catch {}
 
     logAudit({
       action: 'CHOT_DU_LIEU_CA_NAM',
@@ -3855,9 +3888,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       delete updated.lockedYear;
       return updated;
     });
-    try {
-      localStorage.setItem(STORAGE_KEYS.LOCKED_YEAR, JSON.stringify(null));
-    } catch {}
 
     logAudit({
       action: 'MO_KHOA_CA_NAM',
@@ -3918,9 +3948,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setLockedTitles(lockInfo);
     setSettings((prev) => ({ ...prev, lockedTitles: lockInfo }));
-    try {
-      localStorage.setItem(STORAGE_KEYS.LOCKED_TITLES, JSON.stringify(lockInfo));
-    } catch {}
 
     logAudit({
       action: 'CHOT_DANH_HIEU_NAM',
@@ -3959,9 +3986,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       delete updated.lockedTitles;
       return updated;
     });
-    try {
-      localStorage.setItem(STORAGE_KEYS.LOCKED_TITLES, JSON.stringify(null));
-    } catch {}
 
     logAudit({
       action: 'MO_KHOA_DANH_HIEU_NAM',
@@ -4700,6 +4724,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       body: JSON.stringify(updated),
     }).catch(() => {});
 
+    // Sync to Firestore
+    updateDoc(doc(db, 'settings', 'config'), updated as any).catch((err) => console.error('Lỗi cập nhật cấu hình Firebase:', err));
+
+
     logAudit({
       action: 'CAP_NHAT_CAU_HINH',
       entityType: 'settings',
@@ -4892,28 +4920,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     try {
       localStorage.setItem(STORAGE_KEYS.HISTORICAL_SCORES, JSON.stringify(nextState));
+      try {
+        setDoc(doc(db, 'historical_scores', 'summary'), {
+          historicalWeeklyScores: nextState,
+          updatedAt: new Date().toISOString(),
+          updatedBy: currentUser.name,
+        }, { merge: true }).catch((err) => console.warn('Lỗi đẩy historical_scores lên Firebase:', err));
+
+        setDoc(doc(db, 'historical_scores', `week_${week}`), {
+          week,
+          scores: updatedWeekMap,
+          updatedAt: new Date().toISOString(),
+          updatedBy: currentUser.name,
+        }).catch(() => {});
+      } catch (fbErr) {
+        console.warn('Lỗi gọi Firebase cho historical_scores:', fbErr);
+      }
     } catch {}
-
-    try {
-      await setDoc(doc(db, 'historical_scores', 'summary'), {
-        historicalWeeklyScores: nextState,
-        updatedAt: new Date().toISOString(),
-        updatedBy: currentUser.name,
-      }, { merge: true });
-
-      await setDoc(doc(db, 'historical_scores', `week_${week}`), {
-        week,
-        scores: updatedWeekMap,
-        updatedAt: new Date().toISOString(),
-        updatedBy: currentUser.name,
-      });
-    } catch (fbErr) {
-      console.error('Lỗi đẩy điểm bảo lưu lên Firebase:', fbErr);
-      return {
-        success: false,
-        message: `Lỗi đồng bộ điểm bảo lưu lên Firebase: ${fbErr instanceof Error ? fbErr.message : String(fbErr)}`,
-      };
-    }
 
     // Auto-lock the week so it automatically counts towards Month, Semester, and Year rankings
     let nextLockedWeeks = [...lockedWeeks];
@@ -4951,10 +4974,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setSettings(updatedSettings);
     try {
       localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(updatedSettings));
-      await setDoc(doc(db, 'settings', 'config'), updatedSettings, { merge: true });
-    } catch (err) {
-      console.warn('Lỗi đồng bộ settings lên Firebase:', err);
-    }
+    } catch {}
 
     // Synchronize to backend
     try {
@@ -5090,90 +5110,207 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   };
 
-  const clearTestDataForGoLive = async (): Promise<{ success: boolean; message: string }> => {
+  const clearTestDataForGoLive = async (options?: {
+    clearScores?: boolean;
+    clearClasses?: boolean;
+    clearTeachers?: boolean;
+  }): Promise<{ success: boolean; message: string }> => {
     if (!canConfigureSettings(currentUser)) {
-      return { success: false, message: 'Chỉ Quản trị viên (Admin) mới có quyền thực hiện dọn dẹp dữ liệu chạy thử!' };
+      return { success: false, message: 'Chỉ Quản trị viên (Admin) mới có quyền thực hiện dọn dẹp dữ liệu!' };
     }
+
+    const shouldClearScores = options?.clearScores !== false; // mặc định bật
+    const shouldClearClasses = !!options?.clearClasses;
+    const shouldClearTeachers = !!options?.clearTeachers;
 
     const beforeState = {
       scoreLogsCount: scoreLogs.length,
       lockedWeeksCount: lockedWeeks.length,
       historicalWeeksCount: Object.keys(historicalWeeklyScores).length,
       appealsCount: appeals.length,
+      classesCount: classes.length,
+      usersCount: users.length,
     };
 
-    // 1. Xóa sạch Transactional Data trên State
-    setScoreLogs([]);
-    setHistoricalWeeklyScores({});
-    setLockedWeeks([]);
-    setLockedMonths({});
-    setLockedSemesters({});
-    setLockedYear(null);
-    setLockedTitles(null);
-    setDisciplinaryRecords([]);
-    setAppeals([]);
-
-    // 2. Chuyển Settings sang Chế độ Thật (production), mở khóa tất cả tuần
-    const updatedSettings: SchoolSettings = {
-      ...settings,
-      dataMode: 'production',
-      lockedWeeks: [],
-      lockedMonths: {},
-      lockedSemesters: {},
-      lockedYear: null,
-      lockedTitles: null,
-      historicalWeeklyScores: {},
+    // Helper: Xóa toàn bộ documents trong một collection Firestore bằng writeBatch
+    const purgeFirestoreCollection = async (collName: string) => {
+      try {
+        const snap = await getDocs(collection(db, collName));
+        if (!snap.empty) {
+          const docs = snap.docs;
+          for (let i = 0; i < docs.length; i += 400) {
+            const chunk = docs.slice(i, i + 400);
+            const batch = writeBatch(db);
+            chunk.forEach((d) => batch.delete(d.ref));
+            await batch.commit();
+          }
+        }
+      } catch (err) {
+        console.warn(`Lỗi xóa collection ${collName} trên Firebase:`, err);
+      }
     };
-    setSettings(updatedSettings);
 
-    // 3. Xóa sạch LocalStorage các khóa điểm số, khóa tuần/tháng
-    try {
-      localStorage.setItem(STORAGE_KEYS.SCORE_LOGS, JSON.stringify([]));
-      localStorage.setItem(STORAGE_KEYS.HISTORICAL_SCORES, JSON.stringify({}));
-      localStorage.setItem(STORAGE_KEYS.LOCKED_WEEKS, JSON.stringify([]));
-      localStorage.setItem(STORAGE_KEYS.LOCKED_MONTHS, JSON.stringify({}));
-      localStorage.setItem(STORAGE_KEYS.LOCKED_SEMESTERS, JSON.stringify({}));
-      localStorage.setItem(STORAGE_KEYS.LOCKED_YEAR, JSON.stringify(null));
-      localStorage.setItem(STORAGE_KEYS.LOCKED_TITLES, JSON.stringify(null));
-      localStorage.setItem(STORAGE_KEYS.DISCIPLINARY_RECORDS, JSON.stringify([]));
-      localStorage.setItem(STORAGE_KEYS.APPEALS, JSON.stringify([]));
-      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(updatedSettings));
-      localStorage.setItem('lhl_golive_cleaned_v2026_10', 'true');
-    } catch {}
+    if (shouldClearScores) {
+      // 1. Xóa sạch Transactional Data trên State
+      setScoreLogs([]);
+      setHistoricalWeeklyScores({});
+      setLockedWeeks([]);
+      setLockedMonths({});
+      setLockedSemesters({});
+      setLockedYear(null);
+      setLockedTitles(null);
+      setDisciplinaryRecords([]);
+      setAppeals([]);
+      setBonusMonthly({});
+      setBonusTerm({});
+      setBonusYearly({});
 
-    // 4. Đồng bộ gọi Server API dọn dẹp cơ sở dữ liệu máy chủ
-    try {
-      await fetch('/api/admin/clear-test-data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': currentUser.id,
-          'x-user-name': currentUser.name,
-          'x-user-role': currentUser.role,
-        },
-      });
-    } catch {}
+      // 2. Chuyển Settings sang Chế độ Thật (production), mở khóa tất cả tuần
+      const updatedSettings: SchoolSettings = {
+        ...settings,
+        dataMode: 'production',
+        lockedWeeks: [],
+        lockedMonths: {},
+        lockedSemesters: {},
+        lockedYear: null,
+        lockedTitles: null,
+        historicalWeeklyScores: {},
+      };
+      setSettings(updatedSettings);
 
-    // 5. Ghi nhật ký Audit Log
+      // 3. Xóa sạch LocalStorage các khóa điểm số, khóa tuần/tháng
+      try {
+        localStorage.setItem(STORAGE_KEYS.SCORE_LOGS, JSON.stringify([]));
+        localStorage.setItem(STORAGE_KEYS.HISTORICAL_SCORES, JSON.stringify({}));
+        localStorage.setItem(STORAGE_KEYS.LOCKED_WEEKS, JSON.stringify([]));
+        localStorage.setItem(STORAGE_KEYS.LOCKED_MONTHS, JSON.stringify({}));
+        localStorage.setItem(STORAGE_KEYS.LOCKED_SEMESTERS, JSON.stringify({}));
+        localStorage.setItem(STORAGE_KEYS.LOCKED_YEAR, JSON.stringify(null));
+        localStorage.setItem(STORAGE_KEYS.LOCKED_TITLES, JSON.stringify(null));
+        localStorage.setItem(STORAGE_KEYS.DISCIPLINARY_RECORDS, JSON.stringify([]));
+        localStorage.setItem(STORAGE_KEYS.APPEALS, JSON.stringify([]));
+        localStorage.setItem('lhl_bonus_monthly', JSON.stringify({}));
+        localStorage.setItem('lhl_bonus_term', JSON.stringify({}));
+        localStorage.setItem('lhl_bonus_yearly', JSON.stringify({}));
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(updatedSettings));
+        localStorage.setItem('lhl_golive_cleaned_v2026_10', 'true');
+      } catch {}
+
+      // 4. Xóa vĩnh viễn trên Firebase Firestore để onSnapshot không kéo về dữ liệu cũ
+      await purgeFirestoreCollection('score_logs');
+      await purgeFirestoreCollection('scores');
+      await purgeFirestoreCollection('disciplinary_records');
+      await purgeFirestoreCollection('appeals');
+
+      // Reset các document tóm tắt chốt tuần/tháng/học kỳ trên Firestore
+      try {
+        await setDoc(doc(db, 'locked_weeks', 'summary'), { lockedWeeks: [], updatedAt: new Date().toISOString() });
+        await setDoc(doc(db, 'locked_months', 'summary'), { lockedMonths: {}, updatedAt: new Date().toISOString() });
+        await setDoc(doc(db, 'locked_semesters', 'summary'), { lockedSemesters: {}, updatedAt: new Date().toISOString() });
+        await setDoc(doc(db, 'locked_titles', 'summary'), { lockedTitles: {}, updatedAt: new Date().toISOString() });
+        await setDoc(doc(db, 'historical_scores', 'summary'), { historicalScores: {}, updatedAt: new Date().toISOString() });
+        await setDoc(doc(db, 'monthly_bonuses', 'summary'), { bonusMonthly: {}, updatedAt: new Date().toISOString() });
+      } catch (e) {
+        console.warn('Lỗi reset summary docs trên Firestore:', e);
+      }
+
+      // 5. Đồng bộ gọi Server API dọn dẹp cơ sở dữ liệu máy chủ
+      try {
+        await fetch('/api/admin/clear-test-data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': currentUser.id,
+            'x-user-name': currentUser.name,
+            'x-user-role': currentUser.role,
+          },
+        });
+      } catch {}
+    }
+
+    if (shouldClearClasses) {
+      // Xóa sạch toàn bộ lớp học trên Firestore
+      await purgeFirestoreCollection('classes');
+      setClasses([]);
+      try {
+        localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify([]));
+      } catch {}
+      try {
+        await fetch('/api/classes/batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ classes: [] }),
+        });
+      } catch {}
+    }
+
+    if (shouldClearTeachers) {
+      // Giữ lại Quản trị viên Super Admin để tài khoản thầy Lê Huy Hùng không bị mất
+      const isSuperAdminUser = (u: any) =>
+        u.role === 'super_admin' ||
+        u.id === 'u_admin_hung' ||
+        u.id === 'u_admin' ||
+        u.email?.toLowerCase() === 'lehuyhung.h2com@gmail.com';
+
+      try {
+        const snap = await getDocs(collection(db, 'users'));
+        if (!snap.empty) {
+          const docs = snap.docs;
+          for (let i = 0; i < docs.length; i += 400) {
+            const chunk = docs.slice(i, i + 400);
+            const batch = writeBatch(db);
+            let hasDeletes = false;
+            chunk.forEach((d) => {
+              const uData = d.data();
+              if (!isSuperAdminUser(uData)) {
+                batch.delete(d.ref);
+                hasDeletes = true;
+              }
+            });
+            if (hasDeletes) await batch.commit();
+          }
+        }
+      } catch (err) {
+        console.warn('Lỗi dọn tài khoản người dùng nháp trên Firebase:', err);
+      }
+
+      const preservedUsers = users.filter((u) => isSuperAdminUser(u));
+      const finalUsers = preservedUsers.length > 0 ? preservedUsers : [currentUser];
+      setUsers(finalUsers);
+      try {
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(finalUsers));
+      } catch {}
+      try {
+        await fetch('/api/users/sync-from-classes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ users: finalUsers }),
+        });
+      } catch {}
+    }
+
+    // Ghi nhật ký Audit Log
     logAudit({
       action: 'DON_DEP_DU_LIEU_CHAY_THU',
       entityType: 'settings',
       entityId: 'system_golive_cleanup',
       beforeData: beforeState,
       afterData: {
-        scoreLogsCount: 0,
-        lockedWeeks: [],
-        historicalScoresCount: 0,
-        dataMode: 'production',
-        classesCount: classes.length,
-        usersCount: users.length,
+        scoreLogsCount: shouldClearScores ? 0 : scoreLogs.length,
+        classesCount: shouldClearClasses ? 0 : classes.length,
+        usersCount: shouldClearTeachers ? 1 : users.length,
       },
-      details: `${currentUser.name} dọn dẹp sạch dữ liệu chạy thử: Đã xóa toàn bộ điểm số, vi phạm, điểm bảo lưu, và mở khóa toàn bộ các tuần. Giữ nguyên 59 Lớp học, 6 Phân hiệu, 71 Tài khoản và Tiêu chí thi đua sẵn sàng Go-live chính thức.`,
+      details: `${currentUser.name} dọn dẹp hệ thống: ${shouldClearScores ? 'Xóa sạch 100% điểm số (cả tuần 1-4 và 5-9)' : ''}${shouldClearClasses ? ', Xóa danh sách lớp nháp' : ''}${shouldClearTeachers ? ', Xóa tài khoản giáo viên nháp (bảo toàn tài khoản Super Admin)' : ''}.`,
     });
+
+    const summaryParts: string[] = [];
+    if (shouldClearScores) summaryParts.push('Đã xóa 100% điểm số (cả điểm bảo lưu và điểm nhập trực tiếp tuần 5-9)');
+    if (shouldClearClasses) summaryParts.push('Đã xóa danh sách lớp học nháp');
+    if (shouldClearTeachers) summaryParts.push('Đã xóa danh sách giáo viên nháp (bảo toàn tài khoản Super Admin)');
 
     return {
       success: true,
-      message: 'Đã hoàn tất dọn dẹp sạch dữ liệu chạy thử! Toàn bộ 59 Lớp học, 6 Phân hiệu, 71 Tài khoản cùng Tiêu chí thi đua và Cấu hình thời gian được bảo tồn nguyên vẹn. Hệ thống đã sẵn sàng cho giáo viên nhập liệu thật!',
+      message: `Đã hoàn tất dọn dẹp sạch sẽ: ${summaryParts.join(' • ')}. Toàn bộ dữ liệu được đồng bộ dọn sạch trên Firebase Firestore và bộ nhớ!`,
     };
   };
 
@@ -5677,22 +5814,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setClasses(payload.classes);
       setCriteria(payload.criteria);
       if (payload.scoreLogs) setScoreLogs(payload.scoreLogs);
-      if (payload.settings) {
-        setSettings({
-          ...payload.settings,
-          monthWeeksMap: payload.settings.monthWeeksMap || {
-            9: [1, 2, 3, 4],
-            10: [5, 6, 7, 8],
-            11: [9, 10, 11, 12, 13],
-            12: [14, 15, 16, 17, 18],
-            1: [19, 20, 21, 22],
-            2: [23, 24, 25, 26],
-            3: [27, 28, 29, 30],
-            4: [31, 32, 33, 34],
-            5: [35],
-          },
-        });
-      }
+      if (payload.settings) setSettings(payload.settings);
       if (payload.users) setUsers(payload.users);
       if (payload.redFlagDuties) setRedFlagDuties(payload.redFlagDuties);
       if (payload.lockedWeeks) setLockedWeeks(payload.lockedWeeks);
@@ -5791,38 +5913,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const baseScore = settings.basePointsPerWeek || 100;
     const targetWeekNum = Number(week);
 
-    const logs = scoreLogs.filter((l) => {
-      if (l.classId !== classId || Number(l.week) !== targetWeekNum) return false;
-      return true;
-    });
-
-    if (logs.length > 0) {
-      let bonusPoints = 0;
-      let penaltyPoints = 0;
-
-      logs.forEach((l) => {
-        const pts = Number(l.totalPoints) || 0;
-        if (l.type === 'bonus' || pts > 0) {
-          bonusPoints += Math.abs(pts);
-        } else if (l.type === 'penalty' || pts < 0) {
-          penaltyPoints += Math.abs(pts);
-        }
-      });
-
-      const finalScore = Number((baseScore + bonusPoints - Math.abs(penaltyPoints)).toFixed(2));
-
-      return {
-        classId,
-        week: targetWeekNum,
-        baseScore,
-        bonusPoints,
-        penaltyPoints,
-        finalScore,
-        logCount: logs.length,
-      };
-    }
-
-    // 1. Kiểm tra Điểm bảo lưu lịch sử (Historical Preserved Scores) nếu không có log chi tiết
+    // 1. Kiểm tra Điểm bảo lưu lịch sử (Historical Preserved Scores)
+    // Nếu tuần này đã được Admin/BGH nhập điểm bảo lưu cho lớp, lấy trực tiếp làm 'Điểm tổng kết' hợp lệ
+    // mà KHÔNG bắt buộc phải có các bản ghi vi phạm chi tiết. Tự động tính vào Xếp hạng Tháng, Học kỳ, Cả năm.
     const histWeek = historicalWeeklyScores?.[targetWeekNum] || (historicalWeeklyScores as any)?.[String(targetWeekNum)] || settings.historicalWeeklyScores?.[targetWeekNum] || (settings.historicalWeeklyScores as any)?.[String(targetWeekNum)];
     const histEntry = histWeek?.[classId];
     if (histEntry !== undefined && typeof histEntry.finalScore === 'number' && !isNaN(histEntry.finalScore)) {
@@ -5843,14 +5936,37 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       };
     }
 
+    const isProd = settings.dataMode === 'production';
+    const activeYear = settings.academicYear || '2026-2027';
+    const logs = scoreLogs.filter((l) => {
+      if (l.classId !== classId || Number(l.week) !== targetWeekNum || (l.period && l.period !== 'week')) return false;
+      if (isProd && l.isDemo === true) return false;
+      if (l.academicYear && l.academicYear !== activeYear) return false;
+      return true;
+    });
+
+    let bonusPoints = 0;
+    let penaltyPoints = 0;
+
+    logs.forEach((l) => {
+      const pts = Number(l.totalPoints) || 0;
+      if (l.type === 'bonus' || pts > 0) {
+        bonusPoints += Math.abs(pts);
+      } else {
+        penaltyPoints += Math.abs(pts);
+      }
+    });
+
+    const finalScore = Number((baseScore + bonusPoints - penaltyPoints).toFixed(2));
+
     return {
       classId,
       week: targetWeekNum,
       baseScore,
-      bonusPoints: 0,
-      penaltyPoints: 0,
-      finalScore: baseScore,
-      logCount: 0,
+      bonusPoints,
+      penaltyPoints,
+      finalScore,
+      logCount: logs.length,
     };
   };
 
@@ -5864,6 +5980,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const isSem1Week = week <= sem1WeeksCount;
 
     const targetClasses = classes.filter((c) => {
+      const campus = campuses.find((cmp) => cmp.id === c.campusId);
+      if (campus?.status === 'inactive') return false;
       if (campusId !== 'all' && c.campusId !== campusId) return false;
       if (grade !== 'all' && c.grade !== grade) return false;
       return true;
@@ -5940,7 +6058,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     campusId = 'all',
     grade: number | 'all' = 'all'
   ): RankingEntry[] => {
-    const weeksInMonth = getMonthWeeksList(month);
+    const weeksInMonth = (settings.monthWeeksMap?.[month] || DEFAULT_MONTH_WEEKS_MAP[month] || [1, 2, 3, 4]);
     const sem1Months = [9, 10, 11, 12];
     const isSem1Month = sem1Months.includes(month);
 
@@ -6046,7 +6164,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     campusId: string = 'all',
     grade: number | 'all' = 'all'
   ) => {
-    const weeksInMonth = getMonthWeeksList(month);
+    const weeksInMonth = ((settings.monthWeeksMap && settings.monthWeeksMap[month]) || DEFAULT_MONTH_WEEKS_MAP[month] || [1, 2, 3, 4]).map(Number);
     const lockedNumList = lockedWeeks.map(Number);
     const lockedWeeksInMonth = weeksInMonth.filter((w) => lockedNumList.includes(w));
     const unlockedWeeksInMonth = weeksInMonth.filter((w) => !lockedNumList.includes(w));
@@ -6054,6 +6172,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const hasNoLockedWeeks = lockedWeeksInMonth.length === 0;
 
     const targetClasses = classes.filter((c) => {
+      const campus = campuses.find((cmp) => cmp.id === c.campusId);
+      if (campus?.status === 'inactive') return false;
       if (campusId !== 'all' && c.campusId !== campusId) return false;
       if (grade !== 'all' && c.grade !== grade) return false;
       return true;
@@ -6273,7 +6393,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const exportMonthlyRankingsExcel = (month: number = selectedMonth, scopeTitle: string = 'Toàn trường') => {
     const data = getMonthRankingData(month, selectedCampusId, selectedGrade);
-    const weeksInMonth = getMonthWeeksList(month);
+    const weeksInMonth = (settings.monthWeeksMap?.[month] || DEFAULT_MONTH_WEEKS_MAP[month] || [1, 2, 3, 4]);
     const signatures = getExportSignatures(selectedCampusId, scopeTitle);
     exportMonthlyRankingsToExcel(data.rows, month, settings.academicYear, scopeTitle, weeksInMonth, signatures);
   };
@@ -6925,7 +7045,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // 1. Dữ liệu đầu vào: Điểm xếp hạng cả năm từ Module Xếp Hạng Cả Năm
     const yearData = getYearRankingData('all', 'all');
     const isYearLockedStatus = isYearLocked();
-    const config = settings?.evaluationConfig || DEFAULT_EVALUATION_CONFIG;
+    const config = settings.evaluationConfig || DEFAULT_EVALUATION_CONFIG;
 
     const advRatio = config.advancedClassesRatio ?? 0.70;
     const excRatio = config.excellentClassesRatio ?? 0.35;
@@ -7572,6 +7692,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         dataMode: settings.dataMode || 'demo',
         setDataMode,
         purgeDemoData,
+        purgeAllData,
         checkDataIntegrity,
         addCriteria,
         updateCriteria,
@@ -7619,11 +7740,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         isDataLoaded,
         loadDataFromFirebase,
         refreshCentralData,
-        syncToastMessage,
-        isSyncing,
-        syncLatestCloudData,
-        saveMonthlyBonusesToCloud,
-        pushAllHistoricalWeeksToFirebase,
         saveAllToFirebase,
         updateSettings,
         resetToDefaultData,

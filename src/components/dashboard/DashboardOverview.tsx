@@ -124,12 +124,12 @@ export const DashboardOverview: React.FC = () => {
     // Số lớp đã chốt tháng (dựa trên tháng activeMonth hoặc các tháng đã chốt)
     const monthData = getMonthRankingData(activeMonth, 'all', 'all');
     const isCurMonthLocked = isMonthLocked(activeMonth);
-    const monthLockedClasses = isCurMonthLocked ? totalClasses : monthData.rows.filter((r) => r.hasAllWeeksLocked).length;
+    const monthLockedClasses = isCurMonthLocked ? totalClasses : (monthData?.rows || []).filter((r) => r.hasAllWeeksLocked).length;
 
     // Số lớp đã chốt học kỳ
     const semData = getSemesterRankingData(activeSemester, 'all', 'all');
     const isCurSemLocked = isSemesterLocked(activeSemester);
-    const semesterLockedClasses = isCurSemLocked ? totalClasses : semData.rows.filter((r) => r.hasAllMonthsLocked).length;
+    const semesterLockedClasses = isCurSemLocked ? totalClasses : (semData?.rows || []).filter((r) => r.hasAllMonthsLocked).length;
 
     // Số lớp đã chốt cả năm
     const yearLocked = isYearLocked();
@@ -405,7 +405,7 @@ export const DashboardOverview: React.FC = () => {
     // Month Scores (Months 9, 10, 11)
     const monthsList = [9, 10, 11].map((m) => {
       const mData = getMonthRankingData(m, 'all', 'all');
-      const row = mData.rows.find((r) => r.classItem.id === targetClass.id);
+      const row = mData?.rows?.find((r) => r.classItem.id === targetClass.id);
       return {
         label: `Th.${m}`,
         fullLabel: `Tháng ${m}`,
@@ -417,8 +417,8 @@ export const DashboardOverview: React.FC = () => {
     // Semesters
     const s1Data = getSemesterRankingData(1, 'all', 'all');
     const s2Data = getSemesterRankingData(2, 'all', 'all');
-    const s1Row = s1Data.rows.find((r) => r.classItem.id === targetClass.id);
-    const s2Row = s2Data.rows.find((r) => r.classItem.id === targetClass.id);
+    const s1Row = s1Data?.rows?.find((r) => r.classItem.id === targetClass.id);
+    const s2Row = s2Data?.rows?.find((r) => r.classItem.id === targetClass.id);
 
     const semList = [
       {
@@ -749,15 +749,148 @@ export const DashboardOverview: React.FC = () => {
       {/* -------------------------------------------------------------------- */}
       {/* CẢNH BÁO NỔI BẬT: NHẮC NHỞ NHẬP ĐIỂM GIAO BAN TUẦN */}
       {/* -------------------------------------------------------------------- */}
-      {/* 
       <div className={`p-5 rounded-2xl border shadow-sm transition-all ${
         !weeklyBriefingStatus.isAllSubmitted
           ? 'bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/5 border-amber-300'
           : 'bg-emerald-50/70 border-emerald-200'
       }`}>
-      ... (briefing reminder block) ...
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className={`p-2.5 rounded-xl shrink-0 ${
+              !weeklyBriefingStatus.isAllSubmitted
+                ? 'bg-amber-500 text-white shadow-xs'
+                : 'bg-emerald-600 text-white'
+            }`}>
+              <Clock className="w-5 h-5" />
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-base font-extrabold text-slate-900">
+                  {!weeklyBriefingStatus.isAllSubmitted
+                    ? `NHẮC NHỞ: LỚP TRỰC CHƯA CẬP NHẬT ĐIỂM GIAO BAN TUẦN ${weeklyBriefingStatus.targetWeek}`
+                    : `TIẾN ĐỘ THI ĐUA GIAO BAN TUẦN ${weeklyBriefingStatus.targetWeek}: 100% ĐÃ HOÀN TẤT`}
+                </h3>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
+                  Hạn chót: {weeklyBriefingStatus.deadlineDay} – {weeklyBriefingStatus.deadlineTime}
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-600 leading-relaxed">
+                {!weeklyBriefingStatus.isAllSubmitted
+                  ? `Có ${weeklyBriefingStatus.pendingCampuses.length} phân hiệu chưa cập nhật biên bản thi đua tuần này. GVCN lớp trực tuần và Đội cờ đỏ cần khẩn trương nhập điểm trước thời gian giao ban.`
+                  : `Tất cả ${campuses.length} phân hiệu đã ghi nhận biên bản nề nếp thi đua Tuần ${weeklyBriefingStatus.targetWeek}. Số liệu đã sẵn sàng cho buổi giao ban Liên đội.`}
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="flex items-center gap-2 self-start md:self-auto">
+            <button
+              onClick={() => {
+                setDeadlineDayInput(weeklyBriefingStatus.deadlineDay);
+                setDeadlineTimeInput(weeklyBriefingStatus.deadlineTime);
+                setShowDeadlineModal(true);
+              }}
+              className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-2xs cursor-pointer transition-all flex items-center gap-1.5"
+              title="Cấu hình hạn chót nộp điểm cho tuần này"
+            >
+              <Sliders className="w-3.5 h-3.5 text-blue-600" />
+              <span>Cấu hình hạn nộp</span>
+            </button>
+
+            <button
+              onClick={() => navigateToScoring({ week: weeklyBriefingStatus.targetWeek })}
+              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-xl shadow-xs cursor-pointer transition-all flex items-center gap-1.5"
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>Vào Nhập Điểm Ngay</span>
+            </button>
+          </div>
+        </div>
+
+        {/* CẢNH BÁO ĐỎ THEO YÊU CẦU CHO TỪNG PHÂN HIỆU CHƯA HOÀN THÀNH */}
+        {weeklyBriefingStatus.pendingCampuses.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {weeklyBriefingStatus.pendingCampuses.map((st) => (
+              <div
+                key={`alert_red_${st.campus.id}`}
+                className="p-3 bg-rose-600 text-white rounded-xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+              >
+                <div className="flex items-start sm:items-center gap-2.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5 sm:mt-0" />
+                  <span className="font-bold leading-snug">
+                    {st.campus.name} - Lớp trực tuần {st.dutyClass?.name || 'Chưa xếp'} chưa hoàn thành nhập điểm thi đua tuần {weeklyBriefingStatus.targetWeek}. Thời hạn: {st.deadlineDay}, {st.deadlineTime} {st.dutyClass?.teacher ? `(GVCN: ${st.dutyClass.teacher})` : ''}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                  {['super_admin', 'bgh', 'tpt_doi', 'campus_admin'].includes(userRole) && (
+                    <button
+                      onClick={() => {
+                        const teacherInfo = st.dutyClass?.teacher ? `GVCN ${st.dutyClass.teacher}` : 'GVCN lớp trực';
+                        setReminderToast(
+                          `📢 Đã gửi thông báo nhắc nhở khẩn tới ${teacherInfo} (Lớp trực ${st.dutyClass?.name || ''} - ${st.campus.name}) hoàn thành nhập điểm trước ${st.deadlineDay}, ${st.deadlineTime}!`
+                        );
+                        setTimeout(() => setReminderToast(null), 5000);
+                      }}
+                      className="px-3 py-1 bg-white/20 hover:bg-white/30 text-white font-bold rounded-lg border border-white/30 transition-all flex items-center gap-1 cursor-pointer"
+                      title="Gửi thông báo nhắc nhở tới GVCN lớp trực"
+                    >
+                      <span>📢 Gửi nhắc nhở</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => navigateToScoring({ campusId: st.campus.id, week: weeklyBriefingStatus.targetWeek })}
+                    className="px-3 py-1 bg-amber-400 hover:bg-amber-300 text-slate-900 font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Nhập điểm ngay</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Campuses Status Grid */}
+        <div className="mt-4 pt-3 border-t border-slate-200/60 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          {weeklyBriefingStatus.campusStatus.map((st) => (
+            <div
+              key={st.campus.id}
+              className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition-all ${
+                !st.hasSubmitted
+                  ? 'bg-rose-50/80 border-rose-200 text-rose-950 font-medium'
+                  : 'bg-white/80 border-slate-200 text-slate-800'
+              }`}
+            >
+              <div className="truncate min-w-0 mr-2">
+                <span className="font-extrabold block truncate">{st.campus.name}</span>
+                <span className="text-[11px] text-slate-500 block truncate">
+                  Lớp trực: <strong>{st.dutyClass?.name || 'Chưa xếp'}</strong> ({st.dutyClass?.teacher || 'Chưa rõ'})
+                </span>
+              </div>
+
+              <div className="shrink-0 flex items-center gap-2">
+                {st.hasSubmitted ? (
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Đã có {st.logsCount} bản ghi</span>
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => navigateToScoring({ campusId: st.campus.id, week: weeklyBriefingStatus.targetWeek })}
+                    className="text-[11px] font-extrabold text-rose-700 bg-rose-100 hover:bg-rose-200 px-2 py-0.5 rounded-full cursor-pointer transition-colors"
+                  >
+                    ⚠️ Chưa nhập
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-      */}
 
       {/* Modal Cấu hình Hạn giao ban */}
       {showDeadlineModal && (

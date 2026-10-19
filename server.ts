@@ -107,6 +107,28 @@ async function startServer() {
     res.json({ success: true, log });
   });
 
+  app.put('/api/score-logs/:id', (req, res) => {
+    const db = readDb();
+    if (!db.scoreLogs) db.scoreLogs = [];
+    const { id } = req.params;
+    const { patch } = req.body;
+    const existingIndex = db.scoreLogs.findIndex((l: any) => l.id === id);
+    if (existingIndex >= 0) {
+      db.scoreLogs[existingIndex] = { ...db.scoreLogs[existingIndex], ...patch };
+    }
+    writeDb(db);
+    res.json({ success: true });
+  });
+
+  app.delete('/api/score-logs/:id', (req, res) => {
+    const db = readDb();
+    if (!db.scoreLogs) db.scoreLogs = [];
+    const { id } = req.params;
+    db.scoreLogs = db.scoreLogs.filter((l: any) => l.id !== id);
+    writeDb(db);
+    res.json({ success: true });
+  });
+
   app.post('/api/score-logs/batch', (req, res) => {
     const db = readDb();
     if (!db.scoreLogs) db.scoreLogs = [];

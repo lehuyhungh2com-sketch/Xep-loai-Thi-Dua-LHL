@@ -683,14 +683,12 @@ export const AcademicCatalogManager: React.FC = () => {
   };
 
   const handlePurgeDemo = () => {
-    if (window.confirm('CẢNH BÁO QUAN TRỌNG:\nThao tác này sẽ xóa vĩnh viễn tất cả các bản ghi điểm có gắn nhãn Demo khỏi hệ thống.\n\nBạn có chắc chắn muốn dọn dẹp sạch dữ liệu mẫu?')) {
-      const res = purgeDemoData();
-      if (res.success) {
-        showNotice('success', res.message);
-        setIntegrityReport(checkDataIntegrity());
-      } else {
-        showNotice('error', res.message);
-      }
+    const res = purgeDemoData();
+    if (res.success) {
+      showNotice('success', res.message);
+      setIntegrityReport(checkDataIntegrity());
+    } else {
+      showNotice('error', res.message);
     }
   };
 
@@ -1614,10 +1612,14 @@ export const AcademicCatalogManager: React.FC = () => {
                       </button>
                       <button
                         onClick={() => {
-                          if (window.confirm(`Bạn có chắc muốn xóa giáo viên ${teacher.fullName}?`)) {
-                            const res = deleteTeacher(teacher.id);
-                            if (res.success) showNotice('success', res.message);
-                            else showNotice('error', res.message);
+                          console.log('DELETE BUTTON CLICKED: teacherId =', teacher.id);
+                          const res = deleteTeacher(teacher.id);
+                          console.log('DELETE TEACHER RESULT:', res);
+                          if (res.success) {
+                            showNotice('success', res.message);
+                          } else {
+                            showNotice('error', res.message);
+                            alert(res.message);
                           }
                         }}
                         className="text-xs text-slate-400 hover:text-rose-600 font-medium flex items-center gap-1"
@@ -1633,6 +1635,7 @@ export const AcademicCatalogManager: React.FC = () => {
           </div>
         </div>
       )}
+
 
       {/* TAB 7: CALENDAR & TIMEFRAME */}
       {activeSubTab === 'calendar' && (

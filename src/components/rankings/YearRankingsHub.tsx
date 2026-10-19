@@ -412,7 +412,7 @@ export const YearRankingsHub: React.FC = () => {
                 DỮ LIỆU XẾP HẠNG CẢ NĂM ĐÃ ĐƯỢC CHỐT KHÓA CHÍNH THỨC
               </h4>
               <p className="text-xs text-rose-700 mt-0.5">
-                Người chốt: <strong>{lockInfo?.lockedBy?.name || 'BGH'}</strong> ({lockInfo?.lockedBy?.title || lockInfo?.lockedBy?.role || 'Quản trị'}) • Thời gian:{' '}
+                Người chốt: <strong>{lockInfo.lockedBy.name}</strong> ({lockInfo.lockedBy.title || lockInfo.lockedBy.role}) • Thời gian:{' '}
                 <strong>{new Date(lockInfo.lockedAt).toLocaleString('vi-VN')}</strong>
                 {lockInfo.notes ? ` • Ghi chú: ${lockInfo.notes}` : ''}
               </p>

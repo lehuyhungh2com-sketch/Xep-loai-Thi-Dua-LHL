@@ -49,8 +49,6 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar, isMobileS
     isWeekLocked,
     downloadSourceCodeZip,
     loadDataFromFirebase,
-    syncLatestCloudData,
-    isSyncing,
     logout,
   } = useApp();
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
@@ -188,21 +186,18 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar, isMobileS
             </div>
           </div>
 
-          {/* NÚT ĐỒNG BỘ DỮ LIỆU TỪ MÁY CHỦ (Hiển thị cho TẤT CẢ các cấp độ tài khoản: Admin đến Giáo viên) */}
-          <button
-            onClick={() => syncLatestCloudData(true)}
-            disabled={isSyncing}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-blue-300 hover:border-blue-500 bg-white hover:bg-blue-50 text-blue-800 text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50 shrink-0"
-            title="Xóa bộ đệm và tải lại toàn bộ dữ liệu mới nhất từ Firestore (classes, scores, historical_scores, locked_weeks, settings)"
-          >
-            <RefreshCw size={15} className={`text-blue-600 shrink-0 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span className="font-extrabold tracking-tight">Đồng Bộ</span>
-          </button>
-
           {/* Quick Compliance Audit & Standby Excel Buttons (Ẩn đối với Role 4: Giáo viên) */}
           {!isRoleTeacher(currentUser) && (
             <>
               <div className="hidden lg:flex items-center gap-1.5">
+                <button
+                  onClick={loadDataFromFirebase}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-blue-200 hover:border-blue-400 bg-white hover:bg-blue-50 text-blue-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                  title="Đồng bộ dữ liệu từ máy chủ"
+                >
+                  <RefreshCw size={15} />
+                  <span>Đồng Bộ</span>
+                </button>
                 <button
                   onClick={() => setShowAuditModal(true)}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 hover:border-indigo-300 bg-white hover:bg-indigo-50/60 text-slate-700 hover:text-indigo-800 text-xs font-bold transition-all cursor-pointer shadow-2xs"

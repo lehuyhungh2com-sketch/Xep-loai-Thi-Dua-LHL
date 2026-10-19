@@ -399,7 +399,7 @@ export const SemesterRankingsHub: React.FC = () => {
             <div className="mt-2 text-[11px] text-slate-500">
               {semesterIsLocked && lockInfo ? (
                 <div>
-                  <span className="font-medium text-slate-700">Chốt bởi:</span> {lockInfo?.lockedBy?.name || 'BGH'} ({lockInfo?.lockedBy?.title || 'BGH'})
+                  <span className="font-medium text-slate-700">Chốt bởi:</span> {lockInfo.lockedBy.name} ({lockInfo.lockedBy.title || 'BGH'})
                   <span className="block text-[10px] text-slate-400">
                     {new Date(lockInfo.lockedAt).toLocaleString('vi-VN')}
                   </span>

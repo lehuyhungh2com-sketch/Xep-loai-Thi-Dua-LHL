@@ -21,10 +21,9 @@ import { YearRankingsHub } from './components/rankings/YearRankingsHub';
 import { ClassAwardsHub } from './components/rankings/ClassAwardsHub';
 import { AcademicCatalogManager } from './components/admin/AcademicCatalogManager';
 import { LoginScreen } from './components/auth/LoginScreen';
-import { CheckCircle2, CloudCheck } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
-  const { currentTab, setCurrentTab, isAuthenticated, currentUser, canAccessTab, syncToastMessage } = useApp();
+  const { currentTab, setCurrentTab, isAuthenticated, currentUser, canAccessTab } = useApp();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Tự động chuyển hướng sang Bảng Xếp Hạng nếu tab hiện tại bị chặn theo phân quyền (ví dụ Role 4 Giáo viên)
@@ -106,22 +105,79 @@ const MainLayout: React.FC = () => {
           {renderActiveView()}
         </main>
       </div>
-
-      {/* Floating Sync Notification Toast */}
-      {syncToastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900/95 text-white text-xs sm:text-sm font-bold rounded-2xl shadow-2xl border border-slate-700/80 backdrop-blur-md animate-in slide-in-from-bottom-5 fade-in duration-200">
-          <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
-          <span>{syncToastMessage}</span>
-        </div>
-      )}
     </div>
   );
 };
 
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Lỗi giao diện ứng dụng (ErrorBoundary):', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6 font-sans">
+          <div className="max-w-lg w-full bg-white rounded-3xl p-8 border border-red-200 shadow-xl text-center space-y-4">
+            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto text-2xl font-bold">
+              !
+            </div>
+            <h2 className="text-xl font-bold text-slate-800">Hệ thống đang phục hồi giao diện</h2>
+            <p className="text-sm text-slate-600">
+              Đã phát hiện lỗi tải trang. Vui lòng nhấn nút bên dưới để khôi phục và tiếp tục sử dụng:
+            </p>
+            <div className="text-xs text-red-700 bg-red-50 p-3 rounded-xl font-mono text-left break-all max-h-32 overflow-y-auto">
+              {this.state.error?.message || 'Lỗi không xác định'}
+            </div>
+            <div className="flex gap-3 justify-center pt-2">
+              <button
+                onClick={() => {
+                  this.setState({ hasError: false, error: null });
+                  window.location.reload();
+                }}
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition-all cursor-pointer shadow-md"
+              >
+                Tải lại trang
+              </button>
+              <button
+                onClick={() => {
+                  try {
+                    localStorage.removeItem('lhl_settings');
+                  } catch {}
+                  this.setState({ hasError: false, error: null });
+                  window.location.reload();
+                }}
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition-all cursor-pointer"
+              >
+                Xóa cache & Tải lại
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   return (
-    <AppProvider>
-      <MainLayout />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <MainLayout />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

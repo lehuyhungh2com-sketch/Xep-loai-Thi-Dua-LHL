@@ -23,8 +23,6 @@ import {
   Layers,
   X,
   FileText,
-  CloudUpload,
-  RefreshCw,
 } from 'lucide-react';
 import { canManageHistoricalScores } from '../../utils/rbac';
 import { getWeekDateRange } from '../../utils/timeEngine';
@@ -41,8 +39,6 @@ export const HistoricalScoresManager: React.FC = () => {
     historicalWeeklyScores,
     saveHistoricalScores,
     clearHistoricalScores,
-    pushAllHistoricalWeeksToFirebase,
-    syncLatestCloudData,
   } = useApp();
 
   const canManage = canManageHistoricalScores(currentUser);
@@ -443,27 +439,6 @@ export const HistoricalScoresManager: React.FC = () => {
     }
   };
 
-  const [isPushingCloud, setIsPushingCloud] = useState(false);
-  const handlePushAllHistoricalWeeks = async () => {
-    if (!canManage) return;
-    setIsPushingCloud(true);
-    try {
-      const res = await pushAllHistoricalWeeksToFirebase([1, 2, 3, 4]);
-      setStatusMsg({
-        text: res.message,
-        type: res.success ? 'success' : 'error',
-      });
-    } catch (err: any) {
-      setStatusMsg({
-        text: 'Lỗi khi đẩy điểm bảo lưu lên đám mây: ' + (err.message || String(err)),
-        type: 'error',
-      });
-    } finally {
-      setIsPushingCloud(false);
-      setTimeout(() => setStatusMsg(null), 5000);
-    }
-  };
-
   const sem1WeeksCount = settings.totalWeeksSemester1 || 18;
 
   return (
@@ -508,32 +483,11 @@ export const HistoricalScoresManager: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
+          <div className="flex items-center gap-2 self-end sm:self-auto">
             <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 flex items-center gap-1.5">
               <Layers size={14} className="text-indigo-600" />
               <span>Toàn trường ({classes.length} lớp)</span>
             </span>
-            {canManage && (
-              <button
-                type="button"
-                onClick={handlePushAllHistoricalWeeks}
-                disabled={isPushingCloud}
-                className="px-3 py-1.5 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                title="Bơm đồng loạt mảng điểm 59 lớp của Tuần 1 đến Tuần 4 lên Firestore (historical_scores/week_1, week_2, week_3, week_4)"
-              >
-                <CloudUpload size={14} className={isPushingCloud ? 'animate-bounce' : ''} />
-                <span>{isPushingCloud ? 'Đang đẩy lên Firebase...' : 'Bơm Điểm Tuần 1-4 Lên Đám Mây'}</span>
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => syncLatestCloudData(true)}
-              className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
-              title="Tải lại toàn bộ dữ liệu mới nhất từ máy chủ Firebase"
-            >
-              <RefreshCw size={13} className="text-slate-500" />
-              <span>Đồng Bộ</span>
-            </button>
           </div>
         </div>
 

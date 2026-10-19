@@ -1199,20 +1199,11 @@ export function calculateCriteriaPoints(
  * Finds the corresponding month for a given school week based on settings
  */
 export function getMonthForWeek(week: number, monthWeeksMap?: Record<number, number[]>): number {
-  const map = monthWeeksMap || {
-    9: [1, 2, 3, 4],
-    10: [5, 6, 7, 8],
-    11: [9, 10, 11, 12, 13],
-    12: [14, 15, 16, 17, 18],
-    1: [19, 20, 21, 22],
-    2: [23, 24, 25, 26],
-    3: [27, 28, 29, 30],
-    4: [31, 32, 33, 34],
-    5: [35],
-  };
-  for (const [mStr, weeks] of Object.entries(map)) {
-    if (weeks && weeks.includes(week)) {
-      return Number(mStr);
+  if (monthWeeksMap && typeof monthWeeksMap === 'object') {
+    for (const [mStr, weeks] of Object.entries(monthWeeksMap)) {
+      if (Array.isArray(weeks) && weeks.includes(week)) {
+        return Number(mStr);
+      }
     }
   }
   // Default fallback: weeks 1-4 = Sep, 5-8 = Oct, 9-13 = Nov, 14-18 = Dec, 19-22 = Jan, 23-26 = Feb, 27-30 = Mar, 31-35 = Apr

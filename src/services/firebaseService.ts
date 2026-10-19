@@ -11,7 +11,7 @@ import {
   getDoc,
   getDocs,
 } from 'firebase/firestore';
-import { firebaseConfig } from '../firebase-config';
+import { firebaseConfig } from '../../firebase-config';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const dbId = (firebaseConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId;
@@ -75,11 +75,11 @@ export async function testConnection(): Promise<boolean> {
 
 export const CLOUD_COLLECTIONS = {
   USERS: 'users',
-  CLASSES: 'lhl_ranking_classes_v2',
-  CAMPUSES: 'lhl_ranking_campuses_v2',
-  CRITERIA: 'lhl_ranking_criteria_v2',
-  SCORE_LOGS: 'lhl_ranking_score_logs_v2',
-  SETTINGS: 'lhl_ranking_settings_v2',
+  CLASSES: 'classes',
+  CAMPUSES: 'campuses',
+  CRITERIA: 'criteria',
+  SCORE_LOGS: 'score_logs',
+  SETTINGS: 'settings',
   LOCKED_WEEKS: 'locked_weeks',
   LOCKED_MONTHS: 'locked_months',
   LOCKED_SEMESTERS: 'locked_semesters',

@@ -236,11 +236,18 @@ export const SettingsManager: React.FC = () => {
 
   const [showClearTestDataModal, setShowClearTestDataModal] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [clearScoresOpt, setClearScoresOpt] = useState(true);
+  const [clearClassesOpt, setClearClassesOpt] = useState(true);
+  const [clearTeachersOpt, setClearTeachersOpt] = useState(true);
 
   const handleClearTestData = async () => {
     setIsClearing(true);
     try {
-      const res = await clearTestDataForGoLive();
+      const res = await clearTestDataForGoLive({
+        clearScores: clearScoresOpt,
+        clearClasses: clearClassesOpt,
+        clearTeachers: clearTeachersOpt,
+      });
       if (res.success) {
         setMessage({ text: res.message, type: 'success' });
         setShowClearTestDataModal(false);
@@ -255,28 +262,13 @@ export const SettingsManager: React.FC = () => {
     }
   };
 
-  const handleResetDatabase = async () => {
-    if (
-      window.confirm(
-        'CẢNH BÁO TỐI CAO: Bạn có chắc chắn muốn khởi tạo lại toàn bộ cơ sở dữ liệu về trạng thái TRỐNG hoàn toàn (xóa sạch điểm số, nhật ký, dữ liệu nháp) nhưng giữ nguyên cấu trúc chuẩn 59 lớp và tiêu chí?'
-      )
-    ) {
-      setIsClearing(true);
-      try {
-        const res = await resetDatabase();
-        if (res.success) {
-          setMessage({ text: res.message, type: 'success' });
-        } else {
-          setMessage({ text: res.message, type: 'error' });
-        }
-      } catch {
-        setMessage({ text: 'Có lỗi xảy ra khi khởi tạo lại cơ sở dữ liệu.', type: 'error' });
-      } finally {
-        setIsClearing(false);
-        setTimeout(() => setMessage(null), 5000);
-      }
-    }
+  const handleResetDatabase = () => {
+    setClearScoresOpt(true);
+    setClearClassesOpt(true);
+    setClearTeachersOpt(true);
+    setShowClearTestDataModal(true);
   };
+
 
   const canManage = currentUser.role === 'admin' || currentUser.role === 'super_admin';
   const canManageHistorical = canManageHistoricalScores(currentUser);
@@ -1426,35 +1418,75 @@ export const SettingsManager: React.FC = () => {
               </div>
               <div className="space-y-1">
                 <h3 className="text-lg font-black text-slate-900">
-                  Xác nhận Dọn dẹp dữ liệu chạy thử (Go-live)
+                  Làm Sạch Dữ Liệu & Chuẩn Bị Nhập Liệu Thật
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Đưa hệ thống vào trạng thái sẵn sàng 100% cho giáo viên toàn trường bắt đầu nhập liệu chính thức.
+                  Chọn các phạm vi dữ liệu bạn muốn dọn sạch trên Firebase Firestore và bộ nhớ để bắt đầu nhập chính thức.
                 </p>
               </div>
             </div>
 
-            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-xs text-slate-700">
-              <div className="font-bold text-rose-700 flex items-center gap-1.5">
-                <AlertTriangle size={15} />
-                <span>Dữ liệu sẽ được dọn dẹp sạch (Transactional Data):</span>
-              </div>
-              <ul className="list-disc pl-5 space-y-1 text-slate-600">
-                <li>Xóa toàn bộ các bản ghi chấm điểm, lỗi vi phạm, điểm cộng/trừ của tất cả các lớp trong tất cả các tuần.</li>
-                <li>Xóa toàn bộ lịch sử Điểm bảo lưu đã nhập thử.</li>
-                <li>Mở khóa lại tất cả các tuần, tháng, học kỳ (Reset trạng thái chốt sổ).</li>
-              </ul>
+            <div className="space-y-3">
+              {/* Option 1: Xóa toàn bộ điểm số */}
+              <label className="flex items-start gap-3 p-3.5 bg-rose-50/80 border border-rose-200 rounded-2xl cursor-pointer hover:bg-rose-100/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={clearScoresOpt}
+                  onChange={(e) => setClearScoresOpt(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded text-rose-600 focus:ring-rose-500"
+                />
+                <div className="text-xs">
+                  <div className="font-bold text-rose-900">
+                    1. Xóa sạch 100% Điểm thi đua & Vi phạm (Tuần 1 - 35)
+                  </div>
+                  <div className="text-rose-700 mt-0.5 leading-relaxed">
+                    Xóa vĩnh viễn trên Firebase Firestore & Máy chủ: xóa cả điểm bảo lưu tuần 1-4 và toàn bộ biên bản nhập tuần 5-9; mở khóa lại tất cả các tuần, tháng, học kỳ.
+                  </div>
+                </div>
+              </label>
 
-              <div className="font-bold text-emerald-800 flex items-center gap-1.5 pt-2 border-t border-slate-200">
-                <ShieldCheck size={15} />
-                <span>Dữ liệu được BẢO TỒN NGUYÊN VẸN (Master Data):</span>
+              {/* Option 2: Xóa danh sách lớp nháp */}
+              <label className="flex items-start gap-3 p-3.5 bg-amber-50/80 border border-amber-200 rounded-2xl cursor-pointer hover:bg-amber-100/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={clearClassesOpt}
+                  onChange={(e) => setClearClassesOpt(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded text-amber-600 focus:ring-amber-500"
+                />
+                <div className="text-xs">
+                  <div className="font-bold text-amber-900">
+                    2. Xóa sạch danh sách Lớp học nháp
+                  </div>
+                  <div className="text-amber-700 mt-0.5 leading-relaxed">
+                    Xóa sạch toàn bộ các lớp học thử nghiệm trên Firebase & hệ thống để bạn chuẩn bị nhập danh sách lớp học chính thức từ đầu (bằng file Excel hoặc nhập tay).
+                  </div>
+                </div>
+              </label>
+
+              {/* Option 3: Xóa danh sách giáo viên nháp */}
+              <label className="flex items-start gap-3 p-3.5 bg-blue-50/80 border border-blue-200 rounded-2xl cursor-pointer hover:bg-blue-100/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={clearTeachersOpt}
+                  onChange={(e) => setClearTeachersOpt(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
+                />
+                <div className="text-xs">
+                  <div className="font-bold text-blue-900">
+                    3. Xóa sạch danh sách Giáo viên & Người dùng nháp
+                  </div>
+                  <div className="text-blue-700 mt-0.5 leading-relaxed">
+                    Xóa sạch các tài khoản giáo viên nháp trên Firebase. <strong>BẢO TOÀN TUYỆT ĐỐI</strong> tài khoản Quản trị viên Super Admin của thầy Lê Huy Hùng (lehuyhung.h2com@gmail.com).
+                  </div>
+                </div>
+              </label>
+
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-[11px] text-emerald-800 flex items-center gap-2">
+                <ShieldCheck size={16} className="shrink-0 text-emerald-600" />
+                <span>
+                  <strong>Bảo tồn:</strong> 6 Phân hiệu, Tiêu chí thi đua và Cấu hình năm học luôn được giữ an toàn 100%.
+                </span>
               </div>
-              <ul className="list-disc pl-5 space-y-1 text-slate-600">
-                <li><strong>59 Lớp học & 6 Phân hiệu:</strong> Giữ nguyên vẹn 100%.</li>
-                <li><strong>71 Tài khoản người dùng:</strong> Quản trị viên, BGH, TPT, 59 GVCN cùng mật khẩu thiết lập.</li>
-                <li><strong>Tiêu chí thi đua:</strong> Danh mục mã lỗi và khung điểm thi đua.</li>
-                <li><strong>Cấu hình thời gian:</strong> Tuần hiện tại tự động (Tuần 7), HK1 (18 tuần), HK2 (17 tuần), Tổng 35 tuần.</li>
-              </ul>
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -1468,16 +1500,16 @@ export const SettingsManager: React.FC = () => {
               </button>
               <button
                 type="button"
-                disabled={isClearing}
+                disabled={isClearing || (!clearScoresOpt && !clearClassesOpt && !clearTeachersOpt)}
                 onClick={handleClearTestData}
-                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-40"
               >
                 {isClearing ? (
-                  <span>Đang dọn dẹp an toàn...</span>
+                  <span>Đang dọn dẹp trên Firebase...</span>
                 ) : (
                   <>
                     <Sparkles size={16} />
-                    <span>Xác nhận & Dọn Dẹp Ngay</span>
+                    <span>Xác Nhận & Làm Sạch Ngay</span>
                   </>
                 )}
               </button>

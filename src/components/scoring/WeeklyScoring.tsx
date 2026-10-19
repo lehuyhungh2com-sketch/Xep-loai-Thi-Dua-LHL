@@ -64,13 +64,21 @@ export const WeeklyScoring: React.FC = () => {
     settings,
     calendarWeeks,
     logAudit,
+    selectedCampusId: globalSelectedCampusId,
   } = useApp();
 
-  if (!currentUser) return null;
+  // 1. Phân hiệu & Tuần
+  const [selectedCampusId, setSelectedCampusId] = useState<string>(() => {
+    if (scoringNavigationContext?.campusId) return scoringNavigationContext.campusId;
+    if (currentUser.campusId) return currentUser.campusId;
+    return globalSelectedCampusId || campuses[0]?.id || 'lhl_main';
+  });
 
-  const roleNorm = normalizeRole(currentUser.role);
-  const isAdmin = roleNorm === 'super_admin' || roleNorm === 'bgh' || roleNorm === 'tpt_doi';
-  const availableCampuses = isAdmin ? campuses : campuses.filter((c) => c.id === currentUser.campusId);
+  const currentCampus = useMemo(() => {
+    return campuses.find((c) => c.id === selectedCampusId) || campuses[0];
+  }, [campuses, selectedCampusId]);
+
+  if (!currentUser) return null;
 
   const isLocked = isWeekLocked(selectedWeek);
   const canLock = canLockWeek(currentUser);
@@ -98,24 +106,19 @@ export const WeeklyScoring: React.FC = () => {
     }
   };
 
-  // 1. Phân hiệu & Tuần
-  const [selectedCampusId, setSelectedCampusId] = useState<string>(() => {
-    if (scoringNavigationContext?.campusId) return scoringNavigationContext.campusId;
-    if (currentUser.campusId) return currentUser.campusId;
-    return campuses[0]?.id || 'lhl_main';
-  });
-
   // Grade filter
   const [selectedGradeFilter, setSelectedGradeFilter] = useState<number | 'all'>('all');
 
   // Available classes for selected campus
   const campusClasses = useMemo(() => {
     return classes.filter((c) => {
+      const campus = campuses.find((cmp) => cmp.id === c.campusId);
+      if (campus?.status === 'inactive') return false;
       const matchCampus = c.campusId === selectedCampusId;
       const matchGrade = selectedGradeFilter === 'all' || c.grade === selectedGradeFilter;
       return matchCampus && matchGrade;
     });
-  }, [classes, selectedCampusId, selectedGradeFilter]);
+  }, [classes, selectedCampusId, selectedGradeFilter, campuses]);
 
   // Selected Class
   const [selectedClassId, setSelectedClassId] = useState<string>(() => {
@@ -135,12 +138,6 @@ export const WeeklyScoring: React.FC = () => {
     }
   }, [scoringNavigationContext, setSelectedWeek]);
 
-  useEffect(() => {
-    if (!isAdmin && currentUser.campusId && selectedCampusId !== currentUser.campusId) {
-      setSelectedCampusId(currentUser.campusId);
-    }
-  }, [isAdmin, currentUser.campusId, selectedCampusId]);
-
   // Ensure selected class belongs to selected campus
   useEffect(() => {
     const isCurrentClassInCampus = classes.some((c) => c.id === selectedClassId && c.campusId === selectedCampusId);
@@ -152,18 +149,13 @@ export const WeeklyScoring: React.FC = () => {
 
   // Selected Class object
   const currentClass = useMemo(() => {
-    return classes.find((c) => c.id === selectedClassId) || campusClasses[0] || classes[0] || { id: 'default', name: 'Chưa xác định', grade: 6, campusId: selectedCampusId };
-  }, [classes, selectedClassId, campusClasses, selectedCampusId]);
+    return classes.find((c) => c.id === selectedClassId) || campusClasses[0] || classes[0];
+  }, [classes, selectedClassId, campusClasses]);
 
   // Duty Class assigned for this campus in this week
   const dutyAssignmentThisWeek = useMemo(() => {
     return campusWeeklyDuties.find((d) => d.week === selectedWeek && d.campusId === selectedCampusId);
   }, [campusWeeklyDuties, selectedWeek, selectedCampusId]);
-
-  // Selected Campus object
-  const currentCampus = useMemo(() => {
-    return campuses.find((c) => c.id === selectedCampusId) || campuses[0] || { id: 'default', name: 'Chưa xác định', type: 'sub', leaderName: '', phone: '', address: '', colorTheme: 'slate' };
-  }, [campuses, selectedCampusId]);
 
   // Criteria Selection State
   const [criteriaCategory, setCriteriaCategory] = useState<string>('all');
@@ -288,7 +280,7 @@ export const WeeklyScoring: React.FC = () => {
 
   // RBAC Permission Check for scoring
   const scoringPermission = useMemo(() => {
-    return canInputScores(
+    const permission = canInputScores(
       currentUser,
       selectedCampusId,
       currentClass?.id,
@@ -296,7 +288,11 @@ export const WeeklyScoring: React.FC = () => {
       lockedWeeks,
       campusWeeklyDuties
     );
-  }, [currentUser, selectedCampusId, currentClass, selectedWeek, lockedWeeks, campusWeeklyDuties]);
+    if (currentCampus?.status === 'inactive') {
+      return { allowed: false, reason: `Phân hiệu ${currentCampus.name} hiện đang tạm ngừng sử dụng.` };
+    }
+    return permission;
+  }, [currentUser, selectedCampusId, currentClass, selectedWeek, lockedWeeks, campusWeeklyDuties, currentCampus]);
 
   // -------------------------------------------------------------
   // CHỐNG NHẬP TRÙNG (Duplicate Detection)
@@ -805,29 +801,41 @@ export const WeeklyScoring: React.FC = () => {
                 <span>Chọn Phân hiệu cơ sở:</span>
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {availableCampuses.map((camp) => (
-                  <button
-                    key={camp.id}
-                    type="button"
-                    onClick={() => setSelectedCampusId(camp.id)}
-                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                      selectedCampusId === camp.id
-                        ? 'bg-blue-50 border-blue-600 ring-2 ring-blue-500/20 text-blue-950 font-bold shadow-xs'
-                        : 'bg-slate-50/70 border-slate-200 text-slate-700 hover:bg-white hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs truncate">{camp.name}</span>
-                      {selectedCampusId === camp.id && <Check size={14} className="text-blue-600 shrink-0" />}
-                    </div>
-                    <span className="text-[10px] text-slate-400 block mt-0.5">
-                      {camp.type === 'main' ? 'Trường cơ sở chính' : 'Phân hiệu trực thuộc'}
-                    </span>
-                  </button>
-                ))}
+                {campuses
+                  .filter((c) => c.status !== 'inactive' || (userRole === 'super_admin' || userRole === 'admin'))
+                  .map((camp) => {
+                  const isAdmin = userRole === 'super_admin' || userRole === 'admin';
+                  const isRestricted = (!isAdmin && currentUser.campusId && currentUser.campusId !== camp.id);
+                  
+                  return (
+                    <button
+                      key={camp.id}
+                      type="button"
+                      disabled={!!isRestricted}
+                      onClick={() => !isRestricted && setSelectedCampusId(camp.id)}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        isRestricted ? 'opacity-40 cursor-not-allowed bg-slate-100' : ''
+                      } ${
+                        selectedCampusId === camp.id
+                          ? 'bg-blue-50 border-blue-600 ring-2 ring-blue-500/20 text-blue-950 font-bold shadow-xs'
+                          : 'bg-slate-50/70 border-slate-200 text-slate-700 hover:bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs truncate">
+                          {camp.name} {camp.status === 'inactive' && '(Tạm ngưng)'}
+                        </span>
+                        {selectedCampusId === camp.id && <Check size={14} className="text-blue-600 shrink-0" />}
+                      </div>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">
+                        {camp.type === 'main' ? 'Trường cơ sở chính' : 'Phân hiệu trực thuộc'}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-
+            
             {/* STEP 2 & 3: CHỌN TUẦN & CHỌN LỚP */}
             <div className="space-y-2 pt-2 border-t border-slate-100">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -998,9 +1006,10 @@ export const WeeklyScoring: React.FC = () => {
                     type="number"
                     min="1"
                     max="100"
+                    disabled={isLocked && !scoringPermission.allowed}
                     value={quantity}
                     onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                    className="flex-1 h-10 text-center font-black text-lg text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-blue-600"
+                    className="flex-1 h-10 text-center font-black text-lg text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-blue-600 disabled:opacity-50"
                   />
                   <button
                     type="button"
@@ -1042,8 +1051,9 @@ export const WeeklyScoring: React.FC = () => {
                 <input
                   type="date"
                   value={date}
+                  disabled={isLocked && !scoringPermission.allowed}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:outline-blue-500"
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:outline-blue-500 disabled:opacity-50"
                 />
               </div>
 
@@ -1052,9 +1062,10 @@ export const WeeklyScoring: React.FC = () => {
                 <input
                   type="text"
                   value={customInspectorName}
+                  disabled={isLocked && !scoringPermission.allowed}
                   onChange={(e) => setCustomInspectorName(e.target.value)}
                   placeholder="Họ tên người trực..."
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:outline-blue-500"
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:outline-blue-500 disabled:opacity-50"
                 />
               </div>
 
@@ -1063,9 +1074,10 @@ export const WeeklyScoring: React.FC = () => {
                 <input
                   type="text"
                   value={note}
+                  disabled={isLocked && !scoringPermission.allowed}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Ví dụ: Em Hoàng Long không sơ vin đầu giờ..."
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:outline-blue-500"
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:outline-blue-500 disabled:opacity-50"
                 />
               </div>
             </div>
@@ -1595,4 +1607,3 @@ export const WeeklyScoring: React.FC = () => {
     </div>
   );
 };
-

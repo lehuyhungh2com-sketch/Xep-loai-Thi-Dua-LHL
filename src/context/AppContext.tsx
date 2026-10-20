@@ -1643,8 +1643,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         u.role === 'super_admin' ||
         u.role === 'admin' ||
         u.id === 'u_admin' ||
-        u.id === 'u_admin_hung';
-      const defaultPass = (u.email?.toLowerCase() === 'lehuyhung.h2com@gmail.com' || isAdmin) ? 'Admin@123' : 'Lhl@2026';
+        u.id === 'u_admin_hung' ||
+        u.email?.toLowerCase() === 'lehuyhung.h2com@gmail.com';
+      const defaultPass = isAdmin ? 'Admin@123' : 'Lhl@2026';
       const uPassword = (u.password && typeof u.password === 'string' && u.password.trim())
         ? u.password.trim()
         : defaultPass;
@@ -1791,6 +1792,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
       } catch {}
 
+      // Save to Firestore users collection
+      try {
+        await setDoc(doc(db, 'users', currentUser.id), updatedUser, { merge: true });
+      } catch (fbErr) {
+        console.warn('Lỗi lưu mật khẩu mới lên Firestore:', fbErr);
+      }
+
       logAudit({
         action: 'SUA_NGUOI_DUNG',
         entityType: 'user',
@@ -1823,6 +1831,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           const newSaved = savedUsers.map((u: User) => (u.id === currentUser.id ? { ...u, password: newPassword } : u));
           localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(newSaved));
         }
+      } catch {}
+
+      try {
+        await setDoc(doc(db, 'users', currentUser.id), updatedUser, { merge: true });
       } catch {}
 
       return { success: true, message: 'Đổi mật khẩu thành công!' };

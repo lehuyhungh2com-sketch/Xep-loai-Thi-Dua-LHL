@@ -250,7 +250,11 @@ async function startServer() {
       return uEmail === queryEmail;
     });
     if (user) {
-      const expectedPassword = user.password || (user.role === 'super_admin' ? 'Admin@123' : 'Lhl@2026');
+      const isAdmin = user.role === 'super_admin' || user.role === 'admin' || user.id === 'u_admin' || user.id === 'u_admin_hung' || (user.email || '').toLowerCase() === 'lehuyhung.h2com@gmail.com';
+      const defaultPass = isAdmin ? 'Admin@123' : 'Lhl@2026';
+      const expectedPassword = (user.password && typeof user.password === 'string' && user.password.trim())
+        ? user.password.trim()
+        : defaultPass;
       if (queryPassword && queryPassword !== expectedPassword) {
         return res.json({ success: false, message: 'Sai mật khẩu' });
       }
@@ -286,7 +290,27 @@ async function startServer() {
   });
 
   app.post('/api/users/change-password', (req, res) => {
-    res.json({ success: true, message: 'Đổi mật khẩu thành công' });
+    const db = readDb();
+    const { userId, email, currentPassword, newPassword } = req.body;
+    if (!db.users) db.users = [];
+    const idx = db.users.findIndex((u: any) => u.id === userId || (email && (u.email || '').trim().toLowerCase() === (email || '').trim().toLowerCase()));
+    if (idx >= 0) {
+      const user = db.users[idx];
+      const isAdmin = user.role === 'super_admin' || user.role === 'admin' || user.id === 'u_admin' || user.id === 'u_admin_hung' || (user.email || '').toLowerCase() === 'lehuyhung.h2com@gmail.com';
+      const defaultPass = isAdmin ? 'Admin@123' : 'Lhl@2026';
+      const expectedPassword = (user.password && typeof user.password === 'string' && user.password.trim())
+        ? user.password.trim()
+        : defaultPass;
+
+      if (currentPassword && currentPassword !== expectedPassword) {
+        return res.json({ success: false, message: 'Mật khẩu hiện tại không chính xác!' });
+      }
+
+      db.users[idx].password = newPassword;
+      writeDb(db);
+      return res.json({ success: true, message: 'Đổi mật khẩu thành công', user: db.users[idx] });
+    }
+    return res.json({ success: false, message: 'Không tìm thấy người dùng trên hệ thống!' });
   });
 
   app.post('/api/users/update-email', (req, res) => {

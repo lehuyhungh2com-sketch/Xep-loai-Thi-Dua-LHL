@@ -1,6 +1,44 @@
 {
   "auditLogs": [
     {
+      "id": "audit_purge_draft_1792461932654",
+      "timestamp": "2026-10-20T02:05:32.654Z",
+      "userId": "u_admin_hung",
+      "userName": "Lê Huy Hùng (Quản trị viên)",
+      "userRole": "super_admin",
+      "action": "XOA_DU_LIEU_MAU_PHAN_HIEU",
+      "entityType": "settings",
+      "entityId": "purge_draft_campuses",
+      "beforeData": {
+        "classesCount": 12,
+        "usersCount": 18
+      },
+      "afterData": {
+        "classesCount": 12,
+        "usersCount": 18
+      },
+      "details": "Đã xóa sạch toàn bộ 0 lớp mẫu và 0 tài khoản mẫu của 5 phân hiệu chạy thử (Thuần Lộc, Lộc Sơn, Mỹ Lộc, Lộc Tân, Hậu Lộc). Bảo tồn 12 lớp và tài khoản giáo viên thật phân hiệu Lê Hữu Lập."
+    },
+    {
+      "id": "audit_purge_draft_1792460921847",
+      "timestamp": "2026-10-20T01:48:41.847Z",
+      "userId": "u_admin_hung",
+      "userName": "Lê Huy Hùng (Quản trị viên)",
+      "userRole": "super_admin",
+      "action": "XOA_DU_LIEU_MAU_PHAN_HIEU",
+      "entityType": "settings",
+      "entityId": "purge_draft_campuses",
+      "beforeData": {
+        "classesCount": 59,
+        "usersCount": 84
+      },
+      "afterData": {
+        "classesCount": 12,
+        "usersCount": 18
+      },
+      "details": "Đã xóa sạch toàn bộ 47 lớp mẫu và 66 tài khoản mẫu của 5 phân hiệu chạy thử (Thuần Lộc, Lộc Sơn, Mỹ Lộc, Lộc Tân, Hậu Lộc). Bảo tồn 12 lớp và tài khoản giáo viên thật phân hiệu Lê Hữu Lập."
+    },
+    {
       "id": "audit_init_clean_1792055150293",
       "timestamp": "2026-10-15T09:05:50.293Z",
       "userId": "u_admin_hung",
@@ -4023,11 +4061,13 @@
     {
       "id": "u_inspector",
       "name": "Cô Lê Thị Hoa",
-      "role": "tpt_doi",
       "email": "hoa.gvdn@gmail.com",
+      "role": "tpt_doi",
       "title": "3. Tổng Phụ Trách / Phụ trách thi đua toàn trường",
-      "scopeType": "all",
+      "teacherCode": "GV01",
+      "password": "Lhl@2026",
       "isLocked": false,
+      "scopeType": "all",
       "customPermissions": {
         "canInputScore": true,
         "canEditScore": true,
@@ -4038,1690 +4078,199 @@
         "canManageUsers": false,
         "canManageCampuses": false,
         "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV01",
-      "lastLoginAt": "2026-10-11T09:58:20.760Z"
-    },
-    {
-      "id": "u_lead_hl",
-      "name": "Thầy Phạm Văn Đình",
-      "role": "bgh",
-      "campusId": "hau_loc",
-      "allowedCampusIds": [
-        "hau_loc"
-      ],
-      "scopeType": "campus",
-      "email": "mai.hl@lehuulap.edu.vn",
-      "title": "3. Phụ trách thi đua Phân hiệu Hậu Lộc",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": true,
-        "canDeleteScore": true,
-        "canLockData": true,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "lastLoginAt": "2026-10-11T09:03:13.295Z",
-      "teacherCode": "GV05"
-    },
-    {
-      "id": "u_lead_tl",
-      "name": "Cô Lường Thị Ngân",
-      "role": "bgh",
-      "campusId": "thuan_loc",
-      "allowedCampusIds": [
-        "thuan_loc"
-      ],
-      "scopeType": "campus",
-      "email": "ngoc.tl@lehuulap.edu.vn",
-      "title": "3. Phụ trách thi đua Phân hiệu Thuần Lộc",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": true,
-        "canDeleteScore": true,
-        "canLockData": true,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV06"
-    },
-    {
-      "id": "u_lead_lt",
-      "name": "Thầy Phạm Văn Dũng",
-      "role": "bgh",
-      "campusId": "loc_tan",
-      "allowedCampusIds": [
-        "loc_tan"
-      ],
-      "scopeType": "campus",
-      "email": "tuan.lt@lehuulap.edu.vn",
-      "title": "3. Phụ trách thi đua Phân hiệu Lộc Tân",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": true,
-        "canDeleteScore": true,
-        "canLockData": true,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "lastLoginAt": "2026-10-11T09:06:18.020Z",
-      "teacherCode": "GV07"
-    },
-    {
-      "id": "u_lead_ls",
-      "name": "Thầy Bùi Tuấn Long",
-      "role": "bgh",
-      "campusId": "loc_son",
-      "allowedCampusIds": [
-        "loc_son"
-      ],
-      "scopeType": "campus",
-      "email": "hang.ls@lehuulap.edu.vn",
-      "title": "3. Phụ trách thi đua Phân hiệu Lộc Sơn",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": true,
-        "canDeleteScore": true,
-        "canLockData": true,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV08"
-    },
-    {
-      "id": "u_lead_ml",
-      "name": "Cô Hoàng Thị Huyền",
-      "role": "bgh",
-      "campusId": "my_loc",
-      "allowedCampusIds": [
-        "my_loc"
-      ],
-      "scopeType": "campus",
-      "email": "hung.ml@lehuulap.edu.vn",
-      "title": "3. Phụ trách thi đua Phân hiệu Mỹ Lộc",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": true,
-        "canDeleteScore": true,
-        "canLockData": true,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV09"
+      }
     },
     {
       "id": "u_gvcn_c_6a1",
-      "name": "Thầy Bùi Văn Dũng",
+      "name": "Bùi Văn Dũng",
+      "email": "dungduy.lh7910@gmail.com",
       "role": "gvcn",
       "campusId": "lhl_main",
+      "classId": "c_6a1",
+      "title": "Giáo viên chủ nhiệm lớp 6A1",
+      "teacherCode": "GV04",
+      "password": "Lhl@2026",
+      "isLocked": false,
+      "scopeType": "campus",
       "allowedCampusIds": [
         "lhl_main"
-      ],
-      "classId": "c_6a1",
-      "scopeType": "campus",
-      "email": "dungduy.lh7910@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 6A1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV10"
+      ]
     },
     {
       "id": "u_gvcn_c_6a2",
-      "name": "Cô Phạm Thị Hồng Thúy",
+      "name": "Phạm Thị Hồng Thúy",
+      "email": "hongthuytl@gmail.com",
       "role": "gvcn",
       "campusId": "lhl_main",
+      "classId": "c_6a2",
+      "title": "Giáo viên chủ nhiệm lớp 6A2",
+      "teacherCode": "GV05",
+      "password": "Lhl@2026",
+      "isLocked": false,
+      "scopeType": "campus",
       "allowedCampusIds": [
         "lhl_main"
-      ],
-      "classId": "c_6a2",
-      "scopeType": "campus",
-      "email": "hongthuytl@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 6A2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV11"
+      ]
     },
     {
       "id": "u_gvcn_c_6a3",
-      "name": "Cô Lê Thị Hồng",
+      "name": "Lê Thị Hồng",
+      "email": "lehong80790413@gmail.com",
       "role": "gvcn",
       "campusId": "lhl_main",
+      "classId": "c_6a3",
+      "title": "Giáo viên chủ nhiệm lớp 6A3",
+      "teacherCode": "GV06",
+      "password": "Lhl@2026",
+      "isLocked": false,
+      "scopeType": "campus",
       "allowedCampusIds": [
         "lhl_main"
-      ],
-      "classId": "c_6a3",
-      "scopeType": "campus",
-      "email": "lehong80790413@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 6A3",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV12"
+      ]
     },
     {
       "id": "u_gvcn_c_7a1",
-      "name": "Cô Đỗ Thị Hường",
+      "name": "Đỗ Thị Hường",
+      "email": "sonhuong1978@gmail.com",
       "role": "gvcn",
       "campusId": "lhl_main",
+      "classId": "c_7a1",
+      "title": "Giáo viên chủ nhiệm lớp 7A1",
+      "teacherCode": "GV07",
+      "password": "Lhl@2026",
+      "isLocked": false,
+      "scopeType": "campus",
       "allowedCampusIds": [
         "lhl_main"
-      ],
-      "classId": "c_7a1",
-      "scopeType": "campus",
-      "email": "sonhuong1978@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 7A1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV13"
+      ]
     },
     {
       "id": "u_gvcn_c_7a2",
-      "name": "Thầy Vũ Ngọc Ba",
+      "name": "Vũ Ngọc Ba",
+      "email": "batram36@gmail.com",
       "role": "gvcn",
       "campusId": "lhl_main",
+      "classId": "c_7a2",
+      "title": "Giáo viên chủ nhiệm lớp 7A2",
+      "teacherCode": "GV08",
+      "password": "Lhl@2026",
+      "isLocked": false,
+      "scopeType": "campus",
       "allowedCampusIds": [
         "lhl_main"
-      ],
-      "classId": "c_7a2",
-      "scopeType": "campus",
-      "email": "batram36@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 7A2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV14"
+      ]
     },
     {
       "id": "u_gvcn_c_7a3",
-      "name": "Thầy Nguyễn Văn Khoa",
+      "name": "Nguyễn Văn Khoa",
+      "email": "nguyenvankhoa.lhl@gmail.com",
       "role": "gvcn",
       "campusId": "lhl_main",
+      "classId": "c_7a3",
+      "title": "Giáo viên chủ nhiệm lớp 7A3",
+      "teacherCode": "GV09",
+      "password": "Lhl@2026",
+      "isLocked": false,
+      "scopeType": "campus",
       "allowedCampusIds": [
         "lhl_main"
-      ],
-      "classId": "c_7a3",
-      "scopeType": "campus",
-      "email": "nguyenvankhoa.lhl@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 7A3",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV15"
+      ]
     },
     {
       "id": "u_gvcn_c_8a1",
-      "name": "Thầy Trịnh Xuân Tĩnh",
+      "name": "Trịnh Xuân Tĩnh",
+      "email": "trinhxuantinh80@gmail.com",
       "role": "gvcn",
       "campusId": "lhl_main",
+      "classId": "c_8a1",
+      "title": "Giáo viên chủ nhiệm lớp 8A1",
+      "teacherCode": "GV10",
+      "password": "Lhl@2026",
+      "isLocked": false,
+      "scopeType": "campus",
       "allowedCampusIds": [
         "lhl_main"
-      ],
-      "classId": "c_8a1",
-      "scopeType": "campus",
-      "email": "trinhxuantinh80@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 8A1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV16"
+      ]
     },
     {
       "id": "u_gvcn_c_8a2",
-      "name": "Cô Nguyễn Thị Hoa",
+      "name": "Nguyễn Thị Hoa",
+      "email": "hoadieu2007@gmail.com",
       "role": "gvcn",
       "campusId": "lhl_main",
+      "classId": "c_8a2",
+      "title": "Giáo viên chủ nhiệm lớp 8A2",
+      "teacherCode": "GV11",
+      "password": "Lhl@2026",
+      "isLocked": false,
+      "scopeType": "campus",
       "allowedCampusIds": [
         "lhl_main"
-      ],
-      "classId": "c_8a2",
-      "scopeType": "campus",
-      "email": "hoadieu2007@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 8A2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV17"
+      ]
     },
     {
       "id": "u_gvcn_c_8a3",
-      "name": "Thầy Lữ Trọng Lãm",
+      "name": "Lữ Trọng Lãm",
+      "email": "lamquangxuong@gmail.com",
       "role": "gvcn",
       "campusId": "lhl_main",
+      "classId": "c_8a3",
+      "title": "Giáo viên chủ nhiệm lớp 8A3",
+      "teacherCode": "GV12",
+      "password": "Lhl@2026",
+      "isLocked": false,
+      "scopeType": "campus",
       "allowedCampusIds": [
         "lhl_main"
-      ],
-      "classId": "c_8a3",
-      "scopeType": "campus",
-      "email": "lamquangxuong@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 8A3",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV18"
+      ]
     },
     {
       "id": "u_gvcn_c_9a1",
-      "name": "Cô Vũ Thị Nhân Hậu",
+      "name": "Vũ Thị Nhân Hậu",
+      "email": "nhanhau80@gmail.com",
       "role": "gvcn",
       "campusId": "lhl_main",
+      "classId": "c_9a1",
+      "title": "Giáo viên chủ nhiệm lớp 9A1",
+      "teacherCode": "GV13",
+      "password": "Lhl@2026",
+      "isLocked": false,
+      "scopeType": "campus",
       "allowedCampusIds": [
         "lhl_main"
-      ],
-      "classId": "c_9a1",
-      "scopeType": "campus",
-      "email": "long.codo9a1@lehuulap.edu.vn",
-      "title": "Giáo viên chủ nhiệm lớp 9A1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV19"
+      ]
     },
     {
       "id": "u_gvcn_c_9a2",
-      "name": "Thầy Mai Thành Giáp",
+      "name": "Mai Thành Giáp",
+      "email": "giaptuyettn@gmail.com",
       "role": "gvcn",
       "campusId": "lhl_main",
+      "classId": "c_9a2",
+      "title": "Giáo viên chủ nhiệm lớp 9A2",
+      "teacherCode": "GV14",
+      "password": "Lhl@2026",
+      "isLocked": false,
+      "scopeType": "campus",
       "allowedCampusIds": [
         "lhl_main"
-      ],
-      "classId": "c_9a2",
-      "scopeType": "campus",
-      "email": "giaptuyettn@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 9A2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV20"
+      ]
     },
     {
       "id": "u_gvcn_c_9a3",
-      "name": "Cô Lê Thị Thu Hiền",
+      "name": "Lê Thị Thu Hiền",
+      "email": "hienhao3010@gmail.com",
       "role": "gvcn",
       "campusId": "lhl_main",
+      "classId": "c_9a3",
+      "title": "Giáo viên chủ nhiệm lớp 9A3",
+      "teacherCode": "GV15",
+      "password": "Lhl@2026",
+      "isLocked": false,
+      "scopeType": "campus",
       "allowedCampusIds": [
         "lhl_main"
-      ],
-      "classId": "c_9a3",
-      "scopeType": "campus",
-      "email": "hienhao3010@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 9A3",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV21"
-    },
-    {
-      "id": "u_gvcn_c_6g1",
-      "name": "Cô TRỊNH THỊ THẮM",
-      "role": "gvcn",
-      "campusId": "hau_loc",
-      "allowedCampusIds": [
-        "hau_loc"
-      ],
-      "classId": "c_6g1",
-      "scopeType": "campus",
-      "email": "thamhungml@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 6G1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026",
-      "teacherCode": "GV22"
-    },
-    {
-      "id": "u_gvcn_c_6g2",
-      "name": "Trần Quốc Việt",
-      "role": "gvcn",
-      "campusId": "hau_loc",
-      "allowedCampusIds": [
-        "hau_loc"
-      ],
-      "classId": "c_6g2",
-      "scopeType": "campus",
-      "email": "tranquocviet.gvcn6g2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 6G2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_6g3",
-      "name": "Nguyễn Văn Tiến",
-      "role": "gvcn",
-      "campusId": "hau_loc",
-      "allowedCampusIds": [
-        "hau_loc"
-      ],
-      "classId": "c_6g3",
-      "scopeType": "campus",
-      "email": "nguyenvantien.gvcn6g3@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 6G3",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_7g1",
-      "name": "Vũ Thị Minh",
-      "role": "gvcn",
-      "campusId": "hau_loc",
-      "allowedCampusIds": [
-        "hau_loc"
-      ],
-      "classId": "c_7g1",
-      "scopeType": "campus",
-      "email": "vuthiminh.gvcn7g1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 7G1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_7g2",
-      "name": "Mai Văn Quân",
-      "role": "gvcn",
-      "campusId": "hau_loc",
-      "allowedCampusIds": [
-        "hau_loc"
-      ],
-      "classId": "c_7g2",
-      "scopeType": "campus",
-      "email": "maivanquan.gvcn7g2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 7G2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_8g1",
-      "name": "Nguyễn Thị Oanh",
-      "role": "gvcn",
-      "campusId": "hau_loc",
-      "allowedCampusIds": [
-        "hau_loc"
-      ],
-      "classId": "c_8g1",
-      "scopeType": "campus",
-      "email": "nguyenthioanh.gvcn8g1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 8G1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_8g2",
-      "name": "Lê Hữu Trung",
-      "role": "gvcn",
-      "campusId": "hau_loc",
-      "allowedCampusIds": [
-        "hau_loc"
-      ],
-      "classId": "c_8g2",
-      "scopeType": "campus",
-      "email": "lehuutrung.gvcn8g2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 8G2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_8g3",
-      "name": "Bùi Thị Hồng",
-      "role": "gvcn",
-      "campusId": "hau_loc",
-      "allowedCampusIds": [
-        "hau_loc"
-      ],
-      "classId": "c_8g3",
-      "scopeType": "campus",
-      "email": "buithihong.gvcn8g3@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 8G3",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_9g1",
-      "name": "Phan Văn Bình",
-      "role": "gvcn",
-      "campusId": "hau_loc",
-      "allowedCampusIds": [
-        "hau_loc"
-      ],
-      "classId": "c_9g1",
-      "scopeType": "campus",
-      "email": "phanvanbinh.gvcn9g1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 9G1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_9g2",
-      "name": "Nguyễn Thị Dung",
-      "role": "gvcn",
-      "campusId": "hau_loc",
-      "allowedCampusIds": [
-        "hau_loc"
-      ],
-      "classId": "c_9g2",
-      "scopeType": "campus",
-      "email": "nguyenthidung.gvcn9g2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 9G2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_9g3",
-      "name": "Tạ Minh Dũng",
-      "role": "gvcn",
-      "campusId": "hau_loc",
-      "allowedCampusIds": [
-        "hau_loc"
-      ],
-      "classId": "c_9g3",
-      "scopeType": "campus",
-      "email": "taminhdung.gvcn9g3@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 9G3",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_6e1",
-      "name": "Hoàng Thị Thảo",
-      "role": "gvcn",
-      "campusId": "loc_tan",
-      "allowedCampusIds": [
-        "loc_tan"
-      ],
-      "classId": "c_6e1",
-      "scopeType": "campus",
-      "email": "hoangthithao.gvcn6e1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 6E1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_6e2",
-      "name": "Lê Bá Chiến",
-      "role": "gvcn",
-      "campusId": "loc_tan",
-      "allowedCampusIds": [
-        "loc_tan"
-      ],
-      "classId": "c_6e2",
-      "scopeType": "campus",
-      "email": "lebachien.gvcn6e2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 6E2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_7e1",
-      "name": "Nguyễn Văn Phúc",
-      "role": "gvcn",
-      "campusId": "loc_tan",
-      "allowedCampusIds": [
-        "loc_tan"
-      ],
-      "classId": "c_7e1",
-      "scopeType": "campus",
-      "email": "nguyenvanphuc.gvcn7e1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 7E1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_7e2",
-      "name": "Đỗ Thị Hạnh",
-      "role": "gvcn",
-      "campusId": "loc_tan",
-      "allowedCampusIds": [
-        "loc_tan"
-      ],
-      "classId": "c_7e2",
-      "scopeType": "campus",
-      "email": "dothihanh.gvcn7e2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 7E2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_8e1",
-      "name": "Trần Văn Tuyến",
-      "role": "gvcn",
-      "campusId": "loc_tan",
-      "allowedCampusIds": [
-        "loc_tan"
-      ],
-      "classId": "c_8e1",
-      "scopeType": "campus",
-      "email": "tranvantuyen.gvcn8e1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 8E1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_8e2",
-      "name": "Lê Thị Loan",
-      "role": "gvcn",
-      "campusId": "loc_tan",
-      "allowedCampusIds": [
-        "loc_tan"
-      ],
-      "classId": "c_8e2",
-      "scopeType": "campus",
-      "email": "lethiloan.gvcn8e2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 8E2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_9e1",
-      "name": "Phạm Văn Nam",
-      "role": "gvcn",
-      "campusId": "loc_tan",
-      "allowedCampusIds": [
-        "loc_tan"
-      ],
-      "classId": "c_9e1",
-      "scopeType": "campus",
-      "email": "phamvannam.gvcn9e1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 9E1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_9e2",
-      "name": "Vũ Thị Quyên",
-      "role": "gvcn",
-      "campusId": "loc_tan",
-      "allowedCampusIds": [
-        "loc_tan"
-      ],
-      "classId": "c_9e2",
-      "scopeType": "campus",
-      "email": "vuthiquyen.gvcn9e2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 9E2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_6c1",
-      "name": "Nguyễn Thị Bích",
-      "role": "gvcn",
-      "campusId": "loc_son",
-      "allowedCampusIds": [
-        "loc_son"
-      ],
-      "classId": "c_6c1",
-      "scopeType": "campus",
-      "email": "nguyenthibich.gvcn6c1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 6C1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_6c2",
-      "name": "Võ Minh Hải",
-      "role": "gvcn",
-      "campusId": "loc_son",
-      "allowedCampusIds": [
-        "loc_son"
-      ],
-      "classId": "c_6c2",
-      "scopeType": "campus",
-      "email": "vominhhai.gvcn6c2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 6C2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_7c1",
-      "name": "Lê Thị Nga",
-      "role": "gvcn",
-      "campusId": "loc_son",
-      "allowedCampusIds": [
-        "loc_son"
-      ],
-      "classId": "c_7c1",
-      "scopeType": "campus",
-      "email": "lethinga.gvcn7c1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 7C1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_7c2",
-      "name": "Đinh Trọng Hào",
-      "role": "gvcn",
-      "campusId": "loc_son",
-      "allowedCampusIds": [
-        "loc_son"
-      ],
-      "classId": "c_7c2",
-      "scopeType": "campus",
-      "email": "dinhtronghao.gvcn7c2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 7C2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_8c1",
-      "name": "Bùi Thị Lan",
-      "role": "gvcn",
-      "campusId": "loc_son",
-      "allowedCampusIds": [
-        "loc_son"
-      ],
-      "classId": "c_8c1",
-      "scopeType": "campus",
-      "email": "khoa.locked@lehuulap.edu.vn",
-      "title": "Giáo viên chủ nhiệm lớp 8C1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_8c2",
-      "name": "Trần Hữu Thắng",
-      "role": "gvcn",
-      "campusId": "loc_son",
-      "allowedCampusIds": [
-        "loc_son"
-      ],
-      "classId": "c_8c2",
-      "scopeType": "campus",
-      "email": "tranhuuthang.gvcn8c2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 8C2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_9c1",
-      "name": "Phan Thị Hòa",
-      "role": "gvcn",
-      "campusId": "loc_son",
-      "allowedCampusIds": [
-        "loc_son"
-      ],
-      "classId": "c_9c1",
-      "scopeType": "campus",
-      "email": "phanthihoa.gvcn9c1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 9C1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_9c2",
-      "name": "Nguyễn Văn Đạt",
-      "role": "gvcn",
-      "campusId": "loc_son",
-      "allowedCampusIds": [
-        "loc_son"
-      ],
-      "classId": "c_9c2",
-      "scopeType": "campus",
-      "email": "nguyenvandat.gvcn9c2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 9C2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_6d1",
-      "name": "Đỗ Thị Huệ",
-      "role": "gvcn",
-      "campusId": "my_loc",
-      "allowedCampusIds": [
-        "my_loc"
-      ],
-      "classId": "c_6d1",
-      "scopeType": "campus",
-      "email": "dothihue.gvcn6d1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 6D1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_6d2",
-      "name": "Lê Văn Khiêm",
-      "role": "gvcn",
-      "campusId": "my_loc",
-      "allowedCampusIds": [
-        "my_loc"
-      ],
-      "classId": "c_6d2",
-      "scopeType": "campus",
-      "email": "levankhiem.gvcn6d2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 6D2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_7d1",
-      "name": "Hoàng Thị Phượng",
-      "role": "gvcn",
-      "campusId": "my_loc",
-      "allowedCampusIds": [
-        "my_loc"
-      ],
-      "classId": "c_7d1",
-      "scopeType": "campus",
-      "email": "hoangthiphuong.gvcn7d1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 7D1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_7d2",
-      "name": "Trần Văn Cảnh",
-      "role": "gvcn",
-      "campusId": "my_loc",
-      "allowedCampusIds": [
-        "my_loc"
-      ],
-      "classId": "c_7d2",
-      "scopeType": "campus",
-      "email": "tranvancanh.gvcn7d2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 7D2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_8d1",
-      "name": "Phạm Thị Thắm",
-      "role": "gvcn",
-      "campusId": "my_loc",
-      "allowedCampusIds": [
-        "my_loc"
-      ],
-      "classId": "c_8d1",
-      "scopeType": "campus",
-      "email": "thamhungml@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 8D1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": false
-      },
-      "password": "Lhl@2026",
-      "lastLoginAt": "2026-10-11T10:17:41.553Z"
-    },
-    {
-      "id": "u_gvcn_c_8d2",
-      "name": "Vũ Văn Hào",
-      "role": "gvcn",
-      "campusId": "my_loc",
-      "allowedCampusIds": [
-        "my_loc"
-      ],
-      "classId": "c_8d2",
-      "scopeType": "campus",
-      "email": "vuvanhao.gvcn8d2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 8D2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_9d1",
-      "name": "Nguyễn Thị Lương",
-      "role": "gvcn",
-      "campusId": "my_loc",
-      "allowedCampusIds": [
-        "my_loc"
-      ],
-      "classId": "c_9d1",
-      "scopeType": "campus",
-      "email": "nguyenthiluong.gvcn9d1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 9D1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_9d2",
-      "name": "Lê Đình Trung",
-      "role": "gvcn",
-      "campusId": "my_loc",
-      "allowedCampusIds": [
-        "my_loc"
-      ],
-      "classId": "c_9d2",
-      "scopeType": "campus",
-      "email": "ledinhtrung.gvcn9d2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 9D2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_6b1",
-      "name": "Nguyễn Thị Mai Lan",
-      "role": "gvcn",
-      "campusId": "thuan_loc",
-      "allowedCampusIds": [
-        "thuan_loc"
-      ],
-      "classId": "c_6b1",
-      "scopeType": "campus",
-      "email": "nguyenthimailan.gvcn6b1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 6B1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_6b2",
-      "name": "Trần Đình Hiếu",
-      "role": "gvcn",
-      "campusId": "thuan_loc",
-      "allowedCampusIds": [
-        "thuan_loc"
-      ],
-      "classId": "c_6b2",
-      "scopeType": "campus",
-      "email": "trandinhhieu.gvcn6b2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 6B2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_6b3",
-      "name": "Lê Thị Phương",
-      "role": "gvcn",
-      "campusId": "thuan_loc",
-      "allowedCampusIds": [
-        "thuan_loc"
-      ],
-      "classId": "c_6b3",
-      "scopeType": "campus",
-      "email": "lethiphuong.gvcn6b3@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 6B3",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_7b1",
-      "name": "Phạm Văn Khánh",
-      "role": "gvcn",
-      "campusId": "thuan_loc",
-      "allowedCampusIds": [
-        "thuan_loc"
-      ],
-      "classId": "c_7b1",
-      "scopeType": "campus",
-      "email": "phamvankhanh.gvcn7b1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 7B1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_7b2",
-      "name": "Vũ Thị Thúy",
-      "role": "gvcn",
-      "campusId": "thuan_loc",
-      "allowedCampusIds": [
-        "thuan_loc"
-      ],
-      "classId": "c_7b2",
-      "scopeType": "campus",
-      "email": "vuthithuy.gvcn7b2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 7B2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_7b3",
-      "name": "Bùi Văn Hưng",
-      "role": "gvcn",
-      "campusId": "thuan_loc",
-      "allowedCampusIds": [
-        "thuan_loc"
-      ],
-      "classId": "c_7b3",
-      "scopeType": "campus",
-      "email": "buivanhung.gvcn7b3@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 7B3",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_8b1",
-      "name": "Đỗ Thị Tuyết",
-      "role": "gvcn",
-      "campusId": "thuan_loc",
-      "allowedCampusIds": [
-        "thuan_loc"
-      ],
-      "classId": "c_8b1",
-      "scopeType": "campus",
-      "email": "dothituyet.gvcn8b1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 8B1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_8b2",
-      "name": "Nguyễn Bá Long",
-      "role": "gvcn",
-      "campusId": "thuan_loc",
-      "allowedCampusIds": [
-        "thuan_loc"
-      ],
-      "classId": "c_8b2",
-      "scopeType": "campus",
-      "email": "nguyenbalong.gvcn8b2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 8B2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_8b3",
-      "name": "Lê Thị Hải",
-      "role": "gvcn",
-      "campusId": "thuan_loc",
-      "allowedCampusIds": [
-        "thuan_loc"
-      ],
-      "classId": "c_8b3",
-      "scopeType": "campus",
-      "email": "lethihai.gvcn8b3@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 8B3",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_9b1",
-      "name": "Vũ Văn Quyết",
-      "role": "gvcn",
-      "campusId": "thuan_loc",
-      "allowedCampusIds": [
-        "thuan_loc"
-      ],
-      "classId": "c_9b1",
-      "scopeType": "campus",
-      "email": "vuvanquyet.gvcn9b1@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 9B1",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_9b2",
-      "name": "Trịnh Thị Liên",
-      "role": "gvcn",
-      "campusId": "thuan_loc",
-      "allowedCampusIds": [
-        "thuan_loc"
-      ],
-      "classId": "c_9b2",
-      "scopeType": "campus",
-      "email": "trinhthilien.gvcn9b2@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 9B2",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_gvcn_c_9b3",
-      "name": "Hoàng Văn Lộc",
-      "role": "gvcn",
-      "campusId": "thuan_loc",
-      "allowedCampusIds": [
-        "thuan_loc"
-      ],
-      "classId": "c_9b3",
-      "scopeType": "campus",
-      "email": "hoangvanloc.gvcn9b3@gmail.com",
-      "title": "Giáo viên chủ nhiệm lớp 9B3",
-      "isLocked": false,
-      "customPermissions": {
-        "canInputScore": true,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
+      ]
     },
     {
       "id": "u_redflag_long",
@@ -5773,34 +4322,6 @@
         "canManageUsers": false,
         "canManageCampuses": false,
         "canViewAllReports": true
-      },
-      "password": "Lhl@2026"
-    },
-    {
-      "id": "u_locked",
-      "name": "Thầy Lê Văn Khóa (Tài khoản mẫu bị khóa)",
-      "role": "gvcn",
-      "campusId": "loc_tan",
-      "allowedCampusIds": [
-        "loc_tan"
-      ],
-      "classId": "c_8c1",
-      "scopeType": "campus",
-      "email": "khoa.locked@lehuulap.edu.vn",
-      "title": "Tài khoản thử nghiệm kiểm tra tính năng Khóa bảo vệ",
-      "isLocked": true,
-      "lockedAt": "2026-09-01T08:00:00.000Z",
-      "lockedReason": "Tài khoản bị khóa do chuyển công tác hoặc vi phạm bảo mật",
-      "customPermissions": {
-        "canInputScore": false,
-        "canEditScore": false,
-        "canDeleteScore": false,
-        "canLockData": false,
-        "canUnlockData": false,
-        "canEditCriteria": false,
-        "canManageUsers": false,
-        "canManageCampuses": false,
-        "canViewAllReports": false
       },
       "password": "Lhl@2026"
     }
@@ -5926,12 +4447,12 @@
       "classType": "A1",
       "type": "A1",
       "status": "active",
-      "homeroomTeacher": "Thầy Bùi Văn Dũng",
+      "homeroomTeacher": "Bùi Văn Dũng",
       "monitorName": "Chưa bầu",
       "studentCount": 42,
       "roomNumber": "P.101",
       "teacherId": "u_gvcn_c_6a1",
-      "teacherCode": "GV10"
+      "teacherCode": "GV04"
     },
     {
       "id": "c_6a2",
@@ -5942,12 +4463,12 @@
       "classType": "A2",
       "type": "A2",
       "status": "active",
-      "homeroomTeacher": "Cô Phạm Thị Hồng Thúy",
+      "homeroomTeacher": "Phạm Thị Hồng Thúy",
       "monitorName": "Chưa bầu",
       "studentCount": 40,
       "roomNumber": "P.102",
       "teacherId": "u_gvcn_c_6a2",
-      "teacherCode": "GV11"
+      "teacherCode": "GV05"
     },
     {
       "id": "c_6a3",
@@ -5958,12 +4479,12 @@
       "classType": "A3",
       "type": "A3",
       "status": "active",
-      "homeroomTeacher": "Cô Lê Thị Hồng",
+      "homeroomTeacher": "Lê Thị Hồng",
       "monitorName": "Chưa bầu",
       "studentCount": 41,
       "roomNumber": "P.103",
       "teacherId": "u_gvcn_c_6a3",
-      "teacherCode": "GV12"
+      "teacherCode": "GV06"
     },
     {
       "id": "c_7a1",
@@ -5974,12 +4495,12 @@
       "classType": "A1",
       "type": "A1",
       "status": "active",
-      "homeroomTeacher": "Cô Đỗ Thị Hường",
+      "homeroomTeacher": "Đỗ Thị Hường",
       "monitorName": "Chưa bầu",
       "studentCount": 39,
       "roomNumber": "P.201",
       "teacherId": "u_gvcn_c_7a1",
-      "teacherCode": "GV13",
+      "teacherCode": "GV07",
       "exemptSemester1": false
     },
     {
@@ -5991,12 +4512,12 @@
       "classType": "A2",
       "type": "A2",
       "status": "active",
-      "homeroomTeacher": "Thầy Vũ Ngọc Ba",
+      "homeroomTeacher": "Vũ Ngọc Ba",
       "monitorName": "Chưa bầu",
       "studentCount": 43,
       "roomNumber": "P.202",
       "teacherId": "u_gvcn_c_7a2",
-      "teacherCode": "GV14"
+      "teacherCode": "GV08"
     },
     {
       "id": "c_7a3",
@@ -6007,12 +4528,12 @@
       "classType": "A3",
       "type": "A3",
       "status": "active",
-      "homeroomTeacher": "Thầy Nguyễn Văn Khoa",
+      "homeroomTeacher": "Nguyễn Văn Khoa",
       "monitorName": "Chưa bầu",
       "studentCount": 38,
       "roomNumber": "P.203",
       "teacherId": "u_gvcn_c_7a3",
-      "teacherCode": "GV15"
+      "teacherCode": "GV09"
     },
     {
       "id": "c_8a1",
@@ -6023,12 +4544,12 @@
       "classType": "A1",
       "type": "A1",
       "status": "active",
-      "homeroomTeacher": "Thầy Trịnh Xuân Tĩnh",
+      "homeroomTeacher": "Trịnh Xuân Tĩnh",
       "monitorName": "Chưa bầu",
       "studentCount": 44,
       "roomNumber": "P.301",
       "teacherId": "u_gvcn_c_8a1",
-      "teacherCode": "GV16"
+      "teacherCode": "GV10"
     },
     {
       "id": "c_8a2",
@@ -6039,12 +4560,12 @@
       "classType": "A2",
       "type": "A2",
       "status": "active",
-      "homeroomTeacher": "Cô Nguyễn Thị Hoa",
+      "homeroomTeacher": "Nguyễn Thị Hoa",
       "monitorName": "Chưa bầu",
       "studentCount": 41,
       "roomNumber": "P.302",
       "teacherId": "u_gvcn_c_8a2",
-      "teacherCode": "GV17"
+      "teacherCode": "GV11"
     },
     {
       "id": "c_8a3",
@@ -6055,12 +4576,12 @@
       "classType": "A3",
       "type": "A3",
       "status": "active",
-      "homeroomTeacher": "Thầy Lữ Trọng Lãm",
+      "homeroomTeacher": "Lữ Trọng Lãm",
       "monitorName": "Chưa bầu",
       "studentCount": 40,
       "roomNumber": "P.303",
       "teacherId": "u_gvcn_c_8a3",
-      "teacherCode": "GV18"
+      "teacherCode": "GV12"
     },
     {
       "id": "c_9a1",
@@ -6071,12 +4592,12 @@
       "classType": "A1",
       "type": "A1",
       "status": "active",
-      "homeroomTeacher": "Cô Vũ Thị Nhân Hậu",
+      "homeroomTeacher": "Vũ Thị Nhân Hậu",
       "monitorName": "Chưa bầu",
       "studentCount": 45,
       "roomNumber": "P.401",
       "teacherId": "u_gvcn_c_9a1",
-      "teacherCode": "GV19",
+      "teacherCode": "GV13",
       "exemptSemester1": true
     },
     {
@@ -6088,12 +4609,12 @@
       "classType": "A2",
       "type": "A2",
       "status": "active",
-      "homeroomTeacher": "Thầy Mai Thành Giáp",
+      "homeroomTeacher": "Mai Thành Giáp",
       "monitorName": "Chưa bầu",
       "studentCount": 42,
       "roomNumber": "P.402",
       "teacherId": "u_gvcn_c_9a2",
-      "teacherCode": "GV20"
+      "teacherCode": "GV14"
     },
     {
       "id": "c_9a3",
@@ -6104,482 +4625,12 @@
       "classType": "A3",
       "type": "A3",
       "status": "active",
-      "homeroomTeacher": "Cô Lê Thị Thu Hiền",
+      "homeroomTeacher": "Lê Thị Thu Hiền",
       "monitorName": "Chưa bầu",
       "studentCount": 43,
       "roomNumber": "P.403",
       "teacherId": "u_gvcn_c_9a3",
-      "teacherCode": "GV21"
-    },
-    {
-      "id": "c_6g1",
-      "name": "6G1",
-      "grade": 6,
-      "campusId": "hau_loc",
-      "homeroomTeacher": "Đặng Thanh Tâm",
-      "monitorName": "Trần Gia Bảo",
-      "studentCount": 38,
-      "roomNumber": "P.01"
-    },
-    {
-      "id": "c_6g2",
-      "name": "6G2",
-      "grade": 6,
-      "campusId": "hau_loc",
-      "homeroomTeacher": "Trần Quốc Việt",
-      "monitorName": "Lê Phương Thảo",
-      "studentCount": 39,
-      "roomNumber": "P.02"
-    },
-    {
-      "id": "c_6g3",
-      "name": "6G3",
-      "grade": 6,
-      "campusId": "hau_loc",
-      "homeroomTeacher": "Nguyễn Văn Tiến",
-      "monitorName": "Trịnh Khánh Huyền",
-      "studentCount": 38,
-      "roomNumber": "P.11"
-    },
-    {
-      "id": "c_7g1",
-      "name": "7G1",
-      "grade": 7,
-      "campusId": "hau_loc",
-      "homeroomTeacher": "Vũ Thị Minh",
-      "monitorName": "Phạm Quốc Cường",
-      "studentCount": 40,
-      "roomNumber": "P.03"
-    },
-    {
-      "id": "c_7g2",
-      "name": "7G2",
-      "grade": 7,
-      "campusId": "hau_loc",
-      "homeroomTeacher": "Mai Văn Quân",
-      "monitorName": "Hoàng Bảo Ngọc",
-      "studentCount": 37,
-      "roomNumber": "P.04"
-    },
-    {
-      "id": "c_8g1",
-      "name": "8G1",
-      "grade": 8,
-      "campusId": "hau_loc",
-      "homeroomTeacher": "Nguyễn Thị Oanh",
-      "monitorName": "Đỗ Tuấn Khang",
-      "studentCount": 41,
-      "roomNumber": "P.05"
-    },
-    {
-      "id": "c_8g2",
-      "name": "8G2",
-      "grade": 8,
-      "campusId": "hau_loc",
-      "homeroomTeacher": "Lê Hữu Trung",
-      "monitorName": "Nguyễn Kiều Trang",
-      "studentCount": 42,
-      "roomNumber": "P.06"
-    },
-    {
-      "id": "c_8g3",
-      "name": "8G3",
-      "grade": 8,
-      "campusId": "hau_loc",
-      "homeroomTeacher": "Bùi Thị Hồng",
-      "monitorName": "Trần Văn Huy",
-      "studentCount": 38,
-      "roomNumber": "P.07"
-    },
-    {
-      "id": "c_9g1",
-      "name": "9G1",
-      "grade": 9,
-      "campusId": "hau_loc",
-      "homeroomTeacher": "Phan Văn Bình",
-      "monitorName": "Vũ Minh Tuấn",
-      "studentCount": 43,
-      "roomNumber": "P.08"
-    },
-    {
-      "id": "c_9g2",
-      "name": "9G2",
-      "grade": 9,
-      "campusId": "hau_loc",
-      "homeroomTeacher": "Nguyễn Thị Dung",
-      "monitorName": "Lê Thị Thu Trang",
-      "studentCount": 41,
-      "roomNumber": "P.09"
-    },
-    {
-      "id": "c_9g3",
-      "name": "9G3",
-      "grade": 9,
-      "campusId": "hau_loc",
-      "homeroomTeacher": "Tạ Minh Dũng",
-      "monitorName": "Đặng Tuấn Anh",
-      "studentCount": 39,
-      "roomNumber": "P.10"
-    },
-    {
-      "id": "c_6e1",
-      "name": "6E1",
-      "grade": 6,
-      "campusId": "loc_tan",
-      "homeroomTeacher": "Hoàng Thị Thảo",
-      "monitorName": "Lê Minh Hùng",
-      "studentCount": 36,
-      "roomNumber": "P.01"
-    },
-    {
-      "id": "c_6e2",
-      "name": "6E2",
-      "grade": 6,
-      "campusId": "loc_tan",
-      "homeroomTeacher": "Lê Bá Chiến",
-      "monitorName": "Phạm Thanh Mai",
-      "studentCount": 37,
-      "roomNumber": "P.02"
-    },
-    {
-      "id": "c_7e1",
-      "name": "7E1",
-      "grade": 7,
-      "campusId": "loc_tan",
-      "homeroomTeacher": "Nguyễn Văn Phúc",
-      "monitorName": "Trần Đình Trọng",
-      "studentCount": 38,
-      "roomNumber": "P.03"
-    },
-    {
-      "id": "c_7e2",
-      "name": "7E2",
-      "grade": 7,
-      "campusId": "loc_tan",
-      "homeroomTeacher": "Đỗ Thị Hạnh",
-      "monitorName": "Vũ Thị Diệu",
-      "studentCount": 35,
-      "roomNumber": "P.04"
-    },
-    {
-      "id": "c_8e1",
-      "name": "8E1",
-      "grade": 8,
-      "campusId": "loc_tan",
-      "homeroomTeacher": "Trần Văn Tuyến",
-      "monitorName": "Bùi Nhật Minh",
-      "studentCount": 39,
-      "roomNumber": "P.05"
-    },
-    {
-      "id": "c_8e2",
-      "name": "8E2",
-      "grade": 8,
-      "campusId": "loc_tan",
-      "homeroomTeacher": "Lê Thị Loan",
-      "monitorName": "Nguyễn Hoàng Nam",
-      "studentCount": 40,
-      "roomNumber": "P.06"
-    },
-    {
-      "id": "c_9e1",
-      "name": "9E1",
-      "grade": 9,
-      "campusId": "loc_tan",
-      "homeroomTeacher": "Phạm Văn Nam",
-      "monitorName": "Lê Thị Mai Anh",
-      "studentCount": 41,
-      "roomNumber": "P.07"
-    },
-    {
-      "id": "c_9e2",
-      "name": "9E2",
-      "grade": 9,
-      "campusId": "loc_tan",
-      "homeroomTeacher": "Vũ Thị Quyên",
-      "monitorName": "Đỗ Thành Vinh",
-      "studentCount": 38,
-      "roomNumber": "P.08"
-    },
-    {
-      "id": "c_6c1",
-      "name": "6C1",
-      "grade": 6,
-      "campusId": "loc_son",
-      "homeroomTeacher": "Nguyễn Thị Bích",
-      "monitorName": "Trần Đăng Khoa",
-      "studentCount": 37,
-      "roomNumber": "P.01"
-    },
-    {
-      "id": "c_6c2",
-      "name": "6C2",
-      "grade": 6,
-      "campusId": "loc_son",
-      "homeroomTeacher": "Võ Minh Hải",
-      "monitorName": "Lê Thuỳ Dung",
-      "studentCount": 38,
-      "roomNumber": "P.02"
-    },
-    {
-      "id": "c_7c1",
-      "name": "7C1",
-      "grade": 7,
-      "campusId": "loc_son",
-      "homeroomTeacher": "Lê Thị Nga",
-      "monitorName": "Nguyễn Văn Hoàng",
-      "studentCount": 39,
-      "roomNumber": "P.03"
-    },
-    {
-      "id": "c_7c2",
-      "name": "7C2",
-      "grade": 7,
-      "campusId": "loc_son",
-      "homeroomTeacher": "Đinh Trọng Hào",
-      "monitorName": "Phạm Quỳnh Nga",
-      "studentCount": 36,
-      "roomNumber": "P.04"
-    },
-    {
-      "id": "c_8c1",
-      "name": "8C1",
-      "grade": 8,
-      "campusId": "loc_son",
-      "homeroomTeacher": "Bùi Thị Lan",
-      "monitorName": "Hoàng Đức Minh",
-      "studentCount": 40,
-      "roomNumber": "P.05"
-    },
-    {
-      "id": "c_8c2",
-      "name": "8C2",
-      "grade": 8,
-      "campusId": "loc_son",
-      "homeroomTeacher": "Trần Hữu Thắng",
-      "monitorName": "Vũ Thuỳ Linh",
-      "studentCount": 38,
-      "roomNumber": "P.06"
-    },
-    {
-      "id": "c_9c1",
-      "name": "9C1",
-      "grade": 9,
-      "campusId": "loc_son",
-      "homeroomTeacher": "Phan Thị Hòa",
-      "monitorName": "Lê Đình Khang",
-      "studentCount": 42,
-      "roomNumber": "P.07"
-    },
-    {
-      "id": "c_9c2",
-      "name": "9C2",
-      "grade": 9,
-      "campusId": "loc_son",
-      "homeroomTeacher": "Nguyễn Văn Đạt",
-      "monitorName": "Trương Ngọc Ánh",
-      "studentCount": 41,
-      "roomNumber": "P.08"
-    },
-    {
-      "id": "c_6d1",
-      "name": "6D1",
-      "grade": 6,
-      "campusId": "my_loc",
-      "homeroomTeacher": "Đỗ Thị Huệ",
-      "monitorName": "Nguyễn Thái Sơn",
-      "studentCount": 36,
-      "roomNumber": "P.01"
-    },
-    {
-      "id": "c_6d2",
-      "name": "6D2",
-      "grade": 6,
-      "campusId": "my_loc",
-      "homeroomTeacher": "Lê Văn Khiêm",
-      "monitorName": "Trần Bích Phương",
-      "studentCount": 37,
-      "roomNumber": "P.02"
-    },
-    {
-      "id": "c_7d1",
-      "name": "7D1",
-      "grade": 7,
-      "campusId": "my_loc",
-      "homeroomTeacher": "Hoàng Thị Phượng",
-      "monitorName": "Vũ Đức Trí",
-      "studentCount": 38,
-      "roomNumber": "P.03"
-    },
-    {
-      "id": "c_7d2",
-      "name": "7D2",
-      "grade": 7,
-      "campusId": "my_loc",
-      "homeroomTeacher": "Trần Văn Cảnh",
-      "monitorName": "Lê Hải Yến",
-      "studentCount": 35,
-      "roomNumber": "P.04"
-    },
-    {
-      "id": "c_8d1",
-      "name": "8D1",
-      "grade": 8,
-      "campusId": "my_loc",
-      "homeroomTeacher": "Phạm Thị Thắm",
-      "monitorName": "Nguyễn Gia Huy",
-      "studentCount": 39,
-      "roomNumber": "P.05"
-    },
-    {
-      "id": "c_8d2",
-      "name": "8D2",
-      "grade": 8,
-      "campusId": "my_loc",
-      "homeroomTeacher": "Vũ Văn Hào",
-      "monitorName": "Đặng Ngọc Huyền",
-      "studentCount": 40,
-      "roomNumber": "P.06"
-    },
-    {
-      "id": "c_9d1",
-      "name": "9D1",
-      "grade": 9,
-      "campusId": "my_loc",
-      "homeroomTeacher": "Nguyễn Thị Lương",
-      "monitorName": "Phan Minh Hoàng",
-      "studentCount": 41,
-      "roomNumber": "P.07"
-    },
-    {
-      "id": "c_9d2",
-      "name": "9D2",
-      "grade": 9,
-      "campusId": "my_loc",
-      "homeroomTeacher": "Lê Đình Trung",
-      "monitorName": "Bùi Phương Ly",
-      "studentCount": 38,
-      "roomNumber": "P.08"
-    },
-    {
-      "id": "c_6b1",
-      "name": "6B1",
-      "grade": 6,
-      "campusId": "thuan_loc",
-      "homeroomTeacher": "Nguyễn Thị Mai Lan",
-      "monitorName": "Lê Bảo Nam",
-      "studentCount": 41,
-      "roomNumber": "P.01"
-    },
-    {
-      "id": "c_6b2",
-      "name": "6B2",
-      "grade": 6,
-      "campusId": "thuan_loc",
-      "homeroomTeacher": "Trần Đình Hiếu",
-      "monitorName": "Vũ Hà My",
-      "studentCount": 40,
-      "roomNumber": "P.02"
-    },
-    {
-      "id": "c_6b3",
-      "name": "6B3",
-      "grade": 6,
-      "campusId": "thuan_loc",
-      "homeroomTeacher": "Lê Thị Phương",
-      "monitorName": "Nguyễn Tấn Đạt",
-      "studentCount": 39,
-      "roomNumber": "P.03"
-    },
-    {
-      "id": "c_7b1",
-      "name": "7B1",
-      "grade": 7,
-      "campusId": "thuan_loc",
-      "homeroomTeacher": "Phạm Văn Khánh",
-      "monitorName": "Đặng Thảo Vy",
-      "studentCount": 42,
-      "roomNumber": "P.04"
-    },
-    {
-      "id": "c_7b2",
-      "name": "7B2",
-      "grade": 7,
-      "campusId": "thuan_loc",
-      "homeroomTeacher": "Vũ Thị Thúy",
-      "monitorName": "Hoàng Anh Dũng",
-      "studentCount": 40,
-      "roomNumber": "P.05"
-    },
-    {
-      "id": "c_7b3",
-      "name": "7B3",
-      "grade": 7,
-      "campusId": "thuan_loc",
-      "homeroomTeacher": "Bùi Văn Hưng",
-      "monitorName": "Trịnh Mai Hương",
-      "studentCount": 38,
-      "roomNumber": "P.06"
-    },
-    {
-      "id": "c_8b1",
-      "name": "8B1",
-      "grade": 8,
-      "campusId": "thuan_loc",
-      "homeroomTeacher": "Đỗ Thị Tuyết",
-      "monitorName": "Phan Quốc Bảo",
-      "studentCount": 43,
-      "roomNumber": "P.07"
-    },
-    {
-      "id": "c_8b2",
-      "name": "8B2",
-      "grade": 8,
-      "campusId": "thuan_loc",
-      "homeroomTeacher": "Nguyễn Bá Long",
-      "monitorName": "Lê Cẩm Tú",
-      "studentCount": 41,
-      "roomNumber": "P.08"
-    },
-    {
-      "id": "c_8b3",
-      "name": "8B3",
-      "grade": 8,
-      "campusId": "thuan_loc",
-      "homeroomTeacher": "Lê Thị Hải",
-      "monitorName": "Trần Mạnh Cường",
-      "studentCount": 39,
-      "roomNumber": "P.09"
-    },
-    {
-      "id": "c_9b1",
-      "name": "9B1",
-      "grade": 9,
-      "campusId": "thuan_loc",
-      "homeroomTeacher": "Vũ Văn Quyết",
-      "monitorName": "Nguyễn Thành Long",
-      "studentCount": 44,
-      "roomNumber": "P.10"
-    },
-    {
-      "id": "c_9b2",
-      "name": "9B2",
-      "grade": 9,
-      "campusId": "thuan_loc",
-      "homeroomTeacher": "Trịnh Thị Liên",
-      "monitorName": "Đinh Quỳnh Chi",
-      "studentCount": 42,
-      "roomNumber": "P.11"
-    },
-    {
-      "id": "c_9b3",
-      "name": "9B3",
-      "grade": 9,
-      "campusId": "thuan_loc",
-      "homeroomTeacher": "Hoàng Văn Lộc",
-      "monitorName": "Bùi Anh Tuấn",
-      "studentCount": 40,
-      "roomNumber": "P.12"
+      "teacherCode": "GV15"
     }
   ],
   "campuses": [

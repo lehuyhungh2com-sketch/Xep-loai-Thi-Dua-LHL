@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback, ReactNode } from 'react';
 import masterDatabase from '../../data/server_db.json';
-import { db } from '../firebase-config';
+import { db, dbNamed, syncFirestoreDoc, deleteFirestoreDoc } from '../firebase-config';
 import { doc, setDoc, deleteDoc, onSnapshot, updateDoc, collection, getDocs, getDoc, writeBatch } from 'firebase/firestore';
 import { saveCloudDoc } from '../services/firebaseService';
 import {
@@ -361,7 +361,12 @@ interface AppContextType {
   // Settings, Multi-Year & Full Backup
   updateSettings: (newSettings: Partial<SchoolSettings>) => { success: boolean; message?: string };
   resetToDefaultData: () => void;
-  clearTestDataForGoLive: (options?: { clearScores?: boolean; clearClasses?: boolean; clearTeachers?: boolean }) => Promise<{ success: boolean; message: string }>;
+  clearTestDataForGoLive: (options?: {
+    clearScores?: boolean;
+    clearClasses?: boolean;
+    clearTeachers?: boolean;
+    purgeOtherCampusesOnly?: boolean;
+  }) => Promise<{ success: boolean; message: string }>;
   resetDatabase: () => Promise<{ success: boolean; message: string }>;
   exportDataBackup: () => string;
   importDataBackup: (jsonStr: string) => { success: boolean; message: string };
@@ -1162,7 +1167,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ]);
 
       // Update state with fetched data
-      if (!usersSnap.empty) setUsers(usersSnap.docs.map(d => d.data() as User));
+      let finalUsers: User[] = [];
+      if (!usersSnap.empty) {
+        finalUsers = usersSnap.docs.map((d) => d.data() as User);
+      } else if (dbNamed) {
+        try {
+          const namedUsersSnap = await getDocs(collection(dbNamed, 'users'));
+          if (!namedUsersSnap.empty) {
+            finalUsers = namedUsersSnap.docs.map((d) => d.data() as User);
+          }
+        } catch {}
+      }
+      if (finalUsers.length > 0) {
+        setUsers(finalUsers);
+        try {
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(finalUsers));
+        } catch {}
+      }
       if (!campusesSnap.empty) setCampuses(campusesSnap.docs.map(d => d.data() as Campus));
       if (!criteriaSnap.empty) setCriteria(criteriaSnap.docs.map(d => d.data() as Criteria));
       if (settingsSnap.exists()) {
@@ -1591,7 +1612,50 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return uEmail === cleanEmail && uPassword === cleanPassword;
     });
 
-    // Nếu trong state/store hiện tại chưa tìm thấy, thử kiểm tra API backend (trong trường hợp user vừa được import ở backend)
+    // 2. Nếu trong state/store hiện tại chưa tìm thấy, tra cứu trực tiếp từ Firebase Firestore (cả database default và dbNamed)
+    if (!matched) {
+      try {
+        let snap = await getDocs(collection(db, 'users'));
+        if (snap.empty && dbNamed) {
+          try {
+            snap = await getDocs(collection(dbNamed, 'users'));
+          } catch {}
+        }
+        if (!snap.empty) {
+          const cloudUsers = snap.docs.map((d) => d.data() as User);
+          // Hợp nhất vào currentUsersList
+          const idMap = new Map<string, User>();
+          currentUsersList.forEach((u) => idMap.set(u.id, u));
+          cloudUsers.forEach((u) => idMap.set(u.id, u));
+          currentUsersList = Array.from(idMap.values());
+
+          const foundInCloud = cloudUsers.find((u) => {
+            const uEmail = (u.email || '').trim().toLowerCase();
+            const isAdmin =
+              u.role === 'super_admin' ||
+              u.role === 'admin' ||
+              u.id === 'u_admin' ||
+              u.id === 'u_admin_hung';
+            const defaultPass = (u.email?.toLowerCase() === 'lehuyhung.h2com@gmail.com' || isAdmin) ? 'Admin@123' : 'Lhl@2026';
+            const uPassword = (u.password && typeof u.password === 'string' && u.password.trim())
+              ? u.password.trim()
+              : defaultPass;
+            return uEmail === cleanEmail && uPassword === cleanPassword;
+          });
+          if (foundInCloud) {
+            matched = foundInCloud;
+            setUsers(currentUsersList);
+            try {
+              localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(currentUsersList));
+            } catch {}
+          }
+        }
+      } catch (fbErr) {
+        console.warn('Lỗi tra cứu người dùng từ Firebase:', fbErr);
+      }
+    }
+
+    // 3. Nếu vẫn chưa tìm thấy, thử kiểm tra API backend
     if (!matched) {
       try {
         const response = await fetch('/api/auth/validate-login', {
@@ -1599,16 +1663,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: cleanEmail, password: cleanPassword }),
         });
-        const data = await response.json();
-        if (response.ok && data.success && data.user) {
-          matched = data.user;
-          // Cập nhật người dùng mới vào State
-          setUsers((prev) => [...prev.filter((u) => u.id !== data.user.id), data.user]);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.user) {
+            matched = data.user;
+            // Cập nhật người dùng mới vào State
+            setUsers((prev) => {
+              const updated = [...prev.filter((u) => u.id !== data.user.id), data.user];
+              try {
+                localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updated));
+              } catch {}
+              return updated;
+            });
+          }
         }
       } catch {}
     }
 
-    // Nếu vẫn không tìm thấy: kiểm tra xem email có tồn tại không để thông báo chính xác
+    // 4. Nếu vẫn không tìm thấy: kiểm tra xem email có tồn tại không để thông báo chính xác
     if (!matched) {
       const emailExists = currentUsersList.find(
         (u) => (u.email || '').trim().toLowerCase() === cleanEmail
@@ -1621,7 +1693,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
       return {
         success: false,
-        message: 'Email hoặc mật khẩu không chính xác! Vui lòng kiểm tra lại.',
+        message: 'Tài khoản không tồn tại trên hệ thống! Vui lòng kiểm tra lại địa chỉ Email.',
       };
     }
 
@@ -1632,22 +1704,40 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       };
     }
 
-    // Bất kỳ email nào tồn tại trong CSDL và đúng mật khẩu đều được cấp quyền đăng nhập, không phân biệt role!
+    // Đảm bảo user đã matched chắc chắn có trong users state để currentUser & isAuthenticated kích hoạt ngay
+    setUsers((prev) => {
+      const exists = prev.some((u) => u.id === matched!.id);
+      if (!exists) {
+        const next = [...prev, matched!];
+        try {
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(next));
+        } catch {}
+        return next;
+      }
+      return prev;
+    });
+
     setCurrentUserId(matched.id);
     try {
       sessionStorage.setItem('lhl_session_auth_user_id', matched.id);
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER_ID, matched.id);
     } catch {}
 
     if (matched.campusId) {
       setSelectedCampusId(matched.campusId);
     }
 
-   // Direct entry to tab: nếu là Giáo viên (Role 4) thì vào thẳng Nhập điểm (vì đã ẩn Dashboard)
+    // Direct entry to tab: nếu là Giáo viên (Role 4) thì vào thẳng Nhập điểm (vì đã ẩn Dashboard)
     const isTeacher = matched.role === 'gvcn' || matched.role === 'teacher' || (matched.role as any) === 4 || (matched.role as any) === '4';
     const targetTab = isTeacher ? 'scoring' : 'dashboard';
     setCurrentTab(targetTab);
 
-    // [ĐÃ GỠ BỎ LỆNH FETCH API GÂY LỖI 404 TRÊN VERCEL]
+    logAudit({
+      action: 'DANG_NHAP',
+      entityType: 'user',
+      entityId: matched.id,
+      details: `${matched.name} (${matched.title}) đã xác thực đăng nhập thành công [${matched.email}].`,
+    });
 
     return {
       success: true,
@@ -1959,6 +2049,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updatedUsers));
     } catch {}
 
+    // Đồng bộ trực tiếp vào Firebase Firestore (cả database mặc định và phân vùng applet)
+    try {
+      syncFirestoreDoc('users', id, newUser).catch((err) =>
+        console.error('Lỗi lưu người dùng lên Firebase:', err)
+      );
+    } catch (fbErr) {
+      console.warn('Lỗi serialize newUser cho Firebase:', fbErr);
+    }
+
     // Đồng bộ trực tiếp vào cơ sở dữ liệu tập trung trên máy chủ
     fetch('/api/users', {
       method: 'POST',
@@ -2006,6 +2105,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updatedUsers));
     } catch {}
+
+    // Cập nhật trực tiếp lên Firebase Firestore (cả 2 database)
+    try {
+      syncFirestoreDoc('users', id, updated).catch((err) =>
+        console.error('Lỗi cập nhật người dùng lên Firebase:', err)
+      );
+    } catch (fbErr) {
+      console.warn('Lỗi serialize updated cho Firebase:', fbErr);
+    }
 
     // Cập nhật trực tiếp vào cơ sở dữ liệu tập trung máy chủ
     fetch(`/api/users/${id}`, {
@@ -2096,6 +2204,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updatedUsers));
     } catch {}
+
+    // Xóa khỏi Firebase Firestore (cả 2 database)
+    deleteFirestoreDoc('users', id).catch((err) => {
+      console.warn('Lỗi xóa người dùng khỏi Firebase:', err);
+    });
 
     // Xóa trực tiếp khỏi cơ sở dữ liệu máy chủ
     fetch(`/api/users/${id}`, {
@@ -2343,6 +2456,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     setClasses((prev) => [...prev, classItem]);
 
+    // Đồng bộ trực tiếp vào Firebase Firestore (cả 2 database)
+    try {
+      syncFirestoreDoc('classes', id, classItem).catch((err) =>
+        console.error('Lỗi lưu lớp vào Firebase:', err)
+      );
+    } catch (fbErr) {
+      console.warn('Lỗi serialize classItem cho Firebase:', fbErr);
+    }
+
     // Đồng bộ trực tiếp vào cơ sở dữ liệu trung tâm máy chủ
     fetch('/api/classes', {
       method: 'POST',
@@ -2412,11 +2534,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       body: JSON.stringify(updated),
     }).catch(() => {});
 
-    // Sync to Firestore (clean undefined values)
+    // Sync to Firestore (cả 2 database, clean undefined values)
     const cleanUpdated = Object.fromEntries(
       Object.entries(updated).filter(([_, v]) => v !== undefined)
     );
-    updateDoc(doc(db, 'classes', id), cleanUpdated as any).catch((err) => console.error('Lỗi cập nhật lớp trong Firebase:', err));
+    syncFirestoreDoc('classes', id, cleanUpdated).catch((err) =>
+      console.error('Lỗi cập nhật lớp trong Firebase:', err)
+    );
 
 
     // Two-way synchronization with teacher users
@@ -2532,6 +2656,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
     setClasses((prev) => prev.filter((c) => c.id !== id));
 
+    // Xóa khỏi Firebase Firestore (cả 2 database)
+    deleteFirestoreDoc('classes', id).catch((err) =>
+      console.error('Lỗi xóa lớp trong Firebase:', err)
+    );
+
     // Xóa trực tiếp khỏi máy chủ trung tâm
     fetch(`/api/classes/${id}`, {
       method: 'DELETE',
@@ -2575,6 +2704,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const updatedClasses = [...classes, ...validToAdd];
     setClasses(updatedClasses);
+
+    // Lưu danh sách lớp mới lên Firebase Firestore bằng writeBatch
+    try {
+      const batch = writeBatch(db);
+      validToAdd.forEach((cls) => {
+        const cleanClass = JSON.parse(JSON.stringify(cls));
+        batch.set(doc(db, 'classes', cls.id), cleanClass, { merge: true });
+      });
+      batch.commit().catch((err) => console.error('Lỗi lưu lớp hàng loạt lên Firebase:', err));
+    } catch (fbErr) {
+      console.warn('Lỗi serialize batch classes cho Firebase:', fbErr);
+    }
 
     fetch('/api/classes/batch', {
       method: 'POST',
@@ -2731,6 +2872,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       name: teacherData.fullName,
       role: 'gvcn',
       email: teacherData.email || `gv.${Date.now()}@gmail.com`,
+      password: 'Lhl@2026',
       campusId: teacherData.campusId,
       classId: teacherData.homeroomClassId,
       title: `Giáo viên chủ nhiệm${teacherData.homeroomClassName ? ` lớp ${teacherData.homeroomClassName}` : ''}`,
@@ -2740,7 +2882,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       allowedCampusIds: teacherData.campusId ? [teacherData.campusId] : [],
       isLocked: teacherData.status === 'inactive',
     };
-    setUsers((prev) => [...prev, newUser]);
+    setUsers((prev) => {
+      const updated = [...prev, newUser];
+      try {
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    // Đồng bộ trực tiếp vào Firebase Firestore (cả 2 database)
+    try {
+      syncFirestoreDoc('users', id, newUser).catch((err) =>
+        console.error('Lỗi lưu giáo viên lên Firebase:', err)
+      );
+    } catch (fbErr) {
+      console.warn('Lỗi serialize newUser cho Firebase:', fbErr);
+    }
+
+    // Đồng bộ trực tiếp vào Server
+    fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newUser),
+    }).catch(() => {});
 
     if (teacherData.homeroomClassId) {
       setClasses((prev) =>
@@ -2766,15 +2930,54 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const oldTeacher = teachers.find((t) => t.id === id);
     if (!oldTeacher) return { success: false, message: 'Không tìm thấy giáo viên' };
 
-    if (patch.fullName) {
-      setUsers((prev) =>
-        prev.map((u) => (u.id === id || u.name === oldTeacher.fullName ? { ...u, name: patch.fullName! } : u))
+    setUsers((prev) => {
+      const updated = prev.map((u) => {
+        if (u.id === id || u.name === oldTeacher.fullName) {
+          const next = { ...u };
+          if (patch.fullName) next.name = patch.fullName;
+          if (patch.email) next.email = patch.email;
+          if (patch.phone) next.phone = patch.phone;
+          if (patch.code) next.teacherCode = patch.code;
+          if (patch.campusId) {
+            next.campusId = patch.campusId;
+            next.allowedCampusIds = [patch.campusId];
+          }
+          if (patch.homeroomClassId !== undefined) next.classId = patch.homeroomClassId;
+          if (patch.status) next.isLocked = patch.status === 'inactive';
+          return next;
+        }
+        return u;
+      });
+      try {
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    if (patch.fullName && oldTeacher.homeroomClassId) {
+      setClasses((prev) =>
+        prev.map((c) => (c.id === oldTeacher.homeroomClassId ? { ...c, homeroomTeacher: patch.fullName! } : c))
       );
-      if (oldTeacher.homeroomClassId) {
-        setClasses((prev) =>
-          prev.map((c) => (c.id === oldTeacher.homeroomClassId ? { ...c, homeroomTeacher: patch.fullName! } : c))
-        );
+    }
+
+    // Cập nhật Firebase Firestore (cả 2 database)
+    try {
+      const userUpdate: any = {};
+      if (patch.fullName) userUpdate.name = patch.fullName;
+      if (patch.email) userUpdate.email = patch.email;
+      if (patch.phone) userUpdate.phone = patch.phone;
+      if (patch.code) userUpdate.teacherCode = patch.code;
+      if (patch.campusId) {
+        userUpdate.campusId = patch.campusId;
+        userUpdate.allowedCampusIds = [patch.campusId];
       }
+      if (patch.homeroomClassId !== undefined) userUpdate.classId = patch.homeroomClassId;
+      if (patch.status) userUpdate.isLocked = patch.status === 'inactive';
+      syncFirestoreDoc('users', id, userUpdate).catch((err) =>
+        console.error('Lỗi cập nhật giáo viên lên Firebase:', err)
+      );
+    } catch (fbErr) {
+      console.warn('Lỗi serialize userUpdate cho Firebase:', fbErr);
     }
 
     logAudit({
@@ -2814,10 +3017,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     console.log('Proceeding with deletion');
     setUsers((prev) => prev.filter((u) => u.id !== id));
 
-    // Sync to Firestore
-    deleteDoc(doc(db, 'users', id)).catch((err) => {
+    // Sync to Firestore (cả 2 database)
+    deleteFirestoreDoc('users', id).catch((err) => {
       console.error('Lỗi xóa giáo viên trong Firebase:', err);
-      // We don't return here because state was updated
     });
 
     logAudit({
@@ -5114,6 +5316,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     clearScores?: boolean;
     clearClasses?: boolean;
     clearTeachers?: boolean;
+    purgeOtherCampusesOnly?: boolean;
   }): Promise<{ success: boolean; message: string }> => {
     if (!canConfigureSettings(currentUser)) {
       return { success: false, message: 'Chỉ Quản trị viên (Admin) mới có quyền thực hiện dọn dẹp dữ liệu!' };
@@ -5122,6 +5325,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const shouldClearScores = options?.clearScores !== false; // mặc định bật
     const shouldClearClasses = !!options?.clearClasses;
     const shouldClearTeachers = !!options?.clearTeachers;
+    const purgeOtherCampusesOnly = !!options?.purgeOtherCampusesOnly;
 
     const beforeState = {
       scoreLogsCount: scoreLogs.length,
@@ -5132,21 +5336,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       usersCount: users.length,
     };
 
-    // Helper: Xóa toàn bộ documents trong một collection Firestore bằng writeBatch
-    const purgeFirestoreCollection = async (collName: string) => {
-      try {
-        const snap = await getDocs(collection(db, collName));
-        if (!snap.empty) {
-          const docs = snap.docs;
-          for (let i = 0; i < docs.length; i += 400) {
-            const chunk = docs.slice(i, i + 400);
-            const batch = writeBatch(db);
-            chunk.forEach((d) => batch.delete(d.ref));
-            await batch.commit();
+    // Helper: Xóa toàn bộ documents trong một collection Firestore bằng writeBatch (cả 2 database)
+    const purgeFirestoreCollection = async (collName: string, filterFn?: (data: any) => boolean) => {
+      const targets = [db];
+      if (dbNamed) targets.push(dbNamed);
+      for (const targetDb of targets) {
+        try {
+          const snap = await getDocs(collection(targetDb, collName));
+          if (!snap.empty) {
+            const docs = filterFn ? snap.docs.filter((d) => filterFn(d.data())) : snap.docs;
+            for (let i = 0; i < docs.length; i += 400) {
+              const chunk = docs.slice(i, i + 400);
+              const batch = writeBatch(targetDb);
+              chunk.forEach((d) => batch.delete(d.ref));
+              await batch.commit();
+            }
           }
+        } catch (err) {
+          console.warn(`Lỗi xóa collection ${collName} trên Firebase:`, err);
         }
-      } catch (err) {
-        console.warn(`Lỗi xóa collection ${collName} trên Firebase:`, err);
       }
     };
 
@@ -5213,8 +5421,103 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } catch (e) {
         console.warn('Lỗi reset summary docs trên Firestore:', e);
       }
+    }
 
-      // 5. Đồng bộ gọi Server API dọn dẹp cơ sở dữ liệu máy chủ
+    const isSuperAdminUser = (u: any) =>
+      u.role === 'super_admin' ||
+      u.id === 'u_admin_hung' ||
+      u.id === 'u_admin' ||
+      u.email?.toLowerCase() === 'lehuyhung.h2com@gmail.com';
+
+    if (purgeOtherCampusesOnly) {
+      // CHỈ DỌN DẸP 5 PHÂN HIỆU MẪU (Thuần Lộc, Lộc Sơn, Mỹ Lộc, Lộc Tân, Hậu Lộc), BẢO TỒN LÊ HỮU LẬP
+      await purgeFirestoreCollection('classes', (cls) => cls.campusId !== 'lhl_main');
+      const cleanClasses = classes.filter((c) => c.campusId === 'lhl_main');
+      setClasses(cleanClasses);
+      try {
+        localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(cleanClasses));
+      } catch {}
+
+      await purgeFirestoreCollection('users', (u) => {
+        if (isSuperAdminUser(u)) return false;
+        if (!u.campusId || u.campusId === 'lhl_main') return false;
+        return true;
+      });
+      const cleanUsers = users.filter((u) => u.campusId === 'lhl_main' || !u.campusId || isSuperAdminUser(u));
+      setUsers(cleanUsers);
+      try {
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(cleanUsers));
+      } catch {}
+
+      try {
+        await fetch('/api/admin/clear-test-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clearScores: shouldClearScores,
+            purgeOtherCampusesOnly: true,
+          }),
+        });
+      } catch {}
+    } else {
+      if (shouldClearClasses) {
+        // Xóa sạch toàn bộ lớp học trên Firestore
+        await purgeFirestoreCollection('classes');
+        setClasses([]);
+        try {
+          localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify([]));
+        } catch {}
+        try {
+          await fetch('/api/classes/batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ classes: [] }),
+          });
+        } catch {}
+      }
+
+      if (shouldClearTeachers) {
+        const targets = [db];
+        if (dbNamed) targets.push(dbNamed);
+        for (const targetDb of targets) {
+          try {
+            const snap = await getDocs(collection(targetDb, 'users'));
+            if (!snap.empty) {
+              const docs = snap.docs;
+              for (let i = 0; i < docs.length; i += 400) {
+                const chunk = docs.slice(i, i + 400);
+                const batch = writeBatch(targetDb);
+                let hasDeletes = false;
+                chunk.forEach((d) => {
+                  const uData = d.data();
+                  if (!isSuperAdminUser(uData)) {
+                    batch.delete(d.ref);
+                    hasDeletes = true;
+                  }
+                });
+                if (hasDeletes) await batch.commit();
+              }
+            }
+          } catch (err) {
+            console.warn('Lỗi dọn tài khoản người dùng nháp trên Firebase:', err);
+          }
+        }
+
+        const preservedUsers = users.filter((u) => isSuperAdminUser(u));
+        const finalUsers = preservedUsers.length > 0 ? preservedUsers : [currentUser];
+        setUsers(finalUsers);
+        try {
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(finalUsers));
+        } catch {}
+        try {
+          await fetch('/api/users/sync-from-classes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ users: finalUsers }),
+          });
+        } catch {}
+      }
+
       try {
         await fetch('/api/admin/clear-test-data', {
           method: 'POST',
@@ -5224,67 +5527,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             'x-user-name': currentUser.name,
             'x-user-role': currentUser.role,
           },
-        });
-      } catch {}
-    }
-
-    if (shouldClearClasses) {
-      // Xóa sạch toàn bộ lớp học trên Firestore
-      await purgeFirestoreCollection('classes');
-      setClasses([]);
-      try {
-        localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify([]));
-      } catch {}
-      try {
-        await fetch('/api/classes/batch', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ classes: [] }),
-        });
-      } catch {}
-    }
-
-    if (shouldClearTeachers) {
-      // Giữ lại Quản trị viên Super Admin để tài khoản thầy Lê Huy Hùng không bị mất
-      const isSuperAdminUser = (u: any) =>
-        u.role === 'super_admin' ||
-        u.id === 'u_admin_hung' ||
-        u.id === 'u_admin' ||
-        u.email?.toLowerCase() === 'lehuyhung.h2com@gmail.com';
-
-      try {
-        const snap = await getDocs(collection(db, 'users'));
-        if (!snap.empty) {
-          const docs = snap.docs;
-          for (let i = 0; i < docs.length; i += 400) {
-            const chunk = docs.slice(i, i + 400);
-            const batch = writeBatch(db);
-            let hasDeletes = false;
-            chunk.forEach((d) => {
-              const uData = d.data();
-              if (!isSuperAdminUser(uData)) {
-                batch.delete(d.ref);
-                hasDeletes = true;
-              }
-            });
-            if (hasDeletes) await batch.commit();
-          }
-        }
-      } catch (err) {
-        console.warn('Lỗi dọn tài khoản người dùng nháp trên Firebase:', err);
-      }
-
-      const preservedUsers = users.filter((u) => isSuperAdminUser(u));
-      const finalUsers = preservedUsers.length > 0 ? preservedUsers : [currentUser];
-      setUsers(finalUsers);
-      try {
-        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(finalUsers));
-      } catch {}
-      try {
-        await fetch('/api/users/sync-from-classes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ users: finalUsers }),
+          body: JSON.stringify({
+            clearScores: shouldClearScores,
+            clearClasses: shouldClearClasses,
+            clearTeachers: shouldClearTeachers,
+          }),
         });
       } catch {}
     }
@@ -5297,20 +5544,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       beforeData: beforeState,
       afterData: {
         scoreLogsCount: shouldClearScores ? 0 : scoreLogs.length,
-        classesCount: shouldClearClasses ? 0 : classes.length,
-        usersCount: shouldClearTeachers ? 1 : users.length,
+        classesCount: purgeOtherCampusesOnly ? classes.filter((c) => c.campusId === 'lhl_main').length : shouldClearClasses ? 0 : classes.length,
+        usersCount: purgeOtherCampusesOnly ? users.filter((u) => u.campusId === 'lhl_main' || isSuperAdminUser(u)).length : shouldClearTeachers ? 1 : users.length,
       },
-      details: `${currentUser.name} dọn dẹp hệ thống: ${shouldClearScores ? 'Xóa sạch 100% điểm số (cả tuần 1-4 và 5-9)' : ''}${shouldClearClasses ? ', Xóa danh sách lớp nháp' : ''}${shouldClearTeachers ? ', Xóa tài khoản giáo viên nháp (bảo toàn tài khoản Super Admin)' : ''}.`,
+      details: `${currentUser.name} dọn dẹp hệ thống: ${shouldClearScores ? 'Xóa sạch 100% điểm số' : ''}${purgeOtherCampusesOnly ? ', Xóa sạch 5 phân hiệu mẫu chạy thử (giữ nguyên phân hiệu chính Lê Hữu Lập)' : (shouldClearClasses ? ', Xóa danh sách lớp nháp' : '') + (shouldClearTeachers ? ', Xóa tài khoản giáo viên nháp' : '')}.`,
     });
 
     const summaryParts: string[] = [];
-    if (shouldClearScores) summaryParts.push('Đã xóa 100% điểm số (cả điểm bảo lưu và điểm nhập trực tiếp tuần 5-9)');
-    if (shouldClearClasses) summaryParts.push('Đã xóa danh sách lớp học nháp');
-    if (shouldClearTeachers) summaryParts.push('Đã xóa danh sách giáo viên nháp (bảo toàn tài khoản Super Admin)');
+    if (shouldClearScores) summaryParts.push('Đã xóa 100% điểm số (cả điểm bảo lưu và điểm nhập tuần 5-9)');
+    if (purgeOtherCampusesOnly) {
+      summaryParts.push('Đã xóa sạch tài khoản và lớp học của 5 phân hiệu mẫu (bảo tồn nguyên vẹn 12 lớp và giáo viên phân hiệu chính Lê Hữu Lập)');
+    } else {
+      if (shouldClearClasses) summaryParts.push('Đã xóa danh sách lớp học nháp');
+      if (shouldClearTeachers) summaryParts.push('Đã xóa danh sách giáo viên nháp (bảo toàn tài khoản Super Admin)');
+    }
 
     return {
       success: true,
-      message: `Đã hoàn tất dọn dẹp sạch sẽ: ${summaryParts.join(' • ')}. Toàn bộ dữ liệu được đồng bộ dọn sạch trên Firebase Firestore và bộ nhớ!`,
+      message: `Đã hoàn tất dọn dẹp sạch sẽ: ${summaryParts.join(' • ')}. Toàn bộ dữ liệu được đồng bộ dọn sạch trên Firebase Firestore, Máy chủ và Bộ nhớ trình duyệt!`,
     };
   };
 

@@ -11,12 +11,7 @@ import {
   getDoc,
   getDocs,
 } from 'firebase/firestore';
-import { firebaseConfig } from '../../firebase-config';
-
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const dbId = (firebaseConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId;
-export const db = dbId ? getFirestore(app, dbId) : getFirestore(app);
-export const auth = getAuth(app);
+import { db, auth, app, firebaseConfig } from '../firebase-config';
 
 export const isFirebaseConfigured = (): boolean => {
   return (

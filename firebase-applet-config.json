@@ -1,9 +1,12 @@
 {
   "projectId": "neneplhl",
-  "appId": "1:879961923597:web:753b8273faf2e9ac8cf544",
-  "apiKey": "AIzaSyCpW-PxHIo9FQ0IIspMhBW6Sc0VN6l15f4",
+  "appId": "1:879961923597:web:1a64d6f9b50407e98cf544",
+  "apiKey": "AIzaSyAYxbkaLZdsLYmfvHUNGMnWPjgzbwZRPe4",
   "authDomain": "neneplhl.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-lhlclassrankingt-83560724-b04d-433b-b1de-904dc275f188",
   "storageBucket": "neneplhl.firebasestorage.app",
   "messagingSenderId": "879961923597",
-  "measurementId": "G-VTQ7BYWZ4R"
+  "measurementId": "",
+  "oAuthClientId": "879961923597-30lntf3d4gornjrpppbtv1kqh00eidis.apps.googleusercontent.com",
+  "recaptchaSiteKey": ""
 }

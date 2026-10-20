@@ -243,13 +243,39 @@ async function startServer() {
 
   app.post('/api/auth/validate-login', (req, res) => {
     const db = readDb();
-    const { username } = req.body;
-    const user = (db.users || []).find((u: any) => u.username === username || u.email === username);
+    const queryEmail = (req.body.email || req.body.username || '').trim().toLowerCase();
+    const queryPassword = (req.body.password || '').trim();
+    const user = (db.users || []).find((u: any) => {
+      const uEmail = (u.email || u.username || '').trim().toLowerCase();
+      return uEmail === queryEmail;
+    });
     if (user) {
+      const expectedPassword = user.password || (user.role === 'super_admin' ? 'Admin@123' : 'Lhl@2026');
+      if (queryPassword && queryPassword !== expectedPassword) {
+        return res.json({ success: false, message: 'Sai mật khẩu' });
+      }
       res.json({ success: true, user });
     } else {
       res.json({ success: false, message: 'Tài khoản không tồn tại' });
     }
+  });
+
+  app.delete('/api/users/:id', (req, res) => {
+    const db = readDb();
+    if (db.users) {
+      db.users = db.users.filter((u: any) => u.id !== req.params.id);
+      writeDb(db);
+    }
+    res.json({ success: true });
+  });
+
+  app.delete('/api/classes/:id', (req, res) => {
+    const db = readDb();
+    if (db.classes) {
+      db.classes = db.classes.filter((c: any) => c.id !== req.params.id);
+      writeDb(db);
+    }
+    res.json({ success: true });
   });
 
   app.post('/api/users/change-password', (req, res) => {
@@ -265,18 +291,41 @@ async function startServer() {
   });
 
   app.post('/api/users/sync-from-classes', (req, res) => {
+    const db = readDb();
+    if (req.body.users) {
+      db.users = req.body.users;
+      writeDb(db);
+    }
     res.json({ success: true, message: 'Đồng bộ người dùng thành công' });
   });
 
   app.post('/api/admin/clear-test-data', (req, res) => {
     const db = readDb();
-    db.scoreLogs = [];
-    db.historicalWeeklyScores = {};
-    db.lockedWeeks = [];
-    db.appeals = [];
+    const { clearScores, clearClasses, clearTeachers, purgeOtherCampusesOnly } = req.body || {};
+    if (clearScores !== false) {
+      db.scoreLogs = [];
+      db.historicalWeeklyScores = {};
+      db.lockedWeeks = [];
+      db.appeals = [];
+    }
+    if (purgeOtherCampusesOnly) {
+      if (db.classes) {
+        db.classes = db.classes.filter((c: any) => c.campusId === 'lhl_main');
+      }
+      if (db.users) {
+        db.users = db.users.filter((u: any) => u.campusId === 'lhl_main' || !u.campusId || u.role === 'super_admin');
+      }
+    } else {
+      if (clearClasses && db.classes) {
+        db.classes = [];
+      }
+      if (clearTeachers && db.users) {
+        db.users = db.users.filter((u: any) => u.role === 'super_admin' || u.id === 'u_admin_hung' || u.id === 'u_admin');
+      }
+    }
     db.auditLogs = db.auditLogs || [];
     writeDb(db);
-    res.json({ success: true, message: 'Đã dọn dẹp sạch dữ liệu chạy thử.' });
+    res.json({ success: true, message: 'Đã dọn dẹp sạch dữ liệu máy chủ.' });
   });
 
   app.post('/api/reset-database', (req, res) => {

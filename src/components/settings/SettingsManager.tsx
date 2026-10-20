@@ -237,8 +237,9 @@ export const SettingsManager: React.FC = () => {
   const [showClearTestDataModal, setShowClearTestDataModal] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [clearScoresOpt, setClearScoresOpt] = useState(true);
-  const [clearClassesOpt, setClearClassesOpt] = useState(true);
-  const [clearTeachersOpt, setClearTeachersOpt] = useState(true);
+  const [clearClassesOpt, setClearClassesOpt] = useState(false);
+  const [clearTeachersOpt, setClearTeachersOpt] = useState(false);
+  const [purgeOtherCampusesOnlyOpt, setPurgeOtherCampusesOnlyOpt] = useState(true);
 
   const handleClearTestData = async () => {
     setIsClearing(true);
@@ -247,6 +248,7 @@ export const SettingsManager: React.FC = () => {
         clearScores: clearScoresOpt,
         clearClasses: clearClassesOpt,
         clearTeachers: clearTeachersOpt,
+        purgeOtherCampusesOnly: purgeOtherCampusesOnlyOpt,
       });
       if (res.success) {
         setMessage({ text: res.message, type: 'success' });
@@ -1427,6 +1429,31 @@ export const SettingsManager: React.FC = () => {
             </div>
 
             <div className="space-y-3">
+              {/* Option: Dọn dẹp phân hiệu thử nghiệm */}
+              <label className="flex items-start gap-3 p-3.5 bg-indigo-50/80 border border-indigo-200 rounded-2xl cursor-pointer hover:bg-indigo-100/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={purgeOtherCampusesOnlyOpt}
+                  onChange={(e) => {
+                    const nextVal = e.target.checked;
+                    setPurgeOtherCampusesOnlyOpt(nextVal);
+                    if (nextVal) {
+                      setClearClassesOpt(false);
+                      setClearTeachersOpt(false);
+                    }
+                  }}
+                  className="mt-1 h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
+                />
+                <div className="text-xs">
+                  <div className="font-bold text-indigo-900">
+                    Dọn sạch lớp & tài khoản của 5 phân hiệu chạy thử (Thuần Lộc, Lộc Sơn, Mỹ Lộc, Lộc Tân, Hậu Lộc)
+                  </div>
+                  <div className="text-indigo-700 mt-0.5 leading-relaxed">
+                    Xóa sạch toàn bộ các lớp và tài khoản giáo viên mẫu của 5 phân hiệu thử nghiệm. <strong>BẢO TỒN 100%</strong> 12 lớp và danh sách giáo viên chính thức của phân hiệu Lê Hữu Lập cùng tài khoản Super Admin.
+                  </div>
+                </div>
+              </label>
+
               {/* Option 1: Xóa toàn bộ điểm số */}
               <label className="flex items-start gap-3 p-3.5 bg-rose-50/80 border border-rose-200 rounded-2xl cursor-pointer hover:bg-rose-100/50 transition-colors">
                 <input
@@ -1437,7 +1464,7 @@ export const SettingsManager: React.FC = () => {
                 />
                 <div className="text-xs">
                   <div className="font-bold text-rose-900">
-                    1. Xóa sạch 100% Điểm thi đua & Vi phạm (Tuần 1 - 35)
+                    Xóa sạch 100% Điểm thi đua & Vi phạm (Tuần 1 - 35)
                   </div>
                   <div className="text-rose-700 mt-0.5 leading-relaxed">
                     Xóa vĩnh viễn trên Firebase Firestore & Máy chủ: xóa cả điểm bảo lưu tuần 1-4 và toàn bộ biên bản nhập tuần 5-9; mở khóa lại tất cả các tuần, tháng, học kỳ.
@@ -1445,46 +1472,50 @@ export const SettingsManager: React.FC = () => {
                 </div>
               </label>
 
-              {/* Option 2: Xóa danh sách lớp nháp */}
-              <label className="flex items-start gap-3 p-3.5 bg-amber-50/80 border border-amber-200 rounded-2xl cursor-pointer hover:bg-amber-100/50 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={clearClassesOpt}
-                  onChange={(e) => setClearClassesOpt(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded text-amber-600 focus:ring-amber-500"
-                />
-                <div className="text-xs">
-                  <div className="font-bold text-amber-900">
-                    2. Xóa sạch danh sách Lớp học nháp
-                  </div>
-                  <div className="text-amber-700 mt-0.5 leading-relaxed">
-                    Xóa sạch toàn bộ các lớp học thử nghiệm trên Firebase & hệ thống để bạn chuẩn bị nhập danh sách lớp học chính thức từ đầu (bằng file Excel hoặc nhập tay).
-                  </div>
-                </div>
-              </label>
+              {!purgeOtherCampusesOnlyOpt && (
+                <>
+                  {/* Option 2: Xóa toàn bộ lớp học */}
+                  <label className="flex items-start gap-3 p-3.5 bg-amber-50/80 border border-amber-200 rounded-2xl cursor-pointer hover:bg-amber-100/50 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={clearClassesOpt}
+                      onChange={(e) => setClearClassesOpt(e.target.checked)}
+                      className="mt-1 h-4 w-4 rounded text-amber-600 focus:ring-amber-500"
+                    />
+                    <div className="text-xs">
+                      <div className="font-bold text-amber-900">
+                        Xóa toàn bộ Lớp học của tất cả phân hiệu (bao gồm cả Lê Hữu Lập)
+                      </div>
+                      <div className="text-amber-700 mt-0.5 leading-relaxed">
+                        Xóa trắng toàn bộ danh sách lớp học để bắt đầu nhập lại từ file Excel.
+                      </div>
+                    </div>
+                  </label>
 
-              {/* Option 3: Xóa danh sách giáo viên nháp */}
-              <label className="flex items-start gap-3 p-3.5 bg-blue-50/80 border border-blue-200 rounded-2xl cursor-pointer hover:bg-blue-100/50 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={clearTeachersOpt}
-                  onChange={(e) => setClearTeachersOpt(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
-                />
-                <div className="text-xs">
-                  <div className="font-bold text-blue-900">
-                    3. Xóa sạch danh sách Giáo viên & Người dùng nháp
-                  </div>
-                  <div className="text-blue-700 mt-0.5 leading-relaxed">
-                    Xóa sạch các tài khoản giáo viên nháp trên Firebase. <strong>BẢO TOÀN TUYỆT ĐỐI</strong> tài khoản Quản trị viên Super Admin của thầy Lê Huy Hùng (lehuyhung.h2com@gmail.com).
-                  </div>
-                </div>
-              </label>
+                  {/* Option 3: Xóa toàn bộ giáo viên */}
+                  <label className="flex items-start gap-3 p-3.5 bg-blue-50/80 border border-blue-200 rounded-2xl cursor-pointer hover:bg-blue-100/50 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={clearTeachersOpt}
+                      onChange={(e) => setClearTeachersOpt(e.target.checked)}
+                      className="mt-1 h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
+                    />
+                    <div className="text-xs">
+                      <div className="font-bold text-blue-900">
+                        Xóa toàn bộ Giáo viên (chỉ giữ Quản trị viên Super Admin)
+                      </div>
+                      <div className="text-blue-700 mt-0.5 leading-relaxed">
+                        Xóa trắng danh sách người dùng, chỉ giữ tài khoản Super Admin của thầy Lê Huy Hùng.
+                      </div>
+                    </div>
+                  </label>
+                </>
+              )}
 
               <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-[11px] text-emerald-800 flex items-center gap-2">
                 <ShieldCheck size={16} className="shrink-0 text-emerald-600" />
                 <span>
-                  <strong>Bảo tồn:</strong> 6 Phân hiệu, Tiêu chí thi đua và Cấu hình năm học luôn được giữ an toàn 100%.
+                  <strong>Bảo tồn:</strong> Cấu trúc 6 Phân hiệu, Tiêu chí thi đua và Cấu hình năm học luôn được giữ an toàn 100%.
                 </span>
               </div>
             </div>
@@ -1500,7 +1531,7 @@ export const SettingsManager: React.FC = () => {
               </button>
               <button
                 type="button"
-                disabled={isClearing || (!clearScoresOpt && !clearClassesOpt && !clearTeachersOpt)}
+                disabled={isClearing || (!clearScoresOpt && !purgeOtherCampusesOnlyOpt && !clearClassesOpt && !clearTeachersOpt)}
                 onClick={handleClearTestData}
                 className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-40"
               >

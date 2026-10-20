@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import { useApp } from '../../context/AppContext';
 import { RoleType, User, UserCustomPermissions } from '../../types';
 import {
@@ -42,6 +43,9 @@ import {
   RotateCcw,
   RefreshCw,
   Mail,
+  FileSpreadsheet,
+  Download,
+  Upload,
 } from 'lucide-react';
 
 interface RbacTestResult {
@@ -74,11 +78,142 @@ export const UserManager: React.FC = () => {
     syncUsersFromClasses,
     cleanDemoUsersAndKeepAdmins,
     updateUserEmail,
+    batchImportUsers,
   } = useApp();
 
   if (!currentUser) return null;
 
   const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExportExcel = () => {
+    const exportData = filteredUsers.map((u, idx) => ({
+      'STT': idx + 1,
+      'Họ tên': u.name,
+      'Địa chỉ Email': u.email || '',
+      'MK đăng nhập mặc định': u.password || 'Lhl@2026',
+      'Lớp chủ nhiệm': classes.find(c => c.id === u.classId)?.name || '',
+      'Phân hiệu': campuses.find(cp => cp.id === u.campusId)?.name || u.campusId || '',
+      'Quyền (Role)': ROLE_METADATA[u.role]?.name || u.role,
+      'Trạng thái': u.isLocked ? 'Đã khóa' : 'Đang hoạt động',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'DanhSachNguoiDung');
+    XLSX.writeFile(wb, `Danh_Sach_Nguoi_Dung_${new Date().toISOString().split('T')[0]}.xlsx`);
+    setActionFeedback({ type: 'success', text: 'Đã xuất file Excel danh sách người dùng thành công!' });
+    setTimeout(() => setActionFeedback(null), 4000);
+  };
+
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        'Họ tên': 'Nguyễn Văn A',
+        'Địa chỉ Email': 'gvcn.nguyenvana@gmail.com',
+        'Mật khẩu': 'Lhl@2026',
+        'Lớp chủ nhiệm': '6A1',
+        'Phân hiệu': 'Phân hiệu Chính Lê Hữu Lập',
+        'Quyền (Role)': 'gvcn',
+      },
+      {
+        'Họ tên': 'Trần Thị B',
+        'Địa chỉ Email': 'bgh.tranthib@gmail.com',
+        'Mật khẩu': 'Lhl@2026',
+        'Lớp chủ nhiệm': '',
+        'Phân hiệu': 'Phân hiệu Chính Lê Hữu Lập',
+        'Quyền (Role)': 'bgh',
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'TemplateNguoiDung');
+    XLSX.writeFile(wb, `Template_Import_Nguoi_Dung_THCS_Le_Huu_Lập.xlsx`);
+    setActionFeedback({ type: 'success', text: 'Đã tải xuống file mẫu Excel thành công!' });
+    setTimeout(() => setActionFeedback(null), 4000);
+  };
+
+  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setActionFeedback({ type: 'success', text: 'Đang xử lý nhập dữ liệu Excel...' });
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rows: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+        if (rows.length === 0) {
+          setActionFeedback({ type: 'error', text: 'File Excel không có dữ liệu!' });
+          return;
+        }
+
+        const newUsersToImport: User[] = [];
+
+        for (const row of rows) {
+          const name = row['Họ tên'] || row['Name'] || row['họ tên'];
+          const email = row['Địa chỉ Email'] || row['Email'] || row['email'];
+          const password = row['Mật khẩu'] || row['MK đăng nhập mặc định'] || row['Password'] || 'Lhl@2026';
+          const className = row['Lớp chủ nhiệm'] || row['Class'] || '';
+          const campusName = row['Phân hiệu'] || row['Campus'] || '';
+          const roleStr = row['Quyền (Role)'] || row['Quyền'] || row['Role'] || 'gvcn';
+
+          if (!name) continue;
+
+          const emailClean = email ? String(email).trim() : `gv_${Date.now()}_${Math.random().toString(36).substring(2,5)}@lehuulap.edu.vn`;
+          const id = `u_imp_${Date.now()}_${Math.random().toString(36).substring(2,6)}`;
+
+          let role: RoleType = 'gvcn';
+          const rLower = String(roleStr).toLowerCase();
+          if (rLower.includes('admin') || rLower.includes('quản trị')) role = 'super_admin';
+          else if (rLower.includes('bgh') || rLower.includes('giám hiệu')) role = 'bgh';
+          else if (rLower.includes('tpt') || rLower.includes('đội')) role = 'tpt_doi';
+          else if (rLower.includes('xem') || rLower.includes('viewer')) role = 'viewer';
+
+          const matchedClass = classes.find(c => c.name.toLowerCase() === String(className).trim().toLowerCase());
+          const matchedCampus = campuses.find(cp => cp.name.toLowerCase() === String(campusName).trim().toLowerCase() || cp.id === campusName);
+
+          const newUser: User = {
+            id,
+            name: String(name).trim(),
+            email: emailClean,
+            password: String(password).trim(),
+            role,
+            title: ROLE_METADATA[role]?.name || 'Giáo viên',
+            campusId: matchedClass?.campusId || matchedCampus?.id || campuses[0]?.id || 'lhl_main',
+            classId: matchedClass?.id,
+            scopeType: 'campus',
+            allowedCampusIds: [matchedClass?.campusId || matchedCampus?.id || campuses[0]?.id || 'lhl_main'],
+            isLocked: false,
+          };
+
+          newUsersToImport.push(newUser);
+        }
+
+        if (newUsersToImport.length > 0) {
+          const res = batchImportUsers(newUsersToImport);
+          if (res.success) {
+            setActionFeedback({ type: 'success', text: `Nhập dữ liệu thành công! Đã thêm ${res.count} tài khoản từ Excel vào Firestore.` });
+          } else {
+            setActionFeedback({ type: 'error', text: res.message || 'Nhập dữ liệu thất bại' });
+          }
+        } else {
+          setActionFeedback({ type: 'error', text: 'Không tìm thấy dữ liệu hợp lệ trong file Excel.' });
+        }
+        setTimeout(() => setActionFeedback(null), 6000);
+      } catch (err) {
+        console.error('Import error:', err);
+        setActionFeedback({ type: 'error', text: 'Lỗi đọc file Excel. Vui lòng kiểm tra định dạng file.' });
+      }
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsArrayBuffer(file);
+  };
 
   // Navigation tab inside User Management module
   const [activeTab, setActiveTab] = useState<'users' | 'matrix' | 'history' | 'test'>('users');
@@ -665,6 +800,40 @@ export const UserManager: React.FC = () => {
           <div className="flex items-center flex-wrap gap-2.5">
             {isSuperAdmin && (
               <>
+                <button
+                  onClick={handleExportExcel}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all cursor-pointer shadow-xs"
+                  title="Xuất danh sách người dùng ra file Excel"
+                >
+                  <FileSpreadsheet size={15} />
+                  <span>Xuất Excel</span>
+                </button>
+
+                <button
+                  onClick={handleDownloadTemplate}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-300 transition-all cursor-pointer shadow-2xs"
+                  title="Tải file mẫu Excel chuẩn để nhập liệu"
+                >
+                  <Download size={15} />
+                  <span>Tải file mẫu</span>
+                </button>
+
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-all cursor-pointer shadow-xs"
+                  title="Nhập danh sách người dùng từ file Excel"
+                >
+                  <Upload size={15} />
+                  <span>Nhập Excel</span>
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImportExcel}
+                  accept=".xlsx, .xls, .csv"
+                  className="hidden"
+                />
+
                 <button
                   onClick={handleCleanDemoUsers}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 transition-all cursor-pointer shadow-2xs"

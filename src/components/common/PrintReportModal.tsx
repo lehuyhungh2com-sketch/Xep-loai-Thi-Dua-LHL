@@ -627,41 +627,28 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
   };
 
   /**
-   * 2. Reliable Printing via Browser Print Dialog (Requirement III)
-   * Opens standard browser print dialog for the report content ONLY, avoiding sidebar/header clutter.
+   * 2. Reliable Printing via Window Popup (Requirement I - In ấn chuẩn)
+   * Mở một tab/cửa sổ HTML mới chỉ chứa nội dung báo cáo sạch, font Times New Roman, viền đen rõ nét và tự động gọi window.print().
    */
   const handlePrint = () => {
     try {
-      window.print();
-    } catch (e) {
-      console.warn('Native window.print() failed, falling back to print iframe:', e);
-      try {
-        const iframe = document.createElement('iframe');
-        iframe.style.position = 'fixed';
-        iframe.style.right = '0';
-        iframe.style.bottom = '0';
-        iframe.style.width = '794px';
-        iframe.style.height = '1123px';
-        iframe.style.border = '0';
-        iframe.style.visibility = 'hidden';
-        document.body.appendChild(iframe);
-
-        const doc = iframe.contentWindow?.document;
-        if (doc) {
-          doc.open();
-          doc.write(generateCleanReportHtml());
-          doc.close();
-          setTimeout(() => {
-            iframe.contentWindow?.focus();
-            iframe.contentWindow?.print();
-            setTimeout(() => {
-              iframe.remove();
-            }, 1500);
-          }, 350);
-        }
-      } catch (err) {
-        console.error('Print fallback failed:', err);
+      const cleanHtml = generateCleanReportHtml();
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(cleanHtml);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+        }, 500);
+      } else {
+        // Fallback if popup blocked
+        window.print();
       }
+    } catch (e) {
+      console.error('Window popup print error:', e);
+      window.print();
     }
   };
 

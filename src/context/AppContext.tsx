@@ -216,6 +216,7 @@ interface AppContextType {
   ) => { success: boolean; message: string };
   syncUsersFromClasses: () => { success: boolean; message: string; count: number };
   cleanDemoUsersAndKeepAdmins: () => { success: boolean; message: string; removedCount: number };
+  batchImportUsers: (newUsers: User[]) => { success: boolean; count: number; message: string };
 
   // CRUD Campuses
   addCampus: (campus: Omit<Campus, 'id'>) => { success: boolean; message?: string };
@@ -2028,6 +2029,41 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       message: `Đã đồng bộ thành công ${generatedTeacherUsers.length} tài khoản Giáo viên chủ nhiệm từ Danh sách 59 Lớp!`,
       count: generatedTeacherUsers.length,
     };
+  };
+
+  const batchImportUsers = (newUsers: User[]) => {
+    if (!canManageUsers(currentUser)) {
+      return { success: false, count: 0, message: 'Chỉ Super Admin mới có quyền nhập danh sách người dùng!' };
+    }
+    const idMap = new Map<string, User>();
+    users.forEach((u) => idMap.set(u.id, u));
+    newUsers.forEach((u) => idMap.set(u.id, u));
+    const combined = Array.from(idMap.values());
+    setUsers(combined);
+    try {
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(combined));
+    } catch {}
+
+    newUsers.forEach((u) => {
+      syncFirestoreDoc('users', u.id, u).catch(() => {});
+    });
+
+    fetch('/api/users/sync-from-classes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ users: combined }),
+    }).catch(() => {});
+
+    logAudit({
+      action: 'THEM_NGUOI_DUNG',
+      entityType: 'user',
+      entityId: `batch_import_${Date.now()}`,
+      beforeData: { countBefore: users.length },
+      afterData: { countAfter: combined.length, added: newUsers.length },
+      details: `Nhập hàng loạt ${newUsers.length} tài khoản người dùng từ file Excel`,
+    });
+
+    return { success: true, count: newUsers.length, message: `Đã nhập thành công ${newUsers.length} tài khoản từ Excel!` };
   };
 
   const addUser = (userData: Omit<User, 'id'>) => {
@@ -7892,6 +7928,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         batchUpdateUserEmails,
         syncUsersFromClasses,
         cleanDemoUsersAndKeepAdmins,
+        batchImportUsers,
         logout,
         currentTab,
         selectedCampusId,

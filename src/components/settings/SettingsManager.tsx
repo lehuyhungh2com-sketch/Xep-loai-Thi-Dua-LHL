@@ -49,7 +49,14 @@ export const SettingsManager: React.FC = () => {
     currentActiveWeek,
     activateManualWeek,
     updateTimeframeConfig,
+    exportOfflineStandbyWorkbook,
   } = useApp();
+
+  const handleSnapshotBackup = () => {
+    exportOfflineStandbyWorkbook(settings.currentWeek || 4);
+    setMessage({ text: 'Đã xuất bản sao lưu dữ liệu tổng hợp (Snapshot) thành công!', type: 'success' });
+    setTimeout(() => setMessage(null), 4000);
+  };
 
   const [activeSettingsTab, setActiveSettingsTab] = useState<'rules' | 'organization' | 'accounts' | 'historical'>('rules');
   const [showAuditModal, setShowAuditModal] = useState(false);
@@ -389,6 +396,22 @@ export const SettingsManager: React.FC = () => {
           )}
 
           <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-6">
+            {/* Snapshot Backup Card */}
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <h4 className="text-xs font-black text-emerald-900 uppercase tracking-wide">Xuất bản sao lưu dữ liệu (Snapshot)</h4>
+                <p className="text-xs text-emerald-700 mt-0.5">Tổng hợp dữ liệu điểm số, xếp hạng và minh chứng offline hàng tuần/tháng cho Ban Giám hiệu lưu trữ.</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleSnapshotBackup}
+                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
+              >
+                <FileSpreadsheet size={16} />
+                <span>Xuất bản sao lưu dữ liệu</span>
+              </button>
+            </div>
+
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2.5">
                 <span className="p-2.5 rounded-xl bg-indigo-100 text-indigo-700">

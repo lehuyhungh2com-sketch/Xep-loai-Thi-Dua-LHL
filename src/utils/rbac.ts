@@ -51,9 +51,13 @@ export function canAccessTab(user?: User | null, tab?: ViewTab): boolean {
     case 'month_rankings':
     case 'semester_rankings':
     case 'year_rankings':
+      // Public / all roles can view
+      return true;
+
     case 'title_evaluation':
     case 'reports':
-      // Public / all roles can view
+      // Ẩn đối với Role 4 (Giáo viên) theo yêu cầu dọn dẹp chuyên nghiệp
+      if (isTeacher) return false;
       return true;
 
     case 'campuses':

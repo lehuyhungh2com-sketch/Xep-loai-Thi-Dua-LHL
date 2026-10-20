@@ -23,6 +23,7 @@ import {
   KeyRound,
   Download,
   RefreshCw,
+  CheckCircle2,
 } from 'lucide-react';
 import { RoleType } from '../../types';
 import { ROLE_METADATA, isRoleTeacher } from '../../utils/rbac';
@@ -55,6 +56,8 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar, isMobileS
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncToast, setSyncToast] = useState<string | null>(null);
 
   if (!currentUser) return null;
 
@@ -191,12 +194,20 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar, isMobileS
             <>
               <div className="hidden lg:flex items-center gap-1.5">
                 <button
-                  onClick={loadDataFromFirebase}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-blue-200 hover:border-blue-400 bg-white hover:bg-blue-50 text-blue-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
-                  title="Đồng bộ dữ liệu từ máy chủ"
+                  onClick={async () => {
+                    setIsSyncing(true);
+                    setSyncToast(null);
+                    const res = await loadDataFromFirebase();
+                    setIsSyncing(false);
+                    setSyncToast(res?.message || 'Đồng bộ dữ liệu thành công từ máy chủ!');
+                    setTimeout(() => setSyncToast(null), 4000);
+                  }}
+                  disabled={isSyncing}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-blue-200 hover:border-blue-400 bg-white hover:bg-blue-50 text-blue-700 text-xs font-bold transition-all cursor-pointer shadow-2xs disabled:opacity-50"
+                  title="Đồng bộ ngay lập tức toàn bộ dữ liệu từ máy chủ Firestore"
                 >
-                  <RefreshCw size={15} />
-                  <span>Đồng Bộ</span>
+                  <RefreshCw size={15} className={isSyncing ? 'animate-spin' : ''} />
+                  <span>{isSyncing ? 'Đang đồng bộ...' : 'Đồng Bộ'}</span>
                 </button>
                 <button
                   onClick={() => setShowAuditModal(true)}
@@ -393,6 +404,20 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar, isMobileS
 
       {/* Backup & Standby Excel Center Modal */}
       <BackupExcelCenterModal isOpen={showBackupModal} onClose={() => setShowBackupModal(false)} />
+
+      {/* Sync Toast Notification */}
+      {syncToast && (
+        <div className="fixed top-20 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-3 animate-slideDown">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <span className="text-xs font-bold">{syncToast}</span>
+          <button
+            onClick={() => setSyncToast(null)}
+            className="text-slate-400 hover:text-white ml-2 text-xs font-mono cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </header>
   );
 };

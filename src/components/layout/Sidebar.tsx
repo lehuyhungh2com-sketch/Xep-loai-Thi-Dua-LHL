@@ -133,8 +133,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       id: 'academic_catalog',
       label: 'Cấu hình năm học & Danh mục',
       icon: Database,
-      badge: 'Thực tế / Mẫu',
-      badgeColor: 'bg-emerald-500/20 text-emerald-300',
     },
     { id: 'settings', label: 'Cấu hình', icon: SettingsIcon },
   ];

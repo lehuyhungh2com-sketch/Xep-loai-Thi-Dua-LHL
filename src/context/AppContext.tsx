@@ -261,7 +261,7 @@ interface AppContextType {
 
   // Data Synchronization
   isDataLoaded: boolean;
-  loadDataFromFirebase: () => Promise<void>;
+  loadDataFromFirebase: () => Promise<{ success: boolean; message: string }>;
   saveAllToFirebase: () => Promise<void>;
 
   // Data Mode
@@ -1146,27 +1146,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [isDataLoaded, setIsDataLoaded] = useState<boolean>(false);
 
-  const loadDataFromFirebase = useCallback(async () => {
+  const loadDataFromFirebase = useCallback(async (): Promise<{ success: boolean; message: string }> => {
     try {
       setIsDataLoaded(false);
-      // Fetch all required collections (classes, score_logs, locked_weeks moved to onSnapshot)
       const [
-        usersSnap, campusesSnap, criteriaSnap, settingsSnap,
-        lockedMonthsSnap, lockedSemestersSnap,
-        lockedTitlesSnap, disciplinaryRecordsSnap, monthlyBonusesSnap
+        usersSnap, campusesSnap, criteriaSnap, classesSnap, scoreLogsSnap, settingsSnap,
+        lockedWeeksSnap, lockedMonthsSnap, lockedSemestersSnap,
+        lockedTitlesSnap, disciplinaryRecordsSnap, monthlyBonusesSnap, appealsSnap
       ] = await Promise.all([
         getDocs(collection(db, 'users')),
         getDocs(collection(db, 'campuses')),
         getDocs(collection(db, 'criteria')),
+        getDocs(collection(db, 'classes')),
+        getDocs(collection(db, 'score_logs')),
         getDoc(doc(db, 'settings', 'config')),
+        getDoc(doc(db, 'locked_weeks', 'summary')),
         getDoc(doc(db, 'locked_months', 'summary')),
         getDoc(doc(db, 'locked_semesters', 'summary')),
         getDoc(doc(db, 'locked_titles', 'summary')),
         getDocs(collection(db, 'disciplinary_records')),
         getDoc(doc(db, 'monthly_bonuses', 'summary')),
+        getDocs(collection(db, 'appeals')),
       ]);
 
-      // Update state with fetched data
       let finalUsers: User[] = [];
       if (!usersSnap.empty) {
         finalUsers = usersSnap.docs.map((d) => d.data() as User);
@@ -1186,6 +1188,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
       if (!campusesSnap.empty) setCampuses(campusesSnap.docs.map(d => d.data() as Campus));
       if (!criteriaSnap.empty) setCriteria(criteriaSnap.docs.map(d => d.data() as Criteria));
+      if (!classesSnap.empty) setClasses(classesSnap.docs.map(d => d.data() as ClassItem));
+      if (!scoreLogsSnap.empty) setScoreLogs(scoreLogsSnap.docs.map(d => d.data() as ScoreLog));
       if (settingsSnap.exists()) {
         const cloudData = settingsSnap.data() as Partial<SchoolSettings>;
         setSettings((prev) => ({
@@ -1197,16 +1201,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           evaluationConfig: cloudData.evaluationConfig || prev.evaluationConfig || DEFAULT_EVALUATION_CONFIG,
         }));
       }
+      if (lockedWeeksSnap.exists()) setLockedWeeks(lockedWeeksSnap.data().lockedWeeks || []);
       if (lockedMonthsSnap.exists()) setLockedMonths(lockedMonthsSnap.data().lockedMonths || {});
       if (lockedSemestersSnap.exists()) setLockedSemesters(lockedSemestersSnap.data().lockedSemesters || {});
       if (lockedTitlesSnap.exists()) setLockedTitles(lockedTitlesSnap.data().lockedTitles || null);
       if (!disciplinaryRecordsSnap.empty) setDisciplinaryRecords(disciplinaryRecordsSnap.docs.map(d => d.data() as DisciplinaryRecord));
       if (monthlyBonusesSnap.exists()) setBonusMonthly(monthlyBonusesSnap.data().bonusMonthly || {});
+      if (!appealsSnap.empty) setAppeals(appealsSnap.docs.map(d => d.data() as AdjustmentAppeal));
 
       setIsDataLoaded(true);
+      return { success: true, message: 'Đồng bộ dữ liệu thành công từ máy chủ Firestore!' };
     } catch (err) {
       console.error('Lỗi nạp dữ liệu từ Firebase:', err);
-      setIsDataLoaded(true); // Load anyways to allow offline usage
+      setIsDataLoaded(true);
+      return { success: false, message: 'Lỗi đồng bộ: ' + (err instanceof Error ? err.message : String(err)) };
     }
   }, []);
 

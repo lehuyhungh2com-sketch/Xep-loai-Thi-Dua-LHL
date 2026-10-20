@@ -172,49 +172,49 @@ export const RankingsHub: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* 3-Tier Ranking Module Switcher */}
-      <div className="flex items-center gap-2 p-1.5 bg-slate-200/70 rounded-xl w-fit no-print">
+      <div className="flex items-center gap-2 p-1.5 bg-slate-200/70 rounded-2xl w-fit no-print">
         <button
-          className="px-3.5 py-1.5 bg-white text-indigo-900 rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5"
+          className="px-4 py-2 bg-white text-indigo-900 rounded-xl text-xs font-black shadow-xs flex items-center gap-2"
         >
-          <Trophy size={13} className="text-indigo-600" />
+          <Trophy size={14} className="text-indigo-600" />
           <span>Xếp Hạng Tuần</span>
         </button>
         <button
           onClick={() => setCurrentTab('month_rankings')}
-          className="px-3.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+          className="px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
         >
-          <Calendar size={13} />
+          <Calendar size={14} />
           <span>Xếp Hạng Tháng</span>
         </button>
         <button
           onClick={() => setCurrentTab('semester_rankings')}
-          className="px-3.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+          className="px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
         >
-          <Award size={13} />
+          <Award size={14} />
           <span>Xếp Hạng Học Kỳ</span>
         </button>
       </div>
 
       {/* Top Header Card */}
-      <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-indigo-700 uppercase tracking-wider mb-1">
+          <div className="flex items-center gap-2 text-xs font-extrabold text-indigo-700 uppercase tracking-wider mb-1">
             <Trophy size={16} />
             <span>Bảng tổng sắp thi đua</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             Bảng Xếp Hạng Toàn Trường & Phân Hiệu
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-1 font-medium">
             {periodLabel} · {scopeLabel} · Xếp hạng chuẩn theo quyết định năm học {settings.academicYear}
           </p>
         </div>
 
         {/* Export / Print Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => exportCurrentRankingsExcel(periodType, scopeLabel)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-2xs"
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-2 border-emerald-200 text-xs font-extrabold rounded-xl transition-all cursor-pointer shadow-2xs active:scale-95"
             title="Xuất bảng xếp hạng ra file Microsoft Excel (.xls) có định dạng và công thức"
           >
             <Download size={15} className="text-emerald-700" />
@@ -222,14 +222,14 @@ export const RankingsHub: React.FC = () => {
           </button>
           <button
             onClick={() => exportOfflineStandbyWorkbook(selectedWeek)}
-            className="hidden xl:flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+            className="hidden xl:flex items-center gap-2 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
             title="Tải bảng chấm điểm & xếp hạng dự phòng offline tự động tính"
           >
             <span>Bản Offline Tuần {selectedWeek}</span>
           </button>
           <button
             onClick={() => setShowPrintModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer shadow-xs"
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
             title="In ấn và xuất file PDF bảng xếp hạng chính thức"
           >
             <Printer size={15} />

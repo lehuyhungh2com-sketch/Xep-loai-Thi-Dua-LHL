@@ -2194,15 +2194,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
     const oldUser = users.find((u) => u.id === id);
     if (!oldUser) return { success: false, message: 'Không tìm thấy người dùng' };
+
     const updatedUsers = users.filter((u) => u.id !== id);
     setUsers(updatedUsers);
     try {
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updatedUsers));
     } catch {}
 
-    // Xóa khỏi Firebase Firestore (cả 2 database)
+
+
+    // Xóa khỏi Firebase Firestore (cả 2 database: users và teachers)
     deleteFirestoreDoc('users', id).catch((err) => {
-      console.warn('Lỗi xóa người dùng khỏi Firebase:', err);
+      console.warn('Lỗi xóa người dùng khỏi Firebase (users):', err);
+    });
+    deleteFirestoreDoc('teachers', id).catch((err) => {
+      console.warn('Lỗi xóa giáo viên khỏi Firebase (teachers):', err);
     });
 
     // Xóa trực tiếp khỏi cơ sở dữ liệu máy chủ
@@ -2233,7 +2239,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       afterData: null,
       details: `Xóa tài khoản người dùng: ${oldUser.name} (${oldUser.role})`,
     });
-    return { success: true };
+    return { success: true, message: `Đã xóa thành công tài khoản ${oldUser.name}.` };
   };
 
   const toggleLockUser = (id: string, reason?: string): { success: boolean; message: string } => {

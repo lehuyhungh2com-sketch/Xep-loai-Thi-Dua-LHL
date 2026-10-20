@@ -262,10 +262,17 @@ async function startServer() {
 
   app.delete('/api/users/:id', (req, res) => {
     const db = readDb();
+    const userId = req.params.id;
+    let foundName = '';
     if (db.users) {
-      db.users = db.users.filter((u: any) => u.id !== req.params.id);
-      writeDb(db);
+      const targetUser = db.users.find((u: any) => u.id === userId);
+      if (targetUser) foundName = targetUser.name;
+      db.users = db.users.filter((u: any) => u.id !== userId);
     }
+    if (db.teachers) {
+      db.teachers = db.teachers.filter((t: any) => t.id !== userId && (!foundName || t.fullName !== foundName));
+    }
+    writeDb(db);
     res.json({ success: true });
   });
 

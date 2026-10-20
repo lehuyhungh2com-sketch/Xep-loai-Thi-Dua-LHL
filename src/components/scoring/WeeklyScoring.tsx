@@ -567,16 +567,10 @@ export const WeeklyScoring: React.FC = () => {
     setTimeout(() => setSuccessMessage(null), 4000);
   };
 
-  // Shortcuts for frequent conduct items
-  const popularShortcuts = useMemo(() => {
-    const popularCodes = ['TP02', 'CC01', 'CD01', 'TP04', 'VS01', 'HV04', 'TT01', 'CR01', 'HD01'];
-    return criteria.filter((c) => popularCodes.includes(c.code) && c.isActive);
-  }, [criteria]);
-
   return (
     <div className="space-y-6">
       {/* 1. TOP HEADER & IDENTITY BANNER */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-2xl p-6 sm:p-7 shadow-lg relative overflow-hidden border border-blue-800/40">
+      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-2xl p-5 sm:p-7 shadow-lg relative overflow-hidden border border-blue-800/40">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div className="space-y-1.5">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-200 border border-blue-400/30 text-xs font-semibold">
@@ -594,13 +588,13 @@ export const WeeklyScoring: React.FC = () => {
           </div>
 
           {/* Quick Week Selector & Lock Status */}
-          <div className="flex flex-wrap items-center gap-3 bg-slate-800/80 p-3 rounded-xl backdrop-blur-md border border-slate-700 self-start md:self-auto shadow-inner">
+          <div className="flex flex-wrap items-center gap-3 bg-slate-800/90 p-3.5 rounded-xl backdrop-blur-md border border-slate-700/80 self-start md:self-auto shadow-inner">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-300 font-medium">Tuần thi đua:</span>
+              <span className="text-xs text-slate-300 font-bold">Tuần thi đua:</span>
               <select
                 value={selectedWeek}
                 onChange={(e) => setSelectedWeek(Number(e.target.value))}
-                className="bg-white text-slate-900 text-sm font-bold rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500 outline-hidden cursor-pointer"
+                className="bg-white text-slate-900 text-sm font-extrabold rounded-xl px-3 py-2 border-2 border-blue-400/50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none cursor-pointer shadow-xs"
               >
                 {Array.from({ length: maxWeeks }, (_, i) => i + 1).map((w) => (
                   <option key={w} value={w}>
@@ -612,7 +606,7 @@ export const WeeklyScoring: React.FC = () => {
 
             {isLocked ? (
               <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold">
+                <span className="flex items-center gap-1.5 px-3 py-2 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold">
                   <Lock size={14} className="text-amber-400" />
                   <span>TUẦN ĐÃ CHỐT</span>
                 </span>
@@ -620,7 +614,7 @@ export const WeeklyScoring: React.FC = () => {
                   <button
                     onClick={handleToggleLockCurrentWeek}
                     title={`Mở khóa Tuần ${selectedWeek} (Yêu cầu quyền Admin & lý do)`}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
                   >
                     <Unlock size={13} />
                     <span>Mở khóa tuần</span>
@@ -629,7 +623,7 @@ export const WeeklyScoring: React.FC = () => {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-bold">
+                <span className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-bold">
                   <Unlock size={14} className="text-emerald-400" />
                   <span>ĐANG MỞ CHẤM</span>
                 </span>
@@ -637,7 +631,7 @@ export const WeeklyScoring: React.FC = () => {
                   <button
                     onClick={handleToggleLockCurrentWeek}
                     title={`Chốt điểm thi đua Tuần ${selectedWeek}`}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
                   >
                     <Lock size={13} />
                     <span>Chốt điểm tuần</span>
@@ -651,24 +645,24 @@ export const WeeklyScoring: React.FC = () => {
         {/* User Identity & Duty Week Authorization Strip */}
         <div className="mt-5 pt-4 border-t border-slate-700/60 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 rounded-lg text-slate-200">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 rounded-xl text-slate-200">
               <UserCheck size={14} className="text-amber-400 shrink-0" />
               <span>Người ghi nhận:</span>
               <strong className="text-white font-bold">{currentUser.name}</strong>
-              <span className="text-[11px] text-blue-300 bg-blue-950/80 px-1.5 py-0.5 rounded font-mono">
+              <span className="text-[11px] text-blue-300 bg-blue-950/80 px-2 py-0.5 rounded font-mono">
                 {currentUser.title || currentUser.role}
               </span>
             </div>
 
             {/* Scope / Duty status badge */}
             {scoringPermission.allowed ? (
-              <span className="flex items-center gap-1 px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-lg font-bold">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-xl font-bold">
                 <ShieldCheck size={14} />
                 <span>Được cấp quyền chấm điểm</span>
                 {scoringPermission.isDutyTeacher && <span className="underline ml-1">(GVCN Lớp trực tuần)</span>}
               </span>
             ) : (
-              <span className="flex items-center gap-1 px-2.5 py-1 bg-rose-500/20 text-rose-300 border border-rose-500/40 rounded-lg font-bold">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/20 text-rose-300 border border-rose-500/40 rounded-xl font-bold">
                 <ShieldAlert size={14} />
                 <span>Chế độ Chỉ Xem / Giới hạn quyền</span>
               </span>
@@ -677,7 +671,7 @@ export const WeeklyScoring: React.FC = () => {
 
           {/* Duty Class of the week */}
           {dutyAssignmentThisWeek && (
-            <div className="text-slate-300 bg-slate-800/80 px-3 py-1 rounded-lg border border-slate-700 flex items-center gap-1.5">
+            <div className="text-slate-300 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-1.5">
               <Calendar size={13} className="text-indigo-400" />
               <span>Lớp trực ban Tuần {selectedWeek}:</span>
               <strong className="text-amber-300">{dutyAssignmentThisWeek.className}</strong>
@@ -688,7 +682,7 @@ export const WeeklyScoring: React.FC = () => {
 
         {/* Transition Notice if routed from Red Flag Module */}
         {scoringNavigationContext?.fromRedFlag && (
-          <div className="mt-3 p-2.5 bg-rose-500/20 border border-rose-400/40 rounded-xl text-xs text-rose-100 flex items-center justify-between gap-2 animate-fadeIn">
+          <div className="mt-3 p-3 bg-rose-500/20 border border-rose-400/40 rounded-xl text-xs text-rose-100 flex items-center justify-between gap-2 animate-fadeIn">
             <div className="flex items-center gap-2">
               <Flag size={14} className="text-rose-300 shrink-0" />
               <span>
@@ -707,7 +701,7 @@ export const WeeklyScoring: React.FC = () => {
 
       {/* Week Locked Alert */}
       {isLocked && (
-        <div className="p-4 bg-amber-50 border-l-4 border-amber-500 rounded-xl flex items-center gap-3 text-amber-900 shadow-xs">
+        <div className="p-4 bg-amber-50 border-l-4 border-amber-500 rounded-xl flex items-center gap-3 text-amber-900 shadow-sm">
           <ShieldAlert size={22} className="text-amber-600 shrink-0" />
           <div className="text-xs sm:text-sm">
             <strong className="font-bold">Tuần {selectedWeek} đã được Ban Giám Hiệu chốt khóa sổ thi đua!</strong> Dữ liệu đã đóng băng, không cho phép nhập hoặc chỉnh sửa thêm để bảo đảm tính khách quan khi công bố xếp hạng.
@@ -717,7 +711,7 @@ export const WeeklyScoring: React.FC = () => {
 
       {/* Gentle Read-Only Notification for Non-Duty Teachers */}
       {!scoringPermission.allowed && !isLocked && (
-        <div className="p-4 bg-blue-50/90 border border-blue-200 border-l-4 border-l-blue-600 rounded-xl flex items-start sm:items-center gap-3.5 text-blue-950 shadow-xs animate-fadeIn">
+        <div className="p-4 bg-blue-50/90 border border-blue-200 border-l-4 border-l-blue-600 rounded-xl flex items-start sm:items-center gap-3.5 text-blue-950 shadow-sm animate-fadeIn">
           <Info size={22} className="text-blue-600 shrink-0 mt-0.5 sm:mt-0" />
           <div className="text-xs sm:text-sm leading-relaxed">
             <span className="font-bold">Bạn đang ở chế độ Chỉ xem.</span>{' '}
@@ -734,36 +728,36 @@ export const WeeklyScoring: React.FC = () => {
 
       {/* Notifications */}
       {successMessage && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center gap-3 text-sm font-semibold shadow-xs animate-fadeIn">
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center gap-3 text-sm font-semibold shadow-sm animate-fadeIn">
           <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
           <span>{successMessage}</span>
         </div>
       )}
       {errorMessage && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl flex items-center gap-3 text-sm font-semibold shadow-xs animate-fadeIn">
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl flex items-center gap-3 text-sm font-semibold shadow-sm animate-fadeIn">
           <AlertTriangle size={18} className="text-rose-600 shrink-0" />
           <span>{errorMessage}</span>
         </div>
       )}
 
       {/* 2. ACTION TOOLBAR: EXCEL IMPORT & TEMPLATE DOWNLOAD */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-2 text-xs text-slate-600">
           <Layers size={16} className="text-blue-600" />
-          <span>Phương thức ghi nhận:</span>
-          <span className="font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md">
+          <span className="font-bold text-slate-700">Phương thức ghi nhận:</span>
+          <span className="font-extrabold text-slate-800 bg-slate-100 px-3 py-1 rounded-lg">
             Nhập trực tiếp hoặc qua Excel mẫu (CÙNG NGUỒN DỮ LIỆU)
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {/* Download Excel Template */}
           <button
             onClick={handleDownloadExcelTemplate}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-emerald-300 bg-emerald-50/50 hover:bg-emerald-100/70 text-emerald-800 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl border-2 border-emerald-200 hover:border-emerald-400 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95"
             title="Tải bảng tính Excel mẫu đã cấu hình sẵn danh sách lớp và mã tiêu chí"
           >
-            <Download size={14} className="text-emerald-700" />
+            <Download size={15} className="text-emerald-700" />
             <span>Tải Excel mẫu Tuần {selectedWeek}</span>
           </button>
 
@@ -771,36 +765,36 @@ export const WeeklyScoring: React.FC = () => {
           <button
             onClick={() => setShowExcelModal(true)}
             disabled={isLocked || !scoringPermission.allowed}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-extrabold transition-all cursor-pointer shadow-xs active:scale-95"
             title="Nhập dữ liệu thi đua đồng loạt từ bảng tính Excel / CSV"
           >
-            <Upload size={14} />
+            <Upload size={15} />
             <span>Nhập từ file Excel / Dán bảng</span>
           </button>
         </div>
       </div>
 
       {/* 3. MAIN UNIFIED INPUT INTERFACE (8-STEP UNIFIED WORKFLOW) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
         {/* LEFT COLUMN (8 cols): Step-by-Step Entry Form */}
-        <div className="lg:col-span-8 space-y-5">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-6 space-y-6">
+        <div className="lg:col-span-8 space-y-6">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-6">
             {/* Step Navigation Indicator */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 text-xs font-bold text-slate-500">
-              <span className="text-blue-900 flex items-center gap-1.5">
-                <Sparkles size={15} className="text-amber-500" />
+              <span className="text-blue-900 font-extrabold flex items-center gap-2 text-sm">
+                <Sparkles size={16} className="text-amber-500" />
                 MÀN HÌNH NHẬP LIỆU THỐNG NHẤT
               </span>
-              <span className="text-slate-400">8 Bước chuẩn quy trình thi đua</span>
+              <span className="text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full font-semibold">8 Bước chuẩn quy trình thi đua</span>
             </div>
 
             {/* STEP 1: CHỌN PHÂN HIỆU */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="flex items-center gap-2 text-xs font-extrabold text-slate-800 uppercase tracking-wide">
-                <span className="w-5 h-5 rounded-full bg-blue-700 text-white flex items-center justify-center text-[10px]">1</span>
+                <span className="w-6 h-6 rounded-full bg-blue-700 text-white flex items-center justify-center text-xs font-black">1</span>
                 <span>Chọn Phân hiệu cơ sở:</span>
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {campuses
                   .filter((c) => c.status !== 'inactive' || (userRole === 'super_admin' || userRole === 'admin'))
                   .map((camp) => {
@@ -813,21 +807,21 @@ export const WeeklyScoring: React.FC = () => {
                       type="button"
                       disabled={!!isRestricted}
                       onClick={() => !isRestricted && setSelectedCampusId(camp.id)}
-                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                        isRestricted ? 'opacity-40 cursor-not-allowed bg-slate-100' : ''
+                      className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer min-h-[50px] flex flex-col justify-between ${
+                        isRestricted ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-200' : ''
                       } ${
                         selectedCampusId === camp.id
-                          ? 'bg-blue-50 border-blue-600 ring-2 ring-blue-500/20 text-blue-950 font-bold shadow-xs'
+                          ? 'bg-blue-50/80 border-blue-600 ring-2 ring-blue-500/20 text-blue-950 font-bold shadow-xs'
                           : 'bg-slate-50/70 border-slate-200 text-slate-700 hover:bg-white hover:border-slate-300'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs truncate">
+                        <span className="text-xs sm:text-sm font-extrabold truncate">
                           {camp.name} {camp.status === 'inactive' && '(Tạm ngưng)'}
                         </span>
-                        {selectedCampusId === camp.id && <Check size={14} className="text-blue-600 shrink-0" />}
+                        {selectedCampusId === camp.id && <Check size={16} className="text-blue-600 shrink-0" />}
                       </div>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">
+                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
                         {camp.type === 'main' ? 'Trường cơ sở chính' : 'Phân hiệu trực thuộc'}
                       </span>
                     </button>
@@ -837,20 +831,20 @@ export const WeeklyScoring: React.FC = () => {
             </div>
             
             {/* STEP 2 & 3: CHỌN TUẦN & CHỌN LỚP */}
-            <div className="space-y-2 pt-2 border-t border-slate-100">
+            <div className="space-y-3 pt-4 border-t border-slate-100">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <label className="flex items-center gap-2 text-xs font-extrabold text-slate-800 uppercase tracking-wide">
-                  <span className="w-5 h-5 rounded-full bg-blue-700 text-white flex items-center justify-center text-[10px]">2-3</span>
+                  <span className="w-6 h-6 rounded-full bg-blue-700 text-white flex items-center justify-center text-xs font-black">2-3</span>
                   <span>Chọn Lớp học cần ghi nhận (Phân hiệu: {currentCampus.name}):</span>
                 </label>
 
                 {/* Grade filter tabs */}
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-[11px] font-bold self-start sm:self-auto">
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold self-start sm:self-auto border border-slate-200">
                   <button
                     type="button"
                     onClick={() => setSelectedGradeFilter('all')}
-                    className={`px-2 py-0.5 rounded cursor-pointer ${
-                      selectedGradeFilter === 'all' ? 'bg-white text-blue-800 shadow-2xs' : 'text-slate-600'
+                    className={`px-2.5 py-1 rounded-lg cursor-pointer transition-all ${
+                      selectedGradeFilter === 'all' ? 'bg-white text-blue-900 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     Tất cả
@@ -860,8 +854,8 @@ export const WeeklyScoring: React.FC = () => {
                       key={g}
                       type="button"
                       onClick={() => setSelectedGradeFilter(g)}
-                      className={`px-2 py-0.5 rounded cursor-pointer ${
-                        selectedGradeFilter === g ? 'bg-white text-blue-800 shadow-2xs' : 'text-slate-600'
+                      className={`px-2.5 py-1 rounded-lg cursor-pointer transition-all ${
+                        selectedGradeFilter === g ? 'bg-white text-blue-900 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
                       Khối {g}
@@ -871,7 +865,7 @@ export const WeeklyScoring: React.FC = () => {
               </div>
 
               {/* Class Buttons Grid */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-1 bg-slate-50/50 rounded-xl border border-slate-100">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 max-h-52 overflow-y-auto p-2 bg-slate-50/70 rounded-2xl border border-slate-200/80">
                 {campusClasses.map((cls) => {
                   const score = getClassWeeklyScore(cls.id, selectedWeek);
                   const isDutyClass = dutyAssignmentThisWeek?.classId === cls.id;
@@ -882,24 +876,24 @@ export const WeeklyScoring: React.FC = () => {
                       key={cls.id}
                       type="button"
                       onClick={() => setSelectedClassId(cls.id)}
-                      className={`p-2 rounded-xl border text-center transition-all cursor-pointer relative ${
+                      className={`p-2.5 rounded-xl border-2 text-center transition-all cursor-pointer relative min-h-[48px] flex flex-col items-center justify-center ${
                         isSelected
-                          ? 'bg-blue-600 text-white border-blue-700 font-extrabold shadow-sm'
-                          : 'bg-white text-slate-800 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
+                          ? 'bg-blue-600 text-white border-blue-700 font-extrabold shadow-md transform scale-[1.02]'
+                          : 'bg-white text-slate-800 border-slate-200 hover:border-blue-400 hover:bg-blue-50/40'
                       }`}
                     >
                       {isDutyClass && (
                         <span
-                          className={`absolute -top-1.5 -right-1 text-[9px] px-1 py-0.2 rounded-full font-bold ${
-                            isSelected ? 'bg-amber-400 text-slate-900' : 'bg-amber-500 text-white'
+                          className={`absolute -top-2 -right-1 text-[9px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-wider ${
+                            isSelected ? 'bg-amber-400 text-slate-950' : 'bg-amber-500 text-white shadow-xs'
                           }`}
                           title="Lớp trực ban tuần này"
                         >
                           Trực
                         </span>
                       )}
-                      <div className="text-xs font-bold truncate">Lớp {cls.name}</div>
-                      <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
+                      <div className="text-xs sm:text-sm font-extrabold truncate">Lớp {cls.name}</div>
+                      <div className={`text-[10px] mt-0.5 font-bold ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
                         {score.finalScore}đ
                       </div>
                     </button>
@@ -909,43 +903,24 @@ export const WeeklyScoring: React.FC = () => {
             </div>
 
             {/* STEP 4: CHỌN TIÊU CHÍ */}
-            <div className="space-y-3 pt-2 border-t border-slate-100">
+            <div className="space-y-3 pt-4 border-t border-slate-100">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <label className="flex items-center gap-2 text-xs font-extrabold text-slate-800 uppercase tracking-wide">
-                  <span className="w-5 h-5 rounded-full bg-blue-700 text-white flex items-center justify-center text-[10px]">4</span>
+                  <span className="w-6 h-6 rounded-full bg-blue-700 text-white flex items-center justify-center text-xs font-black">4</span>
                   <span>Chọn Tiêu chí thi đua (Vi phạm / Thưởng):</span>
                 </label>
-
-                {/* Popular shortcut pills */}
-                <div className="flex flex-wrap items-center gap-1 text-[11px]">
-                  <span className="text-slate-400 font-medium">Nhanh:</span>
-                  {popularShortcuts.slice(0, 4).map((shortcut) => (
-                    <button
-                      key={shortcut.id}
-                      type="button"
-                      onClick={() => setSelectedCriteriaId(shortcut.id)}
-                      className={`px-2 py-0.5 rounded-md border text-[11px] font-semibold transition-all cursor-pointer ${
-                        selectedCriteriaId === shortcut.id
-                          ? 'bg-amber-500 text-white border-amber-600 font-bold'
-                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
-                      }`}
-                    >
-                      {shortcut.name}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               {/* Filters for Criteria */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                 <div className="sm:col-span-5 relative">
-                  <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
+                  <Search size={16} className="absolute left-3.5 top-3 text-slate-400" />
                   <input
                     type="text"
                     value={criteriaSearch}
                     onChange={(e) => setCriteriaSearch(e.target.value)}
                     placeholder="Tìm tên hoặc mã lỗi (CC01, sơ vin...)"
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 py-2 focus:bg-white focus:outline-blue-500"
+                    className="w-full text-xs sm:text-sm bg-slate-50 border-2 border-slate-200 rounded-xl pl-9 pr-3 py-2.5 font-medium focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
                   />
                 </div>
 
@@ -953,7 +928,7 @@ export const WeeklyScoring: React.FC = () => {
                   <select
                     value={criteriaCategory}
                     onChange={(e) => setCriteriaCategory(e.target.value)}
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:bg-white focus:outline-blue-500 cursor-pointer"
+                    className="w-full text-xs sm:text-sm bg-slate-50 border-2 border-slate-200 rounded-xl px-3 py-2.5 font-bold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none cursor-pointer transition-all"
                   >
                     <option value="all">-- Tất cả nhóm tiêu chí ({criteria.length}) --</option>
                     {availableCategories.map((cat) => (
@@ -965,12 +940,12 @@ export const WeeklyScoring: React.FC = () => {
                 </div>
               </div>
 
-              {/* Criteria Selector Dropdown */}
+              {/* Main Criteria Selector Dropdown */}
               <div>
                 <select
                   value={currentCriteria?.id || selectedCriteriaId}
                   onChange={(e) => setSelectedCriteriaId(e.target.value)}
-                  className="w-full text-xs sm:text-sm font-bold text-slate-800 bg-blue-50/40 border border-blue-200 rounded-xl px-3 py-2.5 focus:bg-white focus:outline-blue-600 cursor-pointer"
+                  className="w-full text-sm sm:text-base font-extrabold text-slate-900 bg-blue-50/40 border-2 border-blue-300 rounded-xl p-3 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none cursor-pointer shadow-2xs transition-all"
                 >
                   {dropdownCriteriaList.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -978,27 +953,28 @@ export const WeeklyScoring: React.FC = () => {
                     </option>
                   ))}
                 </select>
-                {currentCriteria.description && (
-                  <p className="text-[11px] text-slate-500 mt-1 italic pl-1">
-                    ℹ️ {currentCriteria.description}
+                {currentCriteria?.description && (
+                  <p className="text-xs text-slate-500 mt-1.5 italic pl-1 flex items-center gap-1">
+                    <Info size={13} className="text-slate-400 shrink-0" />
+                    <span>{currentCriteria.description}</span>
                   </p>
                 )}
               </div>
             </div>
 
             {/* STEP 5 & 6: NHẬP SỐ LẦN & HỆ THỐNG TÍNH ĐIỂM */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
               {/* Step 5 */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-xs font-extrabold text-slate-800 uppercase tracking-wide">
-                  <span className="w-5 h-5 rounded-full bg-blue-700 text-white flex items-center justify-center text-[10px]">5</span>
+                  <span className="w-6 h-6 rounded-full bg-blue-700 text-white flex items-center justify-center text-xs font-black">5</span>
                   <span>Nhập số lần / học sinh ({currentCriteria.unit}):</span>
                 </label>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                    className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 flex items-center justify-center cursor-pointer transition-colors"
+                    className="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 font-black text-slate-800 text-lg flex items-center justify-center cursor-pointer transition-colors active:scale-95"
                   >
                     -
                   </button>
@@ -1009,12 +985,12 @@ export const WeeklyScoring: React.FC = () => {
                     disabled={isLocked && !scoringPermission.allowed}
                     value={quantity}
                     onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                    className="flex-1 h-10 text-center font-black text-lg text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-blue-600 disabled:opacity-50"
+                    className="flex-1 h-11 text-center font-black text-xl text-slate-900 bg-slate-50 border-2 border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none disabled:opacity-50"
                   />
                   <button
                     type="button"
                     onClick={() => setQuantity((prev) => prev + 1)}
-                    className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 flex items-center justify-center cursor-pointer transition-colors"
+                    className="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 font-black text-slate-800 text-lg flex items-center justify-center cursor-pointer transition-colors active:scale-95"
                   >
                     +
                   </button>
@@ -1024,20 +1000,20 @@ export const WeeklyScoring: React.FC = () => {
               {/* Step 6: Live calculation preview */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-xs font-extrabold text-slate-800 uppercase tracking-wide">
-                  <span className="w-5 h-5 rounded-full bg-blue-700 text-white flex items-center justify-center text-[10px]">6</span>
-                  <span>Hệ thống tự động tính điểm:</span>
+                  <span className="w-6 h-6 rounded-full bg-blue-700 text-white flex items-center justify-center text-xs font-black">6</span>
+                  <span>Tự động tính điểm:</span>
                 </label>
                 <div
-                  className={`h-10 rounded-xl px-3 flex items-center justify-between border font-bold text-xs ${
+                  className={`h-11 rounded-xl px-4 flex items-center justify-between border-2 font-extrabold text-xs sm:text-sm shadow-2xs ${
                     previewResult?.totalPoints && previewResult.totalPoints > 0
-                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
-                      : 'bg-rose-50 border-rose-300 text-rose-900'
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                      : 'bg-rose-50 border-rose-300 text-rose-950'
                   }`}
                 >
                   <span className="truncate">
                     {quantity} {currentCriteria.unit} × {previewResult?.pointsPerUnit || currentCriteria.points}đ
                   </span>
-                  <span className="text-base font-black">
+                  <span className="text-lg font-black ml-2">
                     {previewResult?.totalPoints && previewResult.totalPoints > 0 ? `+${previewResult.totalPoints}` : previewResult?.totalPoints || 0}đ
                   </span>
                 </div>
@@ -1045,57 +1021,57 @@ export const WeeklyScoring: React.FC = () => {
             </div>
 
             {/* Additional details: Date, Inspector, Note */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3">
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Ngày ghi nhận</label>
+                <label className="block text-xs font-extrabold text-slate-700 mb-1">Ngày ghi nhận</label>
                 <input
                   type="date"
                   value={date}
                   disabled={isLocked && !scoringPermission.allowed}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:outline-blue-500 disabled:opacity-50"
+                  className="w-full text-xs sm:text-sm bg-slate-50 border-2 border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-semibold focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none disabled:opacity-50"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Người phát hiện / Cờ đỏ</label>
+                <label className="block text-xs font-extrabold text-slate-700 mb-1">Người phát hiện / Cờ đỏ</label>
                 <input
                   type="text"
                   value={customInspectorName}
                   disabled={isLocked && !scoringPermission.allowed}
                   onChange={(e) => setCustomInspectorName(e.target.value)}
                   placeholder="Họ tên người trực..."
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:outline-blue-500 disabled:opacity-50"
+                  className="w-full text-xs sm:text-sm bg-slate-50 border-2 border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-semibold focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none disabled:opacity-50"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Ghi chú chi tiết (Tên HS / vị trí)</label>
+                <label className="block text-xs font-extrabold text-slate-700 mb-1">Ghi chú chi tiết (Tên HS / vị trí)</label>
                 <input
                   type="text"
                   value={note}
                   disabled={isLocked && !scoringPermission.allowed}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Ví dụ: Em Hoàng Long không sơ vin đầu giờ..."
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:outline-blue-500 disabled:opacity-50"
+                  className="w-full text-xs sm:text-sm bg-slate-50 border-2 border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-semibold focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none disabled:opacity-50"
                 />
               </div>
             </div>
 
             {/* STEP 7 & 8: CHỐNG TRÙNG VÀ LƯU */}
-            <div className="pt-4 border-t border-slate-200 space-y-3">
+            <div className="pt-5 border-t border-slate-200 space-y-4">
               {/* Duplicate Warning Box if matching item detected */}
               {potentialDuplicate && (
-                <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl flex items-start gap-3 text-amber-900 animate-fadeIn">
-                  <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" />
+                <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-start gap-3 text-amber-900 animate-fadeIn">
+                  <AlertTriangle size={22} className="text-amber-600 shrink-0 mt-0.5" />
                   <div className="space-y-1 text-xs">
-                    <div className="font-extrabold text-amber-950 flex items-center gap-1.5">
+                    <div className="font-extrabold text-amber-950 flex items-center gap-1.5 text-sm">
                       <span>CẢNH BÁO: PHÁT HIỆN KHẢ NĂNG TRÙNG LẶP BẢN GHI!</span>
                     </div>
                     <p className="text-amber-900 leading-relaxed">
                       Lớp <strong>{currentClass.name}</strong> đã có bản ghi <strong>"{potentialDuplicate.criteriaName}"</strong> trong Tuần {selectedWeek} do <strong>{potentialDuplicate.inspectorName}</strong> ({potentialDuplicate.recordedBy}) ghi nhận vào ngày {potentialDuplicate.date} ({potentialDuplicate.quantity} lần, {potentialDuplicate.totalPoints}đ).
                     </p>
-                    <p className="text-amber-800 text-[11px] italic">
+                    <p className="text-amber-800 text-[11px] italic font-medium">
                       Hệ thống không tự động trừ điểm hai lần nếu đây là cùng một sự việc. Vui lòng xác nhận trước khi lưu.
                     </p>
                   </div>
@@ -1103,24 +1079,24 @@ export const WeeklyScoring: React.FC = () => {
               )}
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                <div className="text-xs text-slate-500">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+                <div className="text-xs text-slate-600 font-medium bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                   <span>Sau khi lưu, điểm lớp <strong>{currentClass.name}</strong> sẽ thay đổi từ </span>
-                  <strong className="text-slate-800">{scoreSummary.finalScore}đ</strong>
+                  <strong className="text-slate-800 font-extrabold">{scoreSummary.finalScore}đ</strong>
                   <span> sang </span>
-                  <strong className={projectedFinalScore < scoreSummary.finalScore ? 'text-rose-600' : 'text-emerald-600'}>
+                  <strong className={projectedFinalScore < scoreSummary.finalScore ? 'text-rose-600 font-black' : 'text-emerald-600 font-black'}>
                     {projectedFinalScore}đ
                   </strong>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <button
                     type="button"
                     onClick={() => {
                       setQuantity(1);
                       setNote('');
                     }}
-                    className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold cursor-pointer transition-colors"
+                    className="px-4 py-3 rounded-xl border-2 border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold cursor-pointer transition-all active:scale-95"
                   >
                     Làm mới
                   </button>
@@ -1129,16 +1105,16 @@ export const WeeklyScoring: React.FC = () => {
                     type="button"
                     onClick={() => handleSaveLog(false)}
                     disabled={isLocked || !scoringPermission.allowed}
-                    className="px-6 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-black shadow-md cursor-pointer transition-all flex items-center gap-2"
+                    className="flex-1 sm:flex-none px-6 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-black shadow-md hover:shadow-lg cursor-pointer transition-all active:scale-98 flex items-center justify-center gap-2"
                   >
                     {!scoringPermission.allowed ? (
                       <>
-                        <Lock size={16} />
+                        <Lock size={18} />
                         <span>CHẾ ĐỘ CHỈ XEM (KHÔNG ĐƯỢC LƯU)</span>
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 size={16} />
+                        <CheckCircle2 size={18} />
                         <span>LƯU BIÊN BẢN THI ĐUA (BƯỚC 8)</span>
                       </>
                     )}
@@ -1150,115 +1126,124 @@ export const WeeklyScoring: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN (4 cols): Live Score Board & Recent Class Logs */}
-        <div className="lg:col-span-4 space-y-5">
+        <div className="lg:col-span-4 space-y-6">
           {/* Live Score Card for Current Class */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">
+                <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider block">
                   ĐIỂM HIỆN TẠI TUẦN {selectedWeek}
                 </span>
                 <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
                   <span>Lớp {currentClass.name}</span>
-                  <span className="text-xs font-bold text-slate-500 font-normal">
-                    (GVCN: {currentClass.homeroomTeacher})
+                  <span className="text-xs font-bold text-slate-500">
+                    ({currentClass.homeroomTeacher})
                   </span>
                 </h3>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-xs font-black bg-blue-100 text-blue-900 border border-blue-200">
+              <span className="px-3 py-1.5 rounded-full text-xs font-black bg-blue-100 text-blue-900 border border-blue-200 shadow-2xs">
                 Hạng #{scoreSummary.rankInCampus || 1} PH
               </span>
             </div>
 
             {/* Core Formula Display: 100 + Thưởng - Phạt = Hiện tại */}
-            <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-2">
-              <div className="text-[11px] text-slate-500 font-mono font-medium text-center border-b border-slate-200 pb-1.5">
+            <div className="p-4 bg-slate-50/90 rounded-2xl border border-slate-200 space-y-2.5">
+              <div className="text-[10px] text-slate-500 font-mono font-bold text-center border-b border-slate-200/80 pb-1.5">
                 CÔNG THỨC: 100đ gốc + Điểm cộng - Điểm trừ = Điểm hiện tại
               </div>
               <div className="grid grid-cols-4 text-center divide-x divide-slate-200 pt-1">
                 <div>
-                  <span className="text-[10px] text-slate-400 block font-bold">GỐC</span>
-                  <span className="text-xs font-bold text-slate-700">100đ</span>
+                  <span className="text-[10px] text-slate-400 block font-extrabold">GỐC</span>
+                  <span className="text-xs font-extrabold text-slate-700">100đ</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-emerald-600 block font-bold">CỘNG</span>
-                  <span className="text-xs font-bold text-emerald-700">+{scoreSummary.bonusPoints}</span>
+                  <span className="text-[10px] text-emerald-600 block font-extrabold">CỘNG</span>
+                  <span className="text-xs font-black text-emerald-700">+{scoreSummary.bonusPoints}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-rose-600 block font-bold">TRỪ</span>
-                  <span className="text-xs font-bold text-rose-700">-{scoreSummary.penaltyPoints}</span>
+                  <span className="text-[10px] text-rose-600 block font-extrabold">TRỪ</span>
+                  <span className="text-xs font-black text-rose-700">-{scoreSummary.penaltyPoints}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-blue-700 block font-bold">TỔNG</span>
-                  <span className="text-base font-black text-blue-900">{scoreSummary.finalScore}đ</span>
+                  <span className="text-[10px] text-blue-700 block font-extrabold">TỔNG</span>
+                  <span className="text-base sm:text-lg font-black text-blue-950">{scoreSummary.finalScore}đ</span>
                 </div>
               </div>
             </div>
 
             {/* Logs summary for this class in this week */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                <span>Biên bản ghi nhận trong tuần ({classLogs.length}):</span>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs font-extrabold text-slate-800">
+                <span>Biên bản đã nhập ({classLogs.length}):</span>
               </div>
 
               {classLogs.length === 0 ? (
-                <div className="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                <div className="p-5 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
                   Chưa có biên bản thi đua nào cho lớp {currentClass.name} trong Tuần {selectedWeek}. Lớp đang giữ trọn 100đ nề nếp.
                 </div>
               ) : (
-                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
                   {classLogs.map((log) => (
                     <div
                       key={log.id}
-                      className={`p-2.5 rounded-xl border text-xs space-y-1.5 transition-all ${
+                      className={`p-3.5 rounded-2xl border transition-all shadow-2xs hover:shadow-xs space-y-2 relative ${
                         log.totalPoints > 0
-                          ? 'bg-emerald-50/50 border-emerald-200'
-                          : 'bg-rose-50/50 border-rose-200'
+                          ? 'bg-emerald-50/60 border-emerald-200/90'
+                          : 'bg-rose-50/60 border-rose-200/90'
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="font-bold text-slate-900 leading-tight">
-                          [{log.criteriaCode}] {log.criteriaName}
-                        </span>
-                        <span
-                          className={`font-black shrink-0 ${
-                            log.totalPoints > 0 ? 'text-emerald-700' : 'text-rose-700'
-                          }`}
-                        >
-                          {log.totalPoints > 0 ? `+${log.totalPoints}` : log.totalPoints}đ
-                        </span>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="pr-16">
+                          <div className="font-extrabold text-slate-900 text-xs sm:text-sm leading-snug">
+                            [{log.criteriaCode}] {log.criteriaName}
+                          </div>
+                        </div>
+
+                        {/* Top Right Badges: Score & Subtle Red Trash Button */}
+                        <div className="flex items-center gap-1.5 shrink-0 absolute top-3 right-3">
+                          <span
+                            className={`font-black text-xs px-2.5 py-1 rounded-lg border shadow-2xs ${
+                              log.totalPoints > 0
+                                ? 'bg-emerald-100/80 text-emerald-800 border-emerald-300'
+                                : 'bg-rose-100/80 text-rose-800 border-rose-300'
+                            }`}
+                          >
+                            {log.totalPoints > 0 ? `+${log.totalPoints}` : log.totalPoints}đ
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDeleteConfirm(log)}
+                            disabled={!canDeleteScore(log)}
+                            className="p-1.5 rounded-lg bg-rose-100/70 text-rose-600 hover:bg-rose-600 hover:text-white border border-rose-200 transition-all cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed shadow-2xs"
+                            title={canDeleteScore(log) ? 'Xóa biên bản này' : 'Không có quyền xóa'}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="flex items-center justify-between text-[11px] text-slate-500">
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium pt-1">
                         <span>{log.quantity} lần • {log.date}</span>
-                        <span>{log.inspectorName}</span>
+                        <span className="font-semibold text-slate-700">{log.inspectorName}</span>
                       </div>
 
                       {log.note && (
-                        <div className="text-[11px] text-slate-600 bg-white/60 p-1.5 rounded border border-slate-100 italic">
+                        <div className="text-[11px] text-slate-700 bg-white/80 p-2 rounded-xl border border-slate-200/60 italic font-medium">
                           "{log.note}"
                         </div>
                       )}
 
-                      {/* Edit / Delete actions */}
-                      <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-200/50">
+                      {/* Edit option */}
+                      <div className="flex items-center justify-end pt-1">
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(log)}
                           disabled={isLocked && !(currentUser.role === 'super_admin' || currentUser.role === 'admin')}
-                          className="text-[11px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-0.5 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="text-[11px] text-blue-700 hover:text-blue-900 font-extrabold flex items-center gap-1 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-200/60 transition-all"
                           title="Sửa bản ghi này"
                         >
                           <Edit2 size={11} /> Sửa
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenDeleteConfirm(log)}
-                          disabled={!canDeleteScore(log)}
-                          className="text-[11px] text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed px-2 py-0.5 rounded hover:bg-rose-50 transition-colors"
-                          title={canDeleteScore(log) ? 'Xóa bản ghi lỗi này' : 'Bạn không có quyền xóa bản ghi này'}
-                        >
-                          <Trash2 size={12} /> Xóa
                         </button>
                       </div>
                     </div>
@@ -1269,13 +1254,13 @@ export const WeeklyScoring: React.FC = () => {
           </div>
 
           {/* Quick Campus Score Matrix */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-3">
-            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
-              <School size={14} className="text-blue-600" />
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+            <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wide flex items-center gap-2">
+              <School size={16} className="text-blue-600" />
               <span>Bảng điểm nhanh phân hiệu ({campusClasses.length} lớp):</span>
             </h4>
 
-            <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
               {campusClasses.map((cls) => {
                 const sc = getClassWeeklyScore(cls.id, selectedWeek);
                 const isSelected = selectedClassId === cls.id;
@@ -1285,21 +1270,21 @@ export const WeeklyScoring: React.FC = () => {
                   <div
                     key={cls.id}
                     onClick={() => setSelectedClassId(cls.id)}
-                    className={`p-2 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition-all ${
+                    className={`p-2.5 rounded-xl border-2 flex items-center justify-between text-xs cursor-pointer transition-all ${
                       isSelected
-                        ? 'bg-blue-50 border-blue-400 font-bold text-blue-950'
-                        : 'bg-slate-50/60 border-slate-150 hover:bg-slate-100 text-slate-700'
+                        ? 'bg-blue-50 border-blue-500 font-extrabold text-blue-950 shadow-2xs'
+                        : 'bg-slate-50/60 border-slate-200 hover:bg-slate-100 text-slate-700'
                     }`}
                   >
-                    <div className="flex items-center gap-1.5">
-                      <span>Lớp {cls.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">Lớp {cls.name}</span>
                       {isDuty && (
-                        <span className="text-[9px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded font-extrabold">
+                        <span className="text-[9px] bg-amber-200 text-amber-950 px-2 py-0.5 rounded-full font-black">
                           Trực ban
                         </span>
                       )}
                     </div>
-                    <span className={`font-black ${sc.finalScore < 95 ? 'text-rose-600' : 'text-slate-900'}`}>
+                    <span className={`font-black text-xs ${sc.finalScore < 95 ? 'text-rose-600' : 'text-slate-900'}`}>
                       {sc.finalScore}đ
                     </span>
                   </div>

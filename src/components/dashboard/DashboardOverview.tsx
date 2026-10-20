@@ -747,308 +747,98 @@ export const DashboardOverview: React.FC = () => {
       )}
 
       {/* -------------------------------------------------------------------- */}
-      {/* CẢNH BÁO NỔI BẬT: NHẮC NHỞ NHẬP ĐIỂM GIAO BAN TUẦN */}
+      {/* 1. TOP STATS CARDS (Minimalist & Modern Overview Cards) */}
       {/* -------------------------------------------------------------------- */}
-      <div className={`p-5 rounded-2xl border shadow-sm transition-all ${
-        !weeklyBriefingStatus.isAllSubmitted
-          ? 'bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/5 border-amber-300'
-          : 'bg-emerald-50/70 border-emerald-200'
-      }`}>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className={`p-2.5 rounded-xl shrink-0 ${
-              !weeklyBriefingStatus.isAllSubmitted
-                ? 'bg-amber-500 text-white shadow-xs'
-                : 'bg-emerald-600 text-white'
-            }`}>
-              <Clock className="w-5 h-5" />
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-base font-extrabold text-slate-900">
-                  {!weeklyBriefingStatus.isAllSubmitted
-                    ? `NHẮC NHỞ: LỚP TRỰC CHƯA CẬP NHẬT ĐIỂM GIAO BAN TUẦN ${weeklyBriefingStatus.targetWeek}`
-                    : `TIẾN ĐỘ THI ĐUA GIAO BAN TUẦN ${weeklyBriefingStatus.targetWeek}: 100% ĐÃ HOÀN TẤT`}
-                </h3>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
-                  Hạn chót: {weeklyBriefingStatus.deadlineDay} – {weeklyBriefingStatus.deadlineTime}
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-600 leading-relaxed">
-                {!weeklyBriefingStatus.isAllSubmitted
-                  ? `Có ${weeklyBriefingStatus.pendingCampuses.length} phân hiệu chưa cập nhật biên bản thi đua tuần này. GVCN lớp trực tuần và Đội cờ đỏ cần khẩn trương nhập điểm trước thời gian giao ban.`
-                  : `Tất cả ${campuses.length} phân hiệu đã ghi nhận biên bản nề nếp thi đua Tuần ${weeklyBriefingStatus.targetWeek}. Số liệu đã sẵn sàng cho buổi giao ban Liên đội.`}
-              </p>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="flex items-center gap-2 self-start md:self-auto">
-            <button
-              onClick={() => {
-                setDeadlineDayInput(weeklyBriefingStatus.deadlineDay);
-                setDeadlineTimeInput(weeklyBriefingStatus.deadlineTime);
-                setShowDeadlineModal(true);
-              }}
-              className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-2xs cursor-pointer transition-all flex items-center gap-1.5"
-              title="Cấu hình hạn chót nộp điểm cho tuần này"
-            >
-              <Sliders className="w-3.5 h-3.5 text-blue-600" />
-              <span>Cấu hình hạn nộp</span>
-            </button>
-
-            <button
-              onClick={() => navigateToScoring({ week: weeklyBriefingStatus.targetWeek })}
-              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-xl shadow-xs cursor-pointer transition-all flex items-center gap-1.5"
-            >
-              <Clock className="w-3.5 h-3.5" />
-              <span>Vào Nhập Điểm Ngay</span>
-            </button>
-          </div>
-        </div>
-
-        {/* CẢNH BÁO ĐỎ THEO YÊU CẦU CHO TỪNG PHÂN HIỆU CHƯA HOÀN THÀNH */}
-        {weeklyBriefingStatus.pendingCampuses.length > 0 && (
-          <div className="mt-4 space-y-2">
-            {weeklyBriefingStatus.pendingCampuses.map((st) => (
-              <div
-                key={`alert_red_${st.campus.id}`}
-                className="p-3 bg-rose-600 text-white rounded-xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-              >
-                <div className="flex items-start sm:items-center gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5 sm:mt-0" />
-                  <span className="font-bold leading-snug">
-                    {st.campus.name} - Lớp trực tuần {st.dutyClass?.name || 'Chưa xếp'} chưa hoàn thành nhập điểm thi đua tuần {weeklyBriefingStatus.targetWeek}. Thời hạn: {st.deadlineDay}, {st.deadlineTime} {st.dutyClass?.teacher ? `(GVCN: ${st.dutyClass.teacher})` : ''}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                  {['super_admin', 'bgh', 'tpt_doi', 'campus_admin'].includes(userRole) && (
-                    <button
-                      onClick={() => {
-                        const teacherInfo = st.dutyClass?.teacher ? `GVCN ${st.dutyClass.teacher}` : 'GVCN lớp trực';
-                        setReminderToast(
-                          `📢 Đã gửi thông báo nhắc nhở khẩn tới ${teacherInfo} (Lớp trực ${st.dutyClass?.name || ''} - ${st.campus.name}) hoàn thành nhập điểm trước ${st.deadlineDay}, ${st.deadlineTime}!`
-                        );
-                        setTimeout(() => setReminderToast(null), 5000);
-                      }}
-                      className="px-3 py-1 bg-white/20 hover:bg-white/30 text-white font-bold rounded-lg border border-white/30 transition-all flex items-center gap-1 cursor-pointer"
-                      title="Gửi thông báo nhắc nhở tới GVCN lớp trực"
-                    >
-                      <span>📢 Gửi nhắc nhở</span>
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => navigateToScoring({ campusId: st.campus.id, week: weeklyBriefingStatus.targetWeek })}
-                    className="px-3 py-1 bg-amber-400 hover:bg-amber-300 text-slate-900 font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>Nhập điểm ngay</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Campuses Status Grid */}
-        <div className="mt-4 pt-3 border-t border-slate-200/60 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-          {weeklyBriefingStatus.campusStatus.map((st) => (
-            <div
-              key={st.campus.id}
-              className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition-all ${
-                !st.hasSubmitted
-                  ? 'bg-rose-50/80 border-rose-200 text-rose-950 font-medium'
-                  : 'bg-white/80 border-slate-200 text-slate-800'
-              }`}
-            >
-              <div className="truncate min-w-0 mr-2">
-                <span className="font-extrabold block truncate">{st.campus.name}</span>
-                <span className="text-[11px] text-slate-500 block truncate">
-                  Lớp trực: <strong>{st.dutyClass?.name || 'Chưa xếp'}</strong> ({st.dutyClass?.teacher || 'Chưa rõ'})
-                </span>
-              </div>
-
-              <div className="shrink-0 flex items-center gap-2">
-                {st.hasSubmitted ? (
-                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" />
-                    <span>Đã có {st.logsCount} bản ghi</span>
-                  </span>
-                ) : (
-                  <button
-                    onClick={() => navigateToScoring({ campusId: st.campus.id, week: weeklyBriefingStatus.targetWeek })}
-                    className="text-[11px] font-extrabold text-rose-700 bg-rose-100 hover:bg-rose-200 px-2 py-0.5 rounded-full cursor-pointer transition-colors"
-                  >
-                    ⚠️ Chưa nhập
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Modal Cấu hình Hạn giao ban */}
-      {showDeadlineModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
-                <Clock className="w-4 h-4 text-blue-600" />
-                <span>Cấu hình hạn chót nộp điểm Tuần {weeklyBriefingStatus.targetWeek}</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowDeadlineModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <p className="text-slate-500">
-                Mặc định: <strong>Thứ Sáu – 08:30</strong>. Bạn có thể tùy chỉnh ngày và giờ họp giao ban cho riêng Tuần {weeklyBriefingStatus.targetWeek}.
-              </p>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Ngày giao ban trong tuần:</label>
-                <select
-                  value={deadlineDayInput}
-                  onChange={(e) => setDeadlineDayInput(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-blue-500 cursor-pointer"
-                >
-                  {['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'].map((d) => (
-                    <option key={d} value={d}>
-                      {d}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Giờ giao ban:</label>
-                <input
-                  type="time"
-                  value={deadlineTimeInput}
-                  onChange={(e) => setDeadlineTimeInput(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-blue-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowDeadlineModal(false)}
-                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-bold cursor-pointer"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    updateBriefingDeadline(weeklyBriefingStatus.targetWeek, deadlineDayInput, deadlineTimeInput);
-                    setShowDeadlineModal(false);
-                  }}
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer shadow-xs"
-                >
-                  Lưu cấu hình
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* -------------------------------------------------------------------- */}
-      {/* 1. TOP STATS CARDS (Requirement #1) */}
-      {/* -------------------------------------------------------------------- */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {/* Total Classes */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
-            <span>Tổng số lớp</span>
-            <BookOpen className="w-4 h-4 text-slate-400" />
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute -right-3 -bottom-3 text-slate-100 pointer-events-none">
+            <BookOpen className="w-20 h-20 opacity-50" />
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">
-            {topStats.totalClasses}
+          <div className="relative z-10">
+            <div className="text-slate-500 text-xs font-bold uppercase tracking-wider">Tổng số lớp</div>
+            <div className="text-3xl font-black text-slate-900 mt-2 tracking-tight">{topStats.totalClasses}</div>
           </div>
-          <div className="text-[11px] text-slate-500 mt-0.5 font-medium">
+          <div className="relative z-10 text-[11px] text-slate-400 font-semibold mt-3 pt-2 border-t border-slate-100">
             Toàn bộ 4 khối (6, 7, 8, 9)
           </div>
         </div>
 
         {/* Total Campuses */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
-            <span>Tổng phân hiệu</span>
-            <School className="w-4 h-4 text-slate-400" />
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute -right-3 -bottom-3 text-indigo-50 pointer-events-none">
+            <School className="w-20 h-20 opacity-70 text-indigo-100" />
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-indigo-700 mt-2">
-            {topStats.totalCampuses}
+          <div className="relative z-10">
+            <div className="text-indigo-600 text-xs font-bold uppercase tracking-wider">Tổng phân hiệu</div>
+            <div className="text-3xl font-black text-indigo-700 mt-2 tracking-tight">{topStats.totalCampuses}</div>
           </div>
-          <div className="text-[11px] text-indigo-600/90 mt-0.5 font-semibold">
+          <div className="relative z-10 text-[11px] text-indigo-500 font-semibold mt-3 pt-2 border-t border-slate-100">
             1 Chính + 5 Phân hiệu
           </div>
         </div>
 
         {/* Week Scored Classes */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs bg-gradient-to-b from-emerald-50/40 to-white">
-          <div className="flex items-center justify-between text-emerald-700 text-xs font-bold">
-            <span>Đã có điểm tuần</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute -right-3 -bottom-3 text-emerald-50 pointer-events-none">
+            <CheckCircle2 className="w-20 h-20 opacity-70 text-emerald-100" />
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-emerald-700 mt-2">
-            {topStats.weekScoredClasses} <span className="text-sm font-semibold text-slate-500">/ {topStats.totalClasses}</span>
+          <div className="relative z-10">
+            <div className="text-emerald-700 text-xs font-bold uppercase tracking-wider">Điểm tuần {activeWeek}</div>
+            <div className="text-3xl font-black text-emerald-700 mt-2 tracking-tight">
+              {topStats.weekScoredClasses} <span className="text-sm font-bold text-slate-400">/ {topStats.totalClasses}</span>
+            </div>
           </div>
-          <div className="text-[11px] text-emerald-800 font-semibold mt-0.5 flex items-center gap-1">
-            <span>Tuần {activeWeek}: {topStats.isCurWeekLocked ? '🔒 Đã chốt' : 'Đang mở'}</span>
+          <div className="relative z-10 text-[11px] text-emerald-800 font-semibold mt-3 pt-2 border-t border-slate-100">
+            {topStats.isCurWeekLocked ? '🔒 Tuần đã chốt' : '🟢 Đang mở chấm'}
           </div>
         </div>
 
         {/* Month Locked Classes */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs bg-gradient-to-b from-blue-50/40 to-white">
-          <div className="flex items-center justify-between text-blue-700 text-xs font-bold">
-            <span>Đã chốt tháng</span>
-            <Calendar className="w-4 h-4 text-blue-600" />
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute -right-3 -bottom-3 text-blue-50 pointer-events-none">
+            <Calendar className="w-20 h-20 opacity-70 text-blue-100" />
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-blue-700 mt-2">
-            {topStats.monthLockedClasses} <span className="text-sm font-semibold text-slate-500">/ {topStats.totalClasses}</span>
+          <div className="relative z-10">
+            <div className="text-blue-700 text-xs font-bold uppercase tracking-wider">Chốt Tháng {activeMonth}</div>
+            <div className="text-3xl font-black text-blue-700 mt-2 tracking-tight">
+              {topStats.monthLockedClasses} <span className="text-sm font-bold text-slate-400">/ {topStats.totalClasses}</span>
+            </div>
           </div>
-          <div className="text-[11px] text-blue-800 font-semibold mt-0.5">
-            Tháng {activeMonth}: {topStats.isCurMonthLocked ? '🔒 Đã chốt' : 'Chưa chốt'}
+          <div className="relative z-10 text-[11px] text-blue-800 font-semibold mt-3 pt-2 border-t border-slate-100">
+            {topStats.isCurMonthLocked ? '🔒 Tháng đã chốt' : '🟢 Đang cập nhật'}
           </div>
         </div>
 
         {/* Semester Locked Classes */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs bg-gradient-to-b from-purple-50/40 to-white">
-          <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
-            <span>Đã chốt học kỳ</span>
-            <Award className="w-4 h-4 text-purple-600" />
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute -right-3 -bottom-3 text-purple-50 pointer-events-none">
+            <Award className="w-20 h-20 opacity-70 text-purple-100" />
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-purple-700 mt-2">
-            {topStats.semesterLockedClasses} <span className="text-sm font-semibold text-slate-500">/ {topStats.totalClasses}</span>
+          <div className="relative z-10">
+            <div className="text-purple-700 text-xs font-bold uppercase tracking-wider">Chốt Học kỳ {activeSemester}</div>
+            <div className="text-3xl font-black text-purple-700 mt-2 tracking-tight">
+              {topStats.semesterLockedClasses} <span className="text-sm font-bold text-slate-400">/ {topStats.totalClasses}</span>
+            </div>
           </div>
-          <div className="text-[11px] text-purple-800 font-semibold mt-0.5">
-            HK{activeSemester === 1 ? 'I' : 'II'}: {topStats.isCurSemLocked ? '🔒 Đã chốt' : 'Chưa chốt'}
+          <div className="relative z-10 text-[11px] text-purple-800 font-semibold mt-3 pt-2 border-t border-slate-100">
+            {topStats.isCurSemLocked ? '🔒 HK đã chốt' : '🟢 Đang cập nhật'}
           </div>
         </div>
 
         {/* Year Locked Classes */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs bg-gradient-to-b from-amber-50/40 to-white">
-          <div className="flex items-center justify-between text-amber-700 text-xs font-bold">
-            <span>Đã chốt cả năm</span>
-            <Trophy className="w-4 h-4 text-amber-600" />
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute -right-3 -bottom-3 text-amber-50 pointer-events-none">
+            <Trophy className="w-20 h-20 opacity-70 text-amber-100" />
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-amber-600 mt-2">
-            {topStats.yearLockedClasses} <span className="text-sm font-semibold text-slate-500">/ {topStats.totalClasses}</span>
+          <div className="relative z-10">
+            <div className="text-amber-700 text-xs font-bold uppercase tracking-wider">Chốt Cả Năm</div>
+            <div className="text-3xl font-black text-amber-600 mt-2 tracking-tight">
+              {topStats.yearLockedClasses} <span className="text-sm font-bold text-slate-400">/ {topStats.totalClasses}</span>
+            </div>
           </div>
-          <div className="text-[11px] text-amber-800 font-semibold mt-0.5">
-            {topStats.yearLocked ? '🔒 Cả năm đã chốt' : 'Chưa chốt cả năm'}
+          <div className="relative z-10 text-[11px] text-amber-800 font-semibold mt-3 pt-2 border-t border-slate-100">
+            {topStats.yearLocked ? '🔒 Năm học đã chốt' : '🟢 Đang cập nhật'}
           </div>
         </div>
       </div>

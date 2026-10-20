@@ -189,44 +189,46 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar, isMobileS
             </div>
           </div>
 
+          {/* Quick Sync Button (Available for all roles including teachers) */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={async () => {
+                setIsSyncing(true);
+                setSyncToast(null);
+                const res = await loadDataFromFirebase();
+                setIsSyncing(false);
+                setSyncToast(res?.message || 'Đồng bộ dữ liệu thành công từ máy chủ!');
+                setTimeout(() => setSyncToast(null), 4000);
+              }}
+              disabled={isSyncing}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-blue-200 hover:border-blue-400 bg-white hover:bg-blue-50 text-blue-700 text-xs font-bold transition-all cursor-pointer shadow-2xs disabled:opacity-50"
+              title="Đồng bộ ngay lập tức toàn bộ dữ liệu mới nhất từ máy chủ Firestore"
+            >
+              <RefreshCw size={15} className={isSyncing ? 'animate-spin' : ''} />
+              <span>{isSyncing ? 'Đang đồng bộ...' : 'Đồng Bộ'}</span>
+            </button>
+          </div>
+
           {/* Quick Compliance Audit & Standby Excel Buttons (Ẩn đối với Role 4: Giáo viên) */}
           {!isRoleTeacher(currentUser) && (
-            <>
-              <div className="hidden lg:flex items-center gap-1.5">
-                <button
-                  onClick={async () => {
-                    setIsSyncing(true);
-                    setSyncToast(null);
-                    const res = await loadDataFromFirebase();
-                    setIsSyncing(false);
-                    setSyncToast(res?.message || 'Đồng bộ dữ liệu thành công từ máy chủ!');
-                    setTimeout(() => setSyncToast(null), 4000);
-                  }}
-                  disabled={isSyncing}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-blue-200 hover:border-blue-400 bg-white hover:bg-blue-50 text-blue-700 text-xs font-bold transition-all cursor-pointer shadow-2xs disabled:opacity-50"
-                  title="Đồng bộ ngay lập tức toàn bộ dữ liệu từ máy chủ Firestore"
-                >
-                  <RefreshCw size={15} className={isSyncing ? 'animate-spin' : ''} />
-                  <span>{isSyncing ? 'Đang đồng bộ...' : 'Đồng Bộ'}</span>
-                </button>
-                <button
-                  onClick={() => setShowAuditModal(true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 hover:border-indigo-300 bg-white hover:bg-indigo-50/60 text-slate-700 hover:text-indigo-800 text-xs font-bold transition-all cursor-pointer shadow-2xs"
-                  title="Rà soát đối chiếu toàn vẹn quy định công văn của Nhà trường"
-                >
-                  <Scale size={15} className="text-indigo-600" />
-                  <span>Rà Soát Quy Chuẩn</span>
-                </button>
+            <div className="hidden lg:flex items-center gap-1.5">
+              <button
+                onClick={() => setShowAuditModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 hover:border-indigo-300 bg-white hover:bg-indigo-50/60 text-slate-700 hover:text-indigo-800 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                title="Rà soát đối chiếu toàn vẹn quy định công văn của Nhà trường"
+              >
+                <Scale size={15} className="text-indigo-600" />
+                <span>Rà Soát Quy Chuẩn</span>
+              </button>
 
-                <button
-                  onClick={() => setShowBackupModal(true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-emerald-200 hover:border-emerald-300 bg-emerald-50/60 hover:bg-emerald-100/70 text-emerald-900 text-xs font-bold transition-all cursor-pointer shadow-2xs"
-                  title="Xuất bảng tính Excel dự phòng & sao lưu toàn bộ hệ thống"
-                >
-                  <FileSpreadsheet size={15} className="text-emerald-700" />
-                  <span>Sao Lưu & Excel</span>
-                </button>
-              </div>
+              <button
+                onClick={() => setShowBackupModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-emerald-200 hover:border-emerald-300 bg-emerald-50/60 hover:bg-emerald-100/70 text-emerald-900 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                title="Xuất bảng tính Excel dự phòng & sao lưu toàn bộ hệ thống"
+              >
+                <FileSpreadsheet size={15} className="text-emerald-700" />
+                <span>Sao Lưu & Excel</span>
+              </button>
 
               {/* Tải Xuống Mã Nguồn (.ZIP) Export Project Button */}
               <button
@@ -238,7 +240,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar, isMobileS
                 <span className="hidden sm:inline font-extrabold tracking-wide">TẢI XUỐNG MÃ NGUỒN</span>
                 <span className="sm:hidden font-extrabold">Tải ZIP</span>
               </button>
-            </>
+            </div>
           )}
 
           {/* Quick Change Password Button for instant access */}

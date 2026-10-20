@@ -1152,7 +1152,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const [
         usersSnap, campusesSnap, criteriaSnap, classesSnap, scoreLogsSnap, settingsSnap,
         lockedWeeksSnap, lockedMonthsSnap, lockedSemestersSnap,
-        lockedTitlesSnap, disciplinaryRecordsSnap, monthlyBonusesSnap, appealsSnap
+        lockedTitlesSnap, disciplinaryRecordsSnap, monthlyBonusesSnap, appealsSnap,
+        historicalScoresSnap
       ] = await Promise.all([
         getDocs(collection(db, 'users')),
         getDocs(collection(db, 'campuses')),
@@ -1167,6 +1168,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         getDocs(collection(db, 'disciplinary_records')),
         getDoc(doc(db, 'monthly_bonuses', 'summary')),
         getDocs(collection(db, 'appeals')),
+        getDoc(doc(db, 'historical_scores', 'summary')),
       ]);
 
       let finalUsers: User[] = [];
@@ -1208,6 +1210,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (!disciplinaryRecordsSnap.empty) setDisciplinaryRecords(disciplinaryRecordsSnap.docs.map(d => d.data() as DisciplinaryRecord));
       if (monthlyBonusesSnap.exists()) setBonusMonthly(monthlyBonusesSnap.data().bonusMonthly || {});
       if (!appealsSnap.empty) setAppeals(appealsSnap.docs.map(d => d.data() as AdjustmentAppeal));
+      if (historicalScoresSnap.exists() && historicalScoresSnap.data().historicalWeeklyScores) {
+        const histData = historicalScoresSnap.data().historicalWeeklyScores;
+        setHistoricalWeeklyScores(histData);
+        setSettings((prev) => ({ ...prev, historicalWeeklyScores: histData }));
+      }
 
       setIsDataLoaded(true);
       return { success: true, message: 'Đồng bộ dữ liệu thành công từ máy chủ Firestore!' };
@@ -1589,8 +1596,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
 
-    // 1. Chọc thẳng vào Cơ sở dữ liệu (State / Store) chứa danh sách Người dùng mới nhất
     let currentUsersList: User[] = [...users];
+
+    // 1. Fetch fresh users directly from Firestore FIRST (critical for incognito / static hosting like Netlify)
+    try {
+      let snap = await getDocs(collection(db, 'users'));
+      if (snap.empty && dbNamed) {
+        try {
+          snap = await getDocs(collection(dbNamed, 'users'));
+        } catch {}
+      }
+      if (!snap.empty) {
+        const cloudUsers = snap.docs.map((d) => d.data() as User);
+        const idMap = new Map<string, User>();
+        currentUsersList.forEach((u) => idMap.set(u.id, u));
+        cloudUsers.forEach((u) => idMap.set(u.id, u));
+        currentUsersList = Array.from(idMap.values());
+        setUsers(currentUsersList);
+        try {
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(currentUsersList));
+        } catch {}
+      }
+    } catch (fbErr) {
+      console.warn('Lỗi đồng bộ users từ Firestore khi đăng nhập:', fbErr);
+    }
+
+    // Also check localStorage
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.USERS);
       if (raw) {
@@ -1604,7 +1635,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     } catch {}
 
-    // 2. Kiểm tra bằng hàm find(): Tìm user có email (chuyển sang chữ thường .toLowerCase()) và password trùng với input
+    // 2. Find matching user
     let matched = currentUsersList.find((u) => {
       const uEmail = (u.email || '').trim().toLowerCase();
       const isAdmin =
@@ -1612,56 +1643,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         u.role === 'admin' ||
         u.id === 'u_admin' ||
         u.id === 'u_admin_hung';
-     // Ép cứng mật khẩu Admin luôn là Admin@123 cho các tài khoản quản trị
       const defaultPass = (u.email?.toLowerCase() === 'lehuyhung.h2com@gmail.com' || isAdmin) ? 'Admin@123' : 'Lhl@2026';
       const uPassword = (u.password && typeof u.password === 'string' && u.password.trim())
         ? u.password.trim()
         : defaultPass;
       return uEmail === cleanEmail && uPassword === cleanPassword;
     });
-
-    // 2. Nếu trong state/store hiện tại chưa tìm thấy, tra cứu trực tiếp từ Firebase Firestore (cả database default và dbNamed)
-    if (!matched) {
-      try {
-        let snap = await getDocs(collection(db, 'users'));
-        if (snap.empty && dbNamed) {
-          try {
-            snap = await getDocs(collection(dbNamed, 'users'));
-          } catch {}
-        }
-        if (!snap.empty) {
-          const cloudUsers = snap.docs.map((d) => d.data() as User);
-          // Hợp nhất vào currentUsersList
-          const idMap = new Map<string, User>();
-          currentUsersList.forEach((u) => idMap.set(u.id, u));
-          cloudUsers.forEach((u) => idMap.set(u.id, u));
-          currentUsersList = Array.from(idMap.values());
-
-          const foundInCloud = cloudUsers.find((u) => {
-            const uEmail = (u.email || '').trim().toLowerCase();
-            const isAdmin =
-              u.role === 'super_admin' ||
-              u.role === 'admin' ||
-              u.id === 'u_admin' ||
-              u.id === 'u_admin_hung';
-            const defaultPass = (u.email?.toLowerCase() === 'lehuyhung.h2com@gmail.com' || isAdmin) ? 'Admin@123' : 'Lhl@2026';
-            const uPassword = (u.password && typeof u.password === 'string' && u.password.trim())
-              ? u.password.trim()
-              : defaultPass;
-            return uEmail === cleanEmail && uPassword === cleanPassword;
-          });
-          if (foundInCloud) {
-            matched = foundInCloud;
-            setUsers(currentUsersList);
-            try {
-              localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(currentUsersList));
-            } catch {}
-          }
-        }
-      } catch (fbErr) {
-        console.warn('Lỗi tra cứu người dùng từ Firebase:', fbErr);
-      }
-    }
 
     // 3. Nếu vẫn chưa tìm thấy, thử kiểm tra API backend
     if (!matched) {

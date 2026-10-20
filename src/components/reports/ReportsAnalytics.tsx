@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { PrintReportModal } from '../common/PrintReportModal';
+import { ZaloReportModal } from '../common/ZaloReportModal';
 import {
   BarChart3,
   TrendingUp,
@@ -13,6 +14,8 @@ import {
   Layers,
   Download,
   FileSpreadsheet,
+  LineChart,
+  Share2,
 } from 'lucide-react';
 
 export const ReportsAnalytics: React.FC = () => {
@@ -27,14 +30,49 @@ export const ReportsAnalytics: React.FC = () => {
     getWeeklyRankings,
     exportCurrentRankingsExcel,
     exportOfflineStandbyWorkbook,
-    exportCurrentScoreLogsExcel,
   } = useApp();
 
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showZaloModal, setShowZaloModal] = useState(false);
+  const [selectedClassTrendId, setSelectedClassTrendId] = useState<string>(classes[0]?.id || '');
 
   const rankings = useMemo(() => {
     return getWeeklyRankings(selectedWeek, 'all', 'all');
   }, [getWeeklyRankings, selectedWeek]);
+
+  // Multi-week trend calculation for all weeks (1 to maxWeeks)
+  const multiWeekTrend = useMemo(() => {
+    const weeksList = Array.from({ length: maxWeeks }, (_, i) => i + 1);
+    return weeksList.map((w) => {
+      const wRanks = getWeeklyRankings(w, 'all', 'all');
+      const avg =
+        wRanks.length > 0
+          ? Number((wRanks.reduce((sum, r) => sum + r.totalScore, 0) / wRanks.length).toFixed(1))
+          : 100;
+      return {
+        week: w,
+        avgScore: avg,
+        totalClasses: wRanks.length,
+      };
+    });
+  }, [getWeeklyRankings, maxWeeks]);
+
+  // Specific class trend across weeks
+  const classTrendData = useMemo(() => {
+    if (!selectedClassTrendId) return [];
+    const weeksList = Array.from({ length: maxWeeks }, (_, i) => i + 1);
+    return weeksList.map((w) => {
+      const wRanks = getWeeklyRankings(w, 'all', 'all');
+      const index = wRanks.findIndex((r) => r.classItem.id === selectedClassTrendId);
+      const found = index !== -1 ? wRanks[index] : null;
+      return {
+        week: w,
+        score: found ? found.totalScore : 100,
+        tier: found ? found.performanceTier : 'Chưa có',
+        rank: index !== -1 ? index + 1 : '-',
+      };
+    });
+  }, [getWeeklyRankings, maxWeeks, selectedClassTrendId]);
 
   // Campus comparison data
   const campusStats = useMemo(() => {
@@ -72,7 +110,9 @@ export const ReportsAnalytics: React.FC = () => {
 
   // Top Violations across current week logs
   const topViolations = useMemo(() => {
-    const weekLogs = scoreLogs.filter((l) => Number(l.week) === Number(selectedWeek) && (l.type === 'penalty' || l.totalPoints < 0));
+    const weekLogs = scoreLogs.filter(
+      (l) => Number(l.week) === Number(selectedWeek) && (l.type === 'penalty' || l.totalPoints < 0)
+    );
     const map = new Map<string, { code: string; name: string; category: string; count: number; points: number }>();
 
     weekLogs.forEach((l) => {
@@ -95,7 +135,9 @@ export const ReportsAnalytics: React.FC = () => {
 
   // Top Honors / Bonuses across current week logs
   const topBonuses = useMemo(() => {
-    const weekLogs = scoreLogs.filter((l) => Number(l.week) === Number(selectedWeek) && (l.type === 'bonus' || l.totalPoints > 0));
+    const weekLogs = scoreLogs.filter(
+      (l) => Number(l.week) === Number(selectedWeek) && (l.type === 'bonus' || l.totalPoints > 0)
+    );
     const map = new Map<string, { code: string; name: string; category: string; count: number; points: number }>();
 
     weekLogs.forEach((l) => {
@@ -117,7 +159,7 @@ export const ReportsAnalytics: React.FC = () => {
   }, [scoreLogs, selectedWeek]);
 
   const tierCounts = useMemo(() => {
-    const counts = {
+    const counts: Record<string, number> = {
       'Xuất sắc': 0,
       'Tốt': 0,
       'Khá': 0,
@@ -140,13 +182,13 @@ export const ReportsAnalytics: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-indigo-700 uppercase tracking-wider mb-1">
             <BarChart3 size={16} />
-            <span>Phân tích dữ liệu & Báo cáo chuyên sâu</span>
+            <span>Phân tích dữ liệu & Báo cáo chuyên sâu BGH</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             Báo Cáo & Thống Kê Thi Đua Tuần {selectedWeek}
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Tổng hợp dữ liệu đa chiều phục vụ công tác giao ban, sơ kết và thi đua khen thưởng của Ban Giám Hiệu.
+            Tổng hợp dữ liệu đa chiều, biểu đồ xu hướng tiến độ nề nếp toàn trường năm học {settings.academicYear}.
           </p>
         </div>
 
@@ -168,12 +210,21 @@ export const ReportsAnalytics: React.FC = () => {
           </div>
 
           <button
+            onClick={() => setShowZaloModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-2xs"
+            title="Sao chép mẫu tin nhắn tóm tắt để gửi Zalo / Telegram"
+          >
+            <Share2 size={14} className="text-blue-600" />
+            <span>Sao chép Zalo</span>
+          </button>
+
+          <button
             onClick={() => exportCurrentRankingsExcel('week', 'Toàn trường')}
             className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-2xs"
             title="Xuất bảng xếp hạng tuần ra Excel"
           >
             <Download size={14} className="text-emerald-700" />
-            <span>Xuất Excel Tuần {selectedWeek}</span>
+            <span>Xuất Excel</span>
           </button>
 
           <button
@@ -182,7 +233,7 @@ export const ReportsAnalytics: React.FC = () => {
             title="Tải sổ chấm điểm tự động bằng Excel phòng ngừa mất mạng"
           >
             <FileSpreadsheet size={14} className="text-slate-600" />
-            <span>Sổ Offline Dự Phòng</span>
+            <span>Sổ Offline</span>
           </button>
 
           <button
@@ -196,13 +247,96 @@ export const ReportsAnalytics: React.FC = () => {
         </div>
       </div>
 
+      {/* Multi-week Trend Overview Chart & Class History */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Multi-week Trend */}
+        <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                <LineChart size={18} className="text-indigo-600" />
+                <span>Xu hướng Điểm TB Toàn Trường qua các Tuần</span>
+              </h3>
+              <span className="text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full font-semibold">
+                Năm học {settings.academicYear}
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-500 mb-4">
+              Biểu đồ thể hiện mức điểm trung bình nề nếp chung của toàn bộ {classes.length} lớp qua các tuần đã đánh giá.
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 pt-2">
+              {multiWeekTrend.map((item) => (
+                <div
+                  key={item.week}
+                  onClick={() => setSelectedWeek(item.week)}
+                  className={`p-2.5 rounded-xl border text-center cursor-pointer transition-all ${
+                    selectedWeek === item.week
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                      : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <div className={`text-[11px] font-semibold ${selectedWeek === item.week ? 'text-indigo-200' : 'text-slate-500'}`}>
+                    Tuần {item.week}
+                  </div>
+                  <div className={`text-base font-black tabular-nums mt-0.5 ${selectedWeek === item.week ? 'text-white' : 'text-indigo-700'}`}>
+                    {item.avgScore}
+                  </div>
+                  <div className={`text-[9px] mt-0.5 ${selectedWeek === item.week ? 'text-indigo-100' : 'text-slate-400'}`}>
+                    {item.totalClasses} lớp
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Specific Class Trend Viewer */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div>
+            <h3 className="font-bold text-slate-900 text-base flex items-center gap-2 mb-3">
+              <TrendingUp size={18} className="text-indigo-600" />
+              <span>Tiến độ Riêng của Lớp</span>
+            </h3>
+
+            <div className="mb-3">
+              <label className="block text-[11px] font-semibold text-slate-600 mb-1">Chọn lớp theo dõi:</label>
+              <select
+                value={selectedClassTrendId}
+                onChange={(e) => setSelectedClassTrendId(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-hidden"
+              >
+                {classes.map((cls) => (
+                  <option key={cls.id} value={cls.id}>
+                    Lớp {cls.name} (Khối {cls.grade})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+              {classTrendData.map((ct) => (
+                <div key={ct.week} className="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-50 border border-slate-100">
+                  <span className="font-medium text-slate-600">Tuần {ct.week}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] text-slate-400">Hạng #{ct.rank}</span>
+                    <span className="font-extrabold text-indigo-700 tabular-nums">{ct.score} đ</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Campus Comparison Cards & Grade Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Campus Comparison */}
         <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
           <h3 className="font-bold text-slate-900 text-base flex items-center gap-2 mb-4">
             <School size={18} className="text-indigo-600" />
-            <span>So sánh Điểm trung bình giữa 6 Phân hiệu</span>
+            <span>So sánh Điểm trung bình giữa các Phân hiệu (Tuần {selectedWeek})</span>
           </h3>
 
           <div className="space-y-4">
@@ -376,6 +510,16 @@ export const ReportsAnalytics: React.FC = () => {
           periodType="week"
           periodNumber={selectedWeek}
           onClose={() => setShowPrintModal(false)}
+        />
+      )}
+
+      {/* Zalo Report Modal */}
+      {showZaloModal && (
+        <ZaloReportModal
+          selectedWeek={selectedWeek}
+          academicYear={settings.academicYear}
+          rankings={rankings}
+          onClose={() => setShowZaloModal(false)}
         />
       )}
     </div>

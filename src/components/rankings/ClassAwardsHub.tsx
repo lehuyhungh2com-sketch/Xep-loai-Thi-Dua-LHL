@@ -255,6 +255,164 @@ export const ClassAwardsHub: React.FC = () => {
     window.print();
   };
 
+  const handlePrintCommendationDecision = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Vui lòng cho phép mở cửa sổ Popup để in quyết định khen thưởng!');
+      return;
+    }
+
+    const excellentClasses = displayedRows.filter((r) => r.title === 'LỚP XUẤT SẮC');
+    const advancedClasses = displayedRows.filter((r) => r.title === 'LỚP TIÊN TIẾN');
+    const now = new Date();
+    const dayStr = String(now.getDate()).padStart(2, '0');
+    const monthStr = String(now.getMonth() + 1).padStart(2, '0');
+    const yearStr = String(now.getFullYear());
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>QUYẾT ĐỊNH KHEN THƯỞNG TẬP THỂ LỚP - NĂM HỌC ${settings.academicYear}</title>
+  <style>
+    body {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 13pt;
+      line-height: 1.5;
+      color: #000000;
+      margin: 2cm;
+      background: #ffffff;
+    }
+    .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    .header-table td { vertical-align: top; text-align: center; }
+    .title-center { text-align: center; font-weight: bold; text-transform: uppercase; }
+    table.data-table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 20px; }
+    table.data-table th, table.data-table td { border: 1px solid #000000; padding: 6px 8px; font-size: 11pt; text-align: left; }
+    table.data-table th { background-color: #f2f2f2; text-align: center; }
+    .signature-table { width: 100%; border-collapse: collapse; margin-top: 30px; page-break-inside: avoid; }
+    .signature-table td { width: 50%; text-align: center; vertical-align: top; }
+    @media print {
+      body { margin: 1cm; }
+    }
+  </style>
+</head>
+<body>
+  <table class="header-table">
+    <tr>
+      <td style="width: 40%;">
+        <strong>UBND HUYỆN HẬU LỘC</strong><br/>
+        <strong>TRƯỜNG THCS LÊ HỮU LẬP</strong>
+        <div style="border-bottom: 1px solid #000; width: 100px; margin: 5px auto;"></div>
+      </td>
+      <td style="width: 60%;">
+        <strong>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong><br/>
+        <strong>Độc lập - Tự do - Hạnh phúc</strong>
+        <div style="border-bottom: 1px solid #000; width: 150px; margin: 5px auto;"></div>
+      </td>
+    </tr>
+  </table>
+
+  <div class="title-center" style="font-size: 14pt; margin-top: 20px;">QUYẾT ĐỊNH KHEN THƯỞNG TẬP THỂ LỚP</div>
+  <div class="title-center" style="font-size: 13pt; margin-top: 5px; font-weight: normal;">V/v Công nhận danh hiệu thi đua các tập thể lớp năm học ${settings.academicYear}</div>
+  <div class="title-center" style="font-size: 11pt; margin-top: 5px; font-style: italic;">Phạm vi xét duyệt: ${selectedScopeName}</div>
+  <br/>
+
+  <h3>I. CÁC TẬP THỂ LỚP ĐẠT DANH HIỆU "LỚP XUẤT SẮC" (${excellentClasses.length} lớp)</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 8%;">STT</th>
+        <th style="width: 25%;">Tên lớp</th>
+        <th style="width: 20%;">Phân hiệu</th>
+        <th style="width: 22%;">GVCN</th>
+        <th style="width: 25%;">Điểm cả năm</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${
+        excellentClasses.length === 0
+          ? '<tr><td colspan="5" style="text-align: center; font-style: italic;">Không có lớp nào đạt danh hiệu Lớp Xuất Sắc trong phạm vi này.</td></tr>'
+          : excellentClasses
+              .map(
+                (r, i) => `
+        <tr>
+          <td style="text-align: center;">${i + 1}</td>
+          <td><b>Lớp ${r.classItem.name}</b> (Khối ${r.classItem.grade})</td>
+          <td>${r.campus.name}</td>
+          <td>${r.classItem.homeroomTeacher || 'Chưa phân công'}</td>
+          <td><b>${r.yearScore !== null ? r.yearScore.toFixed(2) : '-'} điểm</b></td>
+        </tr>
+      `
+              )
+              .join('')
+      }
+    </tbody>
+  </table>
+
+  <br/>
+  <h3>II. CÁC TẬP THỂ LỚP ĐẠT DANH HIỆU "LỚP TIÊN TIẾN" (${advancedClasses.length} lớp)</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 8%;">STT</th>
+        <th style="width: 25%;">Tên lớp</th>
+        <th style="width: 20%;">Phân hiệu</th>
+        <th style="width: 22%;">GVCN</th>
+        <th style="width: 25%;">Điểm cả năm</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${
+        advancedClasses.length === 0
+          ? '<tr><td colspan="5" style="text-align: center; font-style: italic;">Không có lớp nào đạt danh hiệu Lớp Tiên Tiến trong phạm vi này.</td></tr>'
+          : advancedClasses
+              .map(
+                (r, i) => `
+        <tr>
+          <td style="text-align: center;">${i + 1}</td>
+          <td><b>Lớp ${r.classItem.name}</b> (Khối ${r.classItem.grade})</td>
+          <td>${r.campus.name}</td>
+          <td>${r.classItem.homeroomTeacher || 'Chưa phân công'}</td>
+          <td><b>${r.yearScore !== null ? r.yearScore.toFixed(2) : '-'} điểm</b></td>
+        </tr>
+      `
+              )
+              .join('')
+      }
+    </tbody>
+  </table>
+
+  <br/><br/>
+  <table class="signature-table">
+    <tr>
+      <td>
+        <b>T/M HỘI ĐỒNG THI ĐUA</b><br/>
+        <i>(Ký, ghi rõ họ tên)</i>
+        <br/><br/><br/><br/><br/>
+        <b>${settings.leadershipSignatures?.tptName || 'Hiệu trưởng / TPT'}</b>
+      </td>
+      <td>
+        Hậu Lộc, ngày ${dayStr} tháng ${monthStr} năm ${yearStr}<br/>
+        <b>HIỆU TRƯỞNG</b><br/>
+        <i>(Ký tên, đóng dấu)</i>
+        <br/><br/><br/><br/><br/>
+        <b>${settings.leadershipSignatures?.principalName || 'Thầy Hùng'}</b>
+      </td>
+    </tr>
+  </table>
+
+  <script>
+    window.onload = function() {
+      window.print();
+    };
+  </script>
+</body>
+</html>`;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
   const handleExportExcel = () => {
     exportTitleEvaluationExcel(selectedScopeName);
   };
@@ -395,6 +553,16 @@ export const ClassAwardsHub: React.FC = () => {
             >
               <Printer className="w-4 h-4 text-blue-300" />
               <span>In Báo Cáo</span>
+            </button>
+
+            {/* Commendation Decision Print */}
+            <button
+              onClick={handlePrintCommendationDecision}
+              className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-amber-950 text-xs font-extrabold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              title="In quyết định công nhận danh hiệu thi đua tập thể lớp"
+            >
+              <Award className="w-4 h-4" />
+              <span>In Quyết Định Khen Thưởng</span>
             </button>
           </div>
         </div>

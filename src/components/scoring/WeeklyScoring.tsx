@@ -204,8 +204,36 @@ export const WeeklyScoring: React.FC = () => {
   }, [criteria]);
 
   const filteredCriteriaList = useMemo(() => {
+    const isMain = currentCampus?.type === 'main' || currentCampus?.isMain === true;
+    const cType = (currentClass?.classType || currentClass?.type || '').toUpperCase();
+    const cName = (currentClass?.name || '').toUpperCase();
+
     return criteria.filter((crit) => {
       if (!crit.isActive) return false;
+
+      // 1. Phân hiệu (Campus scope filtering)
+      if (isMain) {
+        if (crit.scope === 'sub_only' || crit.scope === 'sub_with_badge') return false;
+      } else {
+        if (crit.scope === 'main_only') return false;
+      }
+
+      // 2. Loại lớp trường chính (A1 vs A2, A3 vs standard)
+      if (isMain) {
+        const target = crit.targetClassType || 'all';
+        const isA1 = cType === 'A1' || cName.includes('A1');
+        const isA2A3 = cType === 'A2' || cType === 'A3' || cName.includes('A2') || cName.includes('A3');
+
+        if (isA1) {
+          if (target === 'A2_A3') return false;
+        } else if (isA2A3) {
+          if (target === 'A1') return false;
+        } else {
+          // Lớp chuẩn trường chính (không phải A1, A2, A3)
+          if (target === 'A1' || target === 'A2_A3') return false;
+        }
+      }
+
       const matchCategory = criteriaCategory === 'all' || crit.category === criteriaCategory;
       const matchSearch =
         criteriaSearch === '' ||
@@ -213,7 +241,7 @@ export const WeeklyScoring: React.FC = () => {
         crit.code.toLowerCase().includes(criteriaSearch.toLowerCase());
       return matchCategory && matchSearch;
     });
-  }, [criteria, criteriaCategory, criteriaSearch]);
+  }, [criteria, criteriaCategory, criteriaSearch, currentCampus, currentClass]);
 
   const currentCriteria = useMemo(() => {
     if (selectedCriteriaId) {

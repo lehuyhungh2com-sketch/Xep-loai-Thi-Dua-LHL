@@ -83,7 +83,6 @@ export const YearRankingsHub: React.FC = () => {
   const [unlockReason, setUnlockReason] = useState('');
   const [lockNotes, setLockNotes] = useState('');
   const [actionMessage, setActionMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [sampleTargetClassId, setSampleTargetClassId] = useState<string>('c_6a1');
 
   // Year ranking data
   const rankingData = useMemo(() => {
@@ -150,15 +149,6 @@ export const YearRankingsHub: React.FC = () => {
       setUnlockConfirmOpen(false);
       setUnlockReason('');
     }
-  };
-
-  // Handle Apply Verification Sample
-  const handleApplySample = () => {
-    const res = applyYearVerificationSample(sampleTargetClassId);
-    setActionMessage({
-      text: res.message,
-      type: res.success ? 'success' : 'error',
-    });
   };
 
   // Print Action
@@ -362,40 +352,6 @@ export const YearRankingsHub: React.FC = () => {
             <p className="text-xs text-blue-200/90 leading-relaxed max-w-3xl">
               ✓ <strong>Quy tắc bất biến:</strong> Hệ thống tự động trích xuất điểm Học kỳ I và Học kỳ II từ Module Xếp Hạng Học Kỳ. Không cho phép nhập trực tiếp điểm cả năm. Chỉ tính điểm khi học kỳ đã được Ban Giám Hiệu chốt khóa chính thức. Nếu thiếu HKI hoặc HKII, điểm cả năm hiển thị <em>“Chưa đủ dữ liệu”</em>.
             </p>
-          </div>
-
-          {/* Test Sample Ingestion (Requirement 10) */}
-          <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/20 flex flex-col gap-2.5 min-w-[280px]">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-300">🧪 Bộ Dữ Liệu Kiểm Tra Mẫu</span>
-              <span className="text-[10px] bg-amber-400 text-amber-950 font-extrabold px-1.5 py-0.5 rounded">
-                Yêu cầu #10
-              </span>
-            </div>
-            <p className="text-[11px] text-blue-100">
-              HKI = <strong>90.0</strong> • HKII = <strong>96.0</strong>
-              <br />
-              Điểm cả năm = (90 + 96 × 2) / 3 = <strong>94.00</strong>
-            </p>
-            <div className="flex items-center gap-2">
-              <select
-                value={sampleTargetClassId}
-                onChange={(e) => setSampleTargetClassId(e.target.value)}
-                className="bg-white text-slate-800 text-xs font-semibold px-2 py-1.5 rounded-lg border-0 outline-hidden flex-1"
-              >
-                {classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>
-                    Lớp {cls.name} ({campuses.find((c) => c.id === cls.campusId)?.name || 'Cơ sở'})
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={handleApplySample}
-                className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-amber-950 text-xs font-black rounded-lg transition-colors shadow-xs flex-shrink-0 cursor-pointer"
-              >
-                Nạp & Chốt
-              </button>
-            </div>
           </div>
         </div>
       </div>

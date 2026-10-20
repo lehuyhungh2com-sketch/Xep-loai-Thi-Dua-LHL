@@ -266,6 +266,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               </button>
             </div>
           </div>
+
+          {/* Software Copyright & Author Info */}
+          <div className="mt-2.5 pt-2 border-t border-[#16365c]/60 text-center">
+            <p className="text-[10px] font-bold text-amber-300/90 leading-tight">
+              Bản quyền phần mềm thuộc về:
+            </p>
+            <p className="text-[11px] font-extrabold text-white mt-0.5 leading-tight">
+              Lê Huy Hùng
+            </p>
+            <p className="text-[10px] text-slate-300 leading-tight mt-0.5">
+              GV THCS Lê Hữu Lập - Hậu Lộc - Thanh Hóa
+            </p>
+            <p className="text-[10px] text-emerald-400 font-mono font-bold leading-tight mt-0.5">
+              SĐT: 0919709286
+            </p>
+          </div>
         </div>
       </aside>
     </>

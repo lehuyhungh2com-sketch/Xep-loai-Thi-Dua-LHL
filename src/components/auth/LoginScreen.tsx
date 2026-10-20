@@ -275,12 +275,12 @@ export const LoginScreen: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <footer className="max-w-6xl w-full mx-auto text-center text-slate-400 text-xs pt-4 border-t border-white/10 z-10">
+      <footer className="max-w-6xl w-full mx-auto text-center text-slate-400 text-xs pt-4 border-t border-white/10 z-10 space-y-1">
         <p className="font-medium text-slate-300">
           HỆ THỐNG QUẢN LÝ & XẾP LOẠI THI ĐUA NỀ NẾP CÁC LỚP • {settings.schoolName || 'TRƯỜNG THCS LÊ HỮU LẬP'}
         </p>
-        <p className="mt-1 text-[11px] text-slate-400">
-          Chế độ vận hành an toàn tuyệt đối • Bản quyền thuộc Hội đồng thi đua nhà trường
+        <p className="text-xs text-amber-300 font-semibold">
+          Phần mềm thiết kế bởi Lê Huy Hùng (GV trường THCS Lê Hữu Lập - Hậu Lộc - Thanh Hóa, SĐT: 0919709286)
         </p>
       </footer>
     </div>

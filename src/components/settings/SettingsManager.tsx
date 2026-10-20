@@ -534,6 +534,22 @@ export const SettingsManager: React.FC = () => {
                     Tiêu đề này sẽ được áp dụng tự động 100% khi bạn bấm <strong>Xuất PDF</strong> hoặc <strong>Xuất Excel</strong>.
                   </span>
                 </div>
+
+                {/* Copyright & Author Box */}
+                <div className="p-4 bg-linear-to-r from-blue-900 via-indigo-900 to-blue-950 rounded-2xl border border-blue-700 text-white shadow-md space-y-1">
+                  <div className="text-xs font-bold text-amber-300 uppercase tracking-wider">
+                    Thông tin bản quyền & Tác giả phần mềm
+                  </div>
+                  <div className="text-sm font-extrabold text-white">
+                    Phần mềm thiết kế bởi Lê Huy Hùng
+                  </div>
+                  <div className="text-xs text-blue-100">
+                    Giáo viên trường THCS Lê Hữu Lập - Hậu Lộc - Thanh Hóa
+                  </div>
+                  <div className="text-xs text-emerald-300 font-mono font-bold pt-0.5">
+                    Số điện thoại liên hệ: 0919709286
+                  </div>
+                </div>
               </div>
             </div>
           </div>

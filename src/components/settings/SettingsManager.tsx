@@ -30,6 +30,7 @@ import { BackupExcelCenterModal } from '../backup/BackupExcelCenterModal';
 import { AccountEmailManager } from './AccountEmailManager';
 import { HistoricalScoresManager } from './HistoricalScoresManager';
 import { canManageHistoricalScores } from '../../utils/rbac';
+import { calculateWeek1StartDateByMode } from '../../utils/timeEngine';
 
 export const SettingsManager: React.FC = () => {
   const {
@@ -74,6 +75,12 @@ export const SettingsManager: React.FC = () => {
   const [sem1Weeks, setSem1Weeks] = useState(settings.totalWeeksSemester1 || 18);
   const [sem2Weeks, setSem2Weeks] = useState(settings.totalWeeksSemester2 || 17);
   const [schoolStartDate, setSchoolStartDate] = useState(settings.schoolStartDate || '2026-09-05');
+  const [week1Mode, setWeek1Mode] = useState<'contains_sep_5' | 'after_sep_5' | 'custom'>(
+    settings.week_1_mode || 'after_sep_5'
+  );
+  const [customStartDate, setCustomStartDate] = useState<string>(
+    settings.start_date_of_week_1 || '2026-09-07'
+  );
   const [manualWeekChoice, setManualWeekChoice] = useState(settings.current_active_week || settings.currentWeek || 4);
   const [timeframeMsg, setTimeframeMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [manualWeekMsg, setManualWeekMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -126,6 +133,16 @@ export const SettingsManager: React.FC = () => {
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const handleSaveTimeframe = () => {
+    const calculatedStartDate = calculateWeek1StartDateByMode(
+      settings.academicYear,
+      week1Mode,
+      customStartDate
+    );
+    updateSettings({
+      week_1_mode: week1Mode,
+      start_date_of_week_1: calculatedStartDate,
+      schoolStartDate,
+    });
     const res = updateTimeframeConfig(sem1Weeks, sem2Weeks, schoolStartDate);
     if (res.success) {
       setTimeframeMsg({ text: res.message, type: 'success' });
@@ -1192,6 +1209,85 @@ export const SettingsManager: React.FC = () => {
             </div>
           </div>
 
+          {/* Quy tắc tính Ngày bắt đầu Tuần 1 */}
+          <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3">
+            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wide">
+              Mô hình quy tắc xác định Ngày bắt đầu Tuần 1:
+            </label>
+            <div className="space-y-2.5">
+              <label className="flex items-start gap-2.5 cursor-pointer text-xs">
+                <input
+                  type="radio"
+                  name="week_1_mode"
+                  disabled={!canManage}
+                  checked={week1Mode === 'after_sep_5'}
+                  onChange={() => {
+                    setWeek1Mode('after_sep_5');
+                    const computed = calculateWeek1StartDateByMode(settings.academicYear, 'after_sep_5');
+                    setCustomStartDate(computed);
+                  }}
+                  className="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                />
+                <div>
+                  <span className="font-bold text-indigo-950">
+                    Chế độ 1 (Linh hoạt / Khuyên dùng): Tuần 1 tính từ Thứ Hai đầu tiên của tuần thi đua nề nếp thực tế sau 05/09
+                  </span>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Ví dụ năm học 2026-2027: Ngày 05/09/2026 rơi vào Thứ Bảy, nên Tuần 1 thi đua nề nếp thực tế chính thức bắt đầu từ <strong>Thứ Hai 07/09/2026</strong>.
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-2.5 cursor-pointer text-xs">
+                <input
+                  type="radio"
+                  name="week_1_mode"
+                  disabled={!canManage}
+                  checked={week1Mode === 'contains_sep_5'}
+                  onChange={() => {
+                    setWeek1Mode('contains_sep_5');
+                    const computed = calculateWeek1StartDateByMode(settings.academicYear, 'contains_sep_5');
+                    setCustomStartDate(computed);
+                  }}
+                  className="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                />
+                <div>
+                  <span className="font-bold text-slate-900">
+                    Chế độ 2: Tuần 1 tính từ Thứ Hai của tuần chứa ngày 05/09
+                  </span>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Ví dụ năm học 2026-2027: Lùi lại tìm Thứ Hai của tuần chứa ngày 05/09 -&gt; <strong>Thứ Hai 31/08/2026</strong>.
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-2.5 cursor-pointer text-xs">
+                <input
+                  type="radio"
+                  name="week_1_mode"
+                  disabled={!canManage}
+                  checked={week1Mode === 'custom'}
+                  onChange={() => setWeek1Mode('custom')}
+                  className="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                />
+                <div className="flex-1 space-y-1">
+                  <span className="font-bold text-slate-900">
+                    Chế độ 3: Tùy chỉnh ngày Thứ Hai bắt đầu Tuần 1 thủ công
+                  </span>
+                  {week1Mode === 'custom' && (
+                    <input
+                      type="date"
+                      disabled={!canManage}
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      className="mt-1 px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-indigo-900"
+                    />
+                  )}
+                </div>
+              </label>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -1214,7 +1310,7 @@ export const SettingsManager: React.FC = () => {
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
                   <Save size={15} />
-                  <span>Lưu Khung Thời Gian Thi Đua ({sem1Weeks + sem2Weeks} Tuần)</span>
+                  <span>Lưu Cấu Hình Khung Thời Gian Thi Đua</span>
                 </button>
               )}
             </div>

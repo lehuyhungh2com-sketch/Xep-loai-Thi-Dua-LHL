@@ -819,7 +819,8 @@ export interface SchoolSettings {
   totalWeeksSemester2: number;
   totalWeeks?: number; // Tổng số tuần tối đa toàn hệ thống (= totalWeeksSemester1 + totalWeeksSemester2)
   current_active_week?: number; // Tuần hiện tại đang hoạt động
-  start_date_of_week_1?: string; // Ngày Thứ Hai bắt đầu của Tuần 1 (YYYY-MM-DD, e.g. 2026-08-31)
+  week_1_mode?: 'contains_sep_5' | 'after_sep_5' | 'custom'; // Chế độ quy tắc tính Tuần 1 (chứa 05/09, sau 05/09, hoặc tùy chỉnh)
+  start_date_of_week_1?: string; // Ngày Thứ Hai bắt đầu của Tuần 1 (YYYY-MM-DD, e.g. 2026-09-07)
   last_baseline_date?: string; // Ngày thiết lập mốc gần nhất (YYYY-MM-DD)
   max_weeks?: number; // Ngưỡng số tuần tối đa
   schoolStartDate?: string; // Ngày bắt đầu năm học (mặc định 'YYYY-09-05')

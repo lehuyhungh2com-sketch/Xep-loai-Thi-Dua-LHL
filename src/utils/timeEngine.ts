@@ -87,6 +87,42 @@ export function calculateNaturalWeek1StartDate(
 }
 
 /**
+ * Tính ngày Thứ Hai bắt đầu Tuần 1 theo Chế độ quy tắc chọn lựa:
+ * - 'contains_sep_5': Tuần chứa ngày 05/09 (Ví dụ 2026: 31/08/2026)
+ * - 'after_sep_5': Tuần kế tiếp sau ngày 05/09 (Ví dụ 2026: 07/09/2026 - do 05/09 là Thứ 7)
+ * - 'custom': Tùy chọn ngày Thứ Hai bất kỳ
+ */
+export function calculateWeek1StartDateByMode(
+  academicYearStr?: string,
+  mode: 'contains_sep_5' | 'after_sep_5' | 'custom' = 'after_sep_5',
+  customDate?: string,
+  referenceDate?: Date
+): string {
+  if (mode === 'custom' && customDate && customDate.trim()) {
+    return customDate.trim();
+  }
+
+  const naturalMondayStr = calculateNaturalWeek1StartDate(academicYearStr, referenceDate);
+  if (mode === 'after_sep_5') {
+    let startYear = (referenceDate || new Date()).getFullYear();
+    if (academicYearStr && academicYearStr.includes('-')) {
+      const parsedStart = parseInt(academicYearStr.split('-')[0], 10);
+      if (!isNaN(parsedStart)) startYear = parsedStart;
+    }
+    const sept5 = new Date(startYear, 8, 5);
+    const dayOfWeek = sept5.getDay(); // 0: Sunday, 6: Saturday
+    // Nếu 05/09 rơi vào Thứ 7 (như năm 2026) hoặc Chủ Nhật, tuần thi đua nề nếp thực tế bắt đầu từ Thứ Hai kế tiếp
+    if (dayOfWeek === 6 || dayOfWeek === 0) {
+      const MondayDate = parseDateYMD(naturalMondayStr);
+      const nextMonday = new Date(MondayDate.getTime() + 7 * 86400000);
+      return formatDateYMD(nextMonday);
+    }
+  }
+
+  return naturalMondayStr;
+}
+
+/**
  * Thuật toán 2: Tính 'Số Tuần Hiện Tại' tự động và chính xác theo thời gian thực
  * Công thức: Số Tuần Hiện Tại = Math.floor((Today - start_date_of_week_1) / 7 ngày) + 1
  */

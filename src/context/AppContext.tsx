@@ -72,6 +72,7 @@ import {
 } from '../utils/academicCatalogEngine';
 import {
   calculateNaturalWeek1StartDate,
+  calculateWeek1StartDateByMode,
   calculateCurrentActiveWeek,
   calculateOverriddenStartDateOfWeek1,
   getWeekDateRange,
@@ -183,6 +184,7 @@ interface AppContextType {
   maxWeeks: number;
   currentActiveWeek: number;
   activateManualWeek: (week: number) => { success: boolean; message: string };
+  updateWeek1Mode: (mode: 'contains_sep_5' | 'after_sep_5' | 'custom', customDate?: string) => { success: boolean; message: string };
   updateTimeframeConfig: (sem1Weeks: number, sem2Weeks: number, schoolStartDate?: string) => { success: boolean; message: string };
 
   // Historical Preserved Scores (Điểm bảo lưu lịch sử)
@@ -1302,7 +1304,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     try {
       const academicYear = settings.academicYear || '2026-2027';
-      const startDateWeek1 = settings.start_date_of_week_1 || calculateNaturalWeek1StartDate(academicYear);
+      const startDateWeek1 = settings.start_date_of_week_1 || calculateWeek1StartDateByMode(academicYear, settings.week_1_mode || 'after_sep_5');
       const maxLimit = settings.max_weeks || settings.totalWeeks || (settings.totalWeeksSemester1 + settings.totalWeeksSemester2) || 35;
 
       const { currentWeek: calculatedActiveWeek } = calculateCurrentActiveWeek(startDateWeek1, maxLimit);
@@ -1328,6 +1330,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedSettings),
         }).catch(() => {});
+
+        setDoc(doc(db, 'settings', 'config'), updatedSettings, { merge: true }).catch(() => {});
 
         logAudit({
           action: 'CAP_NHAT_CAU_HINH',
@@ -4976,8 +4980,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }).catch(() => {});
 
     // Sync to Firestore
-    updateDoc(doc(db, 'settings', 'config'), updated as any).catch((err) => console.error('Lỗi cập nhật cấu hình Firebase:', err));
-
+    setDoc(doc(db, 'settings', 'config'), updated, { merge: true }).catch((err) => console.error('Lỗi cập nhật cấu hình Firebase:', err));
 
     logAudit({
       action: 'CAP_NHAT_CAU_HINH',
@@ -5030,6 +5033,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       body: JSON.stringify(updatedSettings),
     }).catch(() => {});
 
+    // Đồng bộ tức thì lên Firestore để khi khởi động lại app không bị quay lại tuần cũ
+    setDoc(doc(db, 'settings', 'config'), updatedSettings, { merge: true }).catch((err) => {
+      console.warn('Lỗi lưu cấu hình tuần lên Firebase:', err);
+    });
+
     logAudit({
       action: 'CAP_NHAT_CAU_HINH',
       entityType: 'settings',
@@ -5042,6 +5050,60 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return {
       success: true,
       message: `Đã kích hoạt Tuần ${week} làm tuần hiện tại thành công! Mốc bắt đầu Tuần 1 đã được cập nhật thành ${newStartDateOfWeek1} để hệ thống tự động đếm tiếp.`,
+    };
+  };
+
+  const updateWeek1Mode = (
+    mode: 'contains_sep_5' | 'after_sep_5' | 'custom',
+    customDate?: string
+  ): { success: boolean; message: string } => {
+    if (!canConfigureSettings(currentUser)) {
+      return { success: false, message: 'Chỉ Quản trị viên (Admin) mới có quyền cập nhật chế độ tính Tuần 1!' };
+    }
+
+    const calculatedStartDate = calculateWeek1StartDateByMode(
+      settings.academicYear,
+      mode,
+      customDate
+    );
+    const maxLimit = settings.max_weeks || settings.totalWeeks || 35;
+    const { currentWeek: calculatedActive } = calculateCurrentActiveWeek(calculatedStartDate, maxLimit);
+
+    const updatedSettings: SchoolSettings = {
+      ...settings,
+      week_1_mode: mode,
+      start_date_of_week_1: calculatedStartDate,
+      current_active_week: calculatedActive,
+      currentWeek: calculatedActive,
+    };
+
+    setSettings(updatedSettings);
+    setSelectedWeek(calculatedActive);
+
+    try {
+      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(updatedSettings));
+    } catch {}
+
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedSettings),
+    }).catch(() => {});
+
+    setDoc(doc(db, 'settings', 'config'), updatedSettings, { merge: true }).catch(() => {});
+
+    logAudit({
+      action: 'CAP_NHAT_CAU_HINH',
+      entityType: 'settings',
+      entityId: 'week_1_mode',
+      beforeData: { week_1_mode: settings.week_1_mode, start_date_of_week_1: settings.start_date_of_week_1 },
+      afterData: { week_1_mode: mode, start_date_of_week_1: calculatedStartDate, current_active_week: calculatedActive },
+      details: `Admin cập nhật Chế độ quy tắc tính Tuần 1: ${mode}. Mốc Thứ Hai Tuần 1: ${calculatedStartDate}. Tuần hiện tại = Tuần ${calculatedActive}.`,
+    });
+
+    return {
+      success: true,
+      message: `Đã cập nhật Chế độ tính Tuần 1 thành công! Mốc Thứ Hai Tuần 1: ${calculatedStartDate}. Tuần hiện tại tự động = Tuần ${calculatedActive}.`,
     };
   };
 
@@ -5058,7 +5120,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const s2 = Math.max(1, Math.min(30, Number(sem2Weeks) || 17));
     const newMax = s1 + s2;
 
-    const startDateWeek1 = settings.start_date_of_week_1 || calculateNaturalWeek1StartDate(settings.academicYear);
+    const startDateWeek1 = settings.start_date_of_week_1 || calculateWeek1StartDateByMode(
+      settings.academicYear,
+      settings.week_1_mode || 'after_sep_5'
+    );
     const { currentWeek: calculatedActive } = calculateCurrentActiveWeek(startDateWeek1, newMax);
     const startDate = schoolStartDate || settings.schoolStartDate || '2026-09-05';
 
@@ -5105,6 +5170,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatedSettings),
     }).catch(() => {});
+
+    // Đồng bộ tức thì lên Firestore
+    setDoc(doc(db, 'settings', 'config'), updatedSettings, { merge: true }).catch((err) => {
+      console.warn('Lỗi lưu cấu hình khung thời gian lên Firebase:', err);
+    });
 
     logAudit({
       action: 'CAP_NHAT_CAU_HINH',
@@ -7951,6 +8021,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         maxWeeks,
         currentActiveWeek,
         activateManualWeek,
+        updateWeek1Mode,
         updateTimeframeConfig,
         historicalWeeklyScores,
         saveHistoricalScores,

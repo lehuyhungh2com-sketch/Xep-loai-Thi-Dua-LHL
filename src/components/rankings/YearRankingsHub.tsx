@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { YearRankingRow, SemesterMonthScoreItem, MonthWeeklyScoreItem } from '../../types';
+import { YearRankingRow, SemesterMonthScoreItem, MonthWeeklyScoreItem, RankingEntry } from '../../types';
 import { canLockYear, canUnlockYear } from '../../utils/rbac';
+import { PrintReportModal } from '../common/PrintReportModal';
 import {
   Trophy,
   Award,
@@ -83,11 +84,29 @@ export const YearRankingsHub: React.FC = () => {
   const [unlockReason, setUnlockReason] = useState('');
   const [lockNotes, setLockNotes] = useState('');
   const [actionMessage, setActionMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   // Year ranking data
   const rankingData = useMemo(() => {
     return getYearRankingData(selectedCampusId, selectedGrade);
   }, [getYearRankingData, selectedCampusId, selectedGrade]);
+
+  const yearRankingsForPrint: RankingEntry[] = useMemo(() => {
+    return rankingData.rows.map((r) => ({
+      rank: r.rank,
+      classItem: r.classItem,
+      campus: r.campus,
+      totalScore: r.finalYearScore ?? 0,
+      baseScore: r.yearScore ?? 0,
+      bonusPoints: r.bonus_points_yearly || 0,
+      penaltyPoints: 0,
+      logCount: 0,
+      performanceTier: r.performanceTier as any,
+      isDisqualifiedYearly: r.isDisqualifiedYearly,
+      semester1Score: r.semester1Score ?? undefined,
+      semester2Score: r.semester2Score ?? undefined,
+    }));
+  }, [rankingData.rows]);
 
   const yearIsLocked = isYearLocked();
   const lockInfo = getYearLockInfo();
@@ -153,12 +172,12 @@ export const YearRankingsHub: React.FC = () => {
 
   // Print Action
   const handlePrint = () => {
-    window.print();
+    setShowPrintModal(true);
   };
 
   // Export PDF Action
   const handleExportPDF = () => {
-    window.print();
+    setShowPrintModal(true);
   };
 
   // Export Excel Action
@@ -1308,6 +1327,19 @@ export const YearRankingsHub: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Print Report Preview Modal */}
+      {showPrintModal && (
+        <PrintReportModal
+          periodTitle={`BẢNG XẾP HẠNG CẢ NĂM HỌC ${settings.academicYear}`}
+          scopeTitle={scopeTitle}
+          rankings={yearRankingsForPrint}
+          selectedCampusId={selectedCampusId}
+          periodType="year"
+          periodNumber={1}
+          onClose={() => setShowPrintModal(false)}
+        />
       )}
     </div>
   );

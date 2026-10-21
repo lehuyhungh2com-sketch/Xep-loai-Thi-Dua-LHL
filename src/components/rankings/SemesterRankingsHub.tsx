@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { SemesterRankingRow, SemesterMonthScoreItem, MonthWeeklyScoreItem } from '../../types';
+import { SemesterRankingRow, SemesterMonthScoreItem, MonthWeeklyScoreItem, RankingEntry } from '../../types';
 import { canLockSemester, canUnlockSemester } from '../../utils/rbac';
+import { PrintReportModal } from '../common/PrintReportModal';
 import {
   Calendar,
   Trophy,
@@ -81,11 +82,26 @@ export const SemesterRankingsHub: React.FC = () => {
   const [unlockReason, setUnlockReason] = useState('');
   const [lockNotes, setLockNotes] = useState('');
   const [actionMessage, setActionMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   // Semester ranking data
   const rankingData = useMemo(() => {
     return getSemesterRankingData(selectedSemester, selectedCampusId, selectedGrade);
   }, [getSemesterRankingData, selectedSemester, selectedCampusId, selectedGrade]);
+
+  const semesterRankingsForPrint: RankingEntry[] = useMemo(() => {
+    return rankingData.rows.map((r) => ({
+      rank: r.rank,
+      classItem: r.classItem,
+      campus: r.campus,
+      totalScore: r.finalSemesterScore,
+      baseScore: r.semesterScore,
+      bonusPoints: r.bonus_points_term || 0,
+      penaltyPoints: 0,
+      logCount: 0,
+      performanceTier: (r.isExempt ? 'Xuất sắc' : r.performanceTier) as any,
+    }));
+  }, [rankingData.rows]);
 
   const semesterIsLocked = isSemesterLocked(selectedSemester);
   const lockInfo = getSemesterLockInfo(selectedSemester);
@@ -144,7 +160,7 @@ export const SemesterRankingsHub: React.FC = () => {
 
   // Print Report Handler
   const handlePrint = () => {
-    window.print();
+    setShowPrintModal(true);
   };
 
   // Summary statistics
@@ -1153,6 +1169,19 @@ export const SemesterRankingsHub: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Print Report Preview Modal */}
+      {showPrintModal && (
+        <PrintReportModal
+          periodTitle={`BẢNG XẾP HẠNG HỌC KỲ ${selectedSemester === 1 ? 'I' : 'II'}`}
+          scopeTitle={scopeTitle}
+          rankings={semesterRankingsForPrint}
+          selectedCampusId={selectedCampusId}
+          periodType="semester"
+          periodNumber={selectedSemester}
+          onClose={() => setShowPrintModal(false)}
+        />
       )}
     </div>
   );

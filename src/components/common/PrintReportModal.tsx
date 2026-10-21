@@ -31,6 +31,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
     classes,
     users,
     campusWeeklyDuties,
+    briefingRecords,
     getWeeklyRankings,
     getMonthlyRankings,
     getSemesterRankings,
@@ -127,67 +128,175 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
     getYearlyRankings,
   ]);
 
-  // Dynamic signers from System Configuration (No hardcoded fallback drafts)
-  const tptName = settings.leadershipSignatures?.tptName || '';
-  const principalName = settings.leadershipSignatures?.principalName || '';
+  // Dynamic signers from System Configuration
+  const tptName = settings.leadershipSignatures?.tptName || 'Cô Lê Thị Hoa';
+  const principalName = settings.leadershipSignatures?.principalName || 'Thầy Nguyễn Văn Sơn';
 
-  const { vicePrincipalTitle, vicePrincipalName } = useMemo(() => {
-    if (activeCampus) {
-      const leader =
-        activeCampus.leaderName ||
-        settings.leadershipSignatures?.campusVicePrincipals?.[activeCampus.id] ||
-        settings.leadershipSignatures?.vicePrincipalEmulationName ||
-        '';
-      return {
-        vicePrincipalTitle: `Phó Hiệu trưởng phụ trách ${activeCampus.name}`,
-        vicePrincipalName: leader,
-      };
+  const isCampusScope = activeCampusId !== 'all' && Boolean(activeCampus);
+
+  // Extract explicit week or month number from periodNumber or periodTitle string
+  const derivedNumber = useMemo(() => {
+    if (typeof periodNumber === 'number' && !isNaN(periodNumber)) {
+      return periodNumber;
     }
-    return {
-      vicePrincipalTitle: 'Phó Hiệu trưởng phụ trách Thi đua',
-      vicePrincipalName: settings.leadershipSignatures?.vicePrincipalEmulationName || '',
-    };
-  }, [activeCampus, settings.leadershipSignatures]);
+    const match = periodTitle?.match(/(?:Tuần|Tháng)\s*(\d+)/i);
+    return match ? parseInt(match[1], 10) : 4;
+  }, [periodNumber, periodTitle]);
+
+  // Dynamic Document Number (Số: 04/BC-TĐ-LHL cho Tuần 4, Số: 05/BC-TĐ-LHL cho Tuần 5, v.v.)
+  const docNumberStr = useMemo(() => {
+    if (periodType === 'week' || periodTitle?.toLowerCase().includes('tuần')) {
+      return `Số: ${String(derivedNumber).padStart(2, '0')}/BC-TĐ-LHL`;
+    }
+    if (periodType === 'month' || periodTitle?.toLowerCase().includes('tháng')) {
+      return `Số: ${String(derivedNumber).padStart(2, '0')}/BC-TĐ-LHL`;
+    }
+    if (periodType === 'semester') {
+      return `Số: 0${derivedNumber}/BC-TĐ-LHL`;
+    }
+    if (periodType === 'year') {
+      const yearShort = settings.academicYear ? settings.academicYear.split('-')[0].slice(-2) : '26';
+      return `Số: ${yearShort}/BC-TĐ-LHL`;
+    }
+    return `Số: ${String(derivedNumber).padStart(2, '0')}/BC-TĐ-LHL`;
+  }, [periodType, periodTitle, derivedNumber, settings.academicYear]);
 
   // Dynamic Duty Teacher directly synchronized with latest Global State & Database
   const { dutyTeacherName, dutyTeacherTitle } = useMemo(() => {
-    if (campusWeeklyDuties && campusWeeklyDuties.length > 0) {
-      const targetWeek = periodType === 'week' ? periodNumber : undefined;
-      const duty = campusWeeklyDuties.find((d) => {
-        const matchWeek = targetWeek !== undefined ? d.week === targetWeek : true;
-        const matchCampus = activeCampusId === 'all' || d.campusId === activeCampusId;
-        return matchWeek && matchCampus;
-      });
+    const targetCampusId =
+      activeCampusId === 'all'
+        ? campuses.find((c) => c.isMain || c.type === 'main')?.id || 'lhl_main'
+        : activeCampusId;
+    const targetWeek = derivedNumber;
 
-      if (duty) {
-        // Fetch LATEST homeroom teacher for duty class from classes or users list in Global State
-        const targetClass = classes.find((c) => c.id === duty.classId || c.name === duty.className);
-        const teacherUser = users.find(
-          (u) =>
-            (u.classId === targetClass?.id || u.classId === duty.classId) &&
-            (u.role === 'gvcn' || u.role === 'teacher')
-        );
+    // Check briefing record first
+    const briefing = briefingRecords?.find(
+      (b) => b.week === targetWeek && (b.campusId === targetCampusId || activeCampusId === 'all')
+    );
 
-        const realTeacherName =
-          targetClass?.homeroomTeacher ||
-          teacherUser?.name ||
-          (duty.homeroomTeacher && !duty.homeroomTeacher.includes('Nguyễn Văn Nam') ? duty.homeroomTeacher : '');
+    // Check weekly duty assignment
+    const duty = campusWeeklyDuties?.find((d) => {
+      const matchWeek = d.week === targetWeek;
+      const matchCampus = d.campusId === targetCampusId || activeCampusId === 'all';
+      return matchWeek && matchCampus;
+    });
 
+    const targetClassId = duty?.classId || briefing?.dutyClassId;
+    const targetClassName = duty?.className || briefing?.dutyClassName;
+
+    if (targetClassId || targetClassName) {
+      const targetClass = classes.find((c) => c.id === targetClassId || c.name === targetClassName);
+      const teacherUser = users.find(
+        (u) =>
+          (u.classId === targetClass?.id || u.classId === targetClassId) &&
+          (u.role === 'gvcn' || u.role === 'teacher')
+      );
+
+      const realTeacherName =
+        targetClass?.homeroomTeacher ||
+        teacherUser?.name ||
+        duty?.homeroomTeacher ||
+        briefing?.dutyTeacherName ||
+        '';
+
+      const classNameDisplay = targetClass?.name || targetClassName || '';
+
+      if (realTeacherName) {
         return {
-          dutyTeacherName: realTeacherName || '',
-          dutyTeacherTitle: realTeacherName
-            ? targetClass?.name || duty.className
-              ? `GVCN Lớp ${targetClass?.name || duty.className}`
-              : 'Giáo viên trực ban tuần'
-            : 'Giáo viên trực ban',
+          dutyTeacherName: realTeacherName,
+          dutyTeacherTitle: classNameDisplay ? `GVCN Lớp ${classNameDisplay}` : 'Giáo viên trực ban tuần',
         };
       }
     }
+
+    if (briefing?.dutyTeacherName) {
+      return {
+        dutyTeacherName: briefing.dutyTeacherName,
+        dutyTeacherTitle: briefing.dutyClassName ? `GVCN Lớp ${briefing.dutyClassName}` : 'Giáo viên trực ban tuần',
+      };
+    }
+
     return {
       dutyTeacherName: '',
       dutyTeacherTitle: 'Giáo viên trực ban',
     };
-  }, [campusWeeklyDuties, periodType, periodNumber, activeCampusId, classes, users]);
+  }, [campusWeeklyDuties, briefingRecords, derivedNumber, activeCampusId, classes, users, campuses]);
+
+  const signers = useMemo(() => {
+    if (isCampusScope && activeCampus) {
+      const campusName = activeCampus.name;
+      const vpName =
+        activeCampus.leaderName ||
+        settings.leadershipSignatures?.campusVicePrincipals?.[activeCampus.id] ||
+        (activeCampus.isMain || activeCampus.id === 'lhl_main'
+          ? 'Cô Trần Thị Hà'
+          : activeCampus.id === 'hau_loc'
+          ? 'Thầy Phạm Văn Đình'
+          : 'Phó Hiệu trưởng phụ trách');
+
+      const neNepTeacherName =
+        settings.leadershipSignatures?.campusNeNepTeachers?.[activeCampus.id] ||
+        (activeCampus.isMain || activeCampus.id === 'lhl_main'
+          ? tptName
+          : activeCampus.id === 'hau_loc'
+          ? 'Thầy Nguyễn Văn Cường'
+          : 'Giáo viên phụ trách nề nếp');
+
+      if (periodType === 'week') {
+        return {
+          col1Header: 'GV PHỤ TRÁCH NỀ NẾP',
+          col1Title: `GV phụ trách nề nếp ${campusName}`,
+          col1Name: neNepTeacherName,
+
+          col2Header: 'PHÓ HIỆU TRƯỜNG PHỤ TRÁCH',
+          col2Title: `Phó Hiệu trưởng phụ trách ${campusName}`,
+          col2Name: vpName,
+
+          col3Header: 'GIÁO VIÊN TRỰC BAN',
+          col3Title: dutyTeacherTitle,
+          col3Name: dutyTeacherName || '',
+        };
+      } else {
+        return {
+          col1Header: 'GV PHỤ TRÁCH NỀ NẾP',
+          col1Title: `GV phụ trách nề nếp ${campusName}`,
+          col1Name: neNepTeacherName,
+
+          col2Header: 'PHÓ HIỆU TRƯỜNG PHỤ TRÁCH',
+          col2Title: `Phó Hiệu trưởng phụ trách ${campusName}`,
+          col2Name: vpName,
+
+          col3Header: 'HIỆU TRƯỜNG NHÀ TRƯỜNG',
+          col3Title: 'Hiệu trưởng',
+          col3Name: principalName,
+        };
+      }
+    } else {
+      // Toàn trường (Whole school scope)
+      return {
+        col1Header: 'NGƯỜI LẬP BIỂU / TPT ĐỘI',
+        col1Title: 'Tổng phụ trách Đội',
+        col1Name: tptName,
+
+        col2Header: 'PHÓ HIỆU TRƯỜNG PHỤ TRÁCH THI ĐUA',
+        col2Title: 'Phó Hiệu trưởng phụ trách Thi đua',
+        col2Name: settings.leadershipSignatures?.vicePrincipalEmulationName || 'Cô Trần Thị Hà',
+
+        col3Header: periodType === 'week' ? 'GIÁO VIÊN TRỰC' : 'HIỆU TRƯỜNG NHÀ TRƯỜNG',
+        col3Title: periodType === 'week' ? dutyTeacherTitle : 'Hiệu trưởng',
+        col3Name: periodType === 'week' ? (dutyTeacherName || '') : principalName,
+      };
+    }
+  }, [
+    isCampusScope,
+    activeCampus,
+    periodType,
+    settings.leadershipSignatures,
+    tptName,
+    principalName,
+    dutyTeacherName,
+    dutyTeacherTitle,
+  ]);
 
   // Administrative date formatting
   const now = new Date();
@@ -240,6 +349,28 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
         const penalty = r.penaltyPoints || r.monthPenaltyPoints || 0;
         const rankDisplay = r.isDisqualifiedYearly ? 'Không XL' : String(r.rank);
         const classNameStr = String(r.classItem.name); // Text preservation strictly as String
+
+        if (periodType === 'year') {
+          const s1Str = r.semester1Score !== undefined ? `${r.semester1Score.toFixed(2)}đ` : 'Chưa chốt';
+          const s2Str = r.semester2Score !== undefined ? `${r.semester2Score.toFixed(2)}đ` : 'Chưa chốt';
+          const baseYearStr = r.baseScore ? `${r.baseScore.toFixed(2)}` : 'Chưa đủ';
+          return `
+            <tr style="text-align: center; background-color: ${idx % 2 === 1 ? '#f8fafc' : '#ffffff'};">
+              <td style="border: 1px solid #1e293b; padding: 4px 6px; font-size: 10pt; color: #475569;">${idx + 1}</td>
+              <td style="border: 1px solid #1e293b; padding: 4px 6px; font-size: 10.5pt; font-weight: bold; color: #0f172a;">${rankDisplay}</td>
+              <td style="border: 1px solid #1e293b; padding: 4px 8px; font-size: 10.5pt; font-weight: bold; text-align: left; color: #0f172a;">Lớp ${classNameStr}</td>
+              <td style="border: 1px solid #1e293b; padding: 4px 6px; font-size: 10pt; color: #334155;">Khối ${r.classItem.grade}</td>
+              <td style="border: 1px solid #1e293b; padding: 4px 8px; font-size: 10pt; text-align: left; color: #334155;">${r.campus.name}</td>
+              <td style="border: 1px solid #1e293b; padding: 4px 8px; font-size: 10pt; text-align: left; color: #334155;">${r.classItem.homeroomTeacher || 'Chưa phân công'}</td>
+              <td style="border: 1px solid #1e293b; padding: 4px 6px; font-size: 10pt; color: #0f172a;">${s1Str}</td>
+              <td style="border: 1px solid #1e293b; padding: 4px 6px; font-size: 10pt; color: #0f172a;">${s2Str}</td>
+              <td style="border: 1px solid #1e293b; padding: 4px 6px; font-size: 10pt; font-weight: bold; color: #0f172a;">${baseYearStr}</td>
+              <td style="border: 1px solid #1e293b; padding: 4px 6px; font-size: 10pt; font-weight: bold; color: #15803d;">+${bonus}</td>
+              <td style="border: 1px solid #1e293b; padding: 4px 6px; font-size: 11pt; font-weight: bold; background-color: #f1f5f9; color: #0f172a;">${r.totalScore}</td>
+              <td style="border: 1px solid #1e293b; padding: 4px 6px; font-size: 10pt; font-weight: bold; color: #0f172a;">${r.performanceTier}</td>
+            </tr>
+          `;
+        }
 
         return `
           <tr style="text-align: center; background-color: ${idx % 2 === 1 ? '#f8fafc' : '#ffffff'};">
@@ -377,7 +508,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
             <div class="header-left">
               ${settings.governingBody && settings.governingBody.trim() ? `<div style="font-size: 10pt; font-weight: bold; text-transform: uppercase;">${settings.governingBody.trim().toUpperCase()}</div>` : ''}
               <div style="font-size: 11pt; font-weight: bold; text-transform: uppercase; margin-top: 2px;">${(settings.schoolName || 'TRƯỜNG THCS LÊ HỮU LẬP').trim().toUpperCase()}</div>
-              <div style="font-size: 9pt; color: #475569; font-style: italic; margin-top: 3px;">Số: 26/BC-TĐ-LHL</div>
+              <div style="font-size: 9pt; color: #475569; font-style: italic; margin-top: 3px;">${docNumberStr}</div>
             </div>
             <div class="header-right">
               <div style="font-size: 10.5pt; font-weight: bold; text-transform: uppercase;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
@@ -402,19 +533,36 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
           <!-- Official Table -->
           <table class="report-table">
             <thead>
-              <tr>
-                <th style="width: 32px;">STT</th>
-                <th style="width: 40px;">Hạng</th>
-                <th style="width: 70px;">Lớp</th>
-                <th style="width: 52px;">Khối</th>
-                <th>Phân hiệu</th>
-                <th>Giáo viên chủ nhiệm</th>
-                <th style="width: 58px;">Điểm gốc</th>
-                <th style="width: 60px; color: #15803d;">Thưởng (+)</th>
-                <th style="width: 60px; color: #be123c;">Phạt (-)</th>
-                <th style="width: 68px; background-color: #cbd5e1;">Tổng điểm</th>
-                <th style="width: 75px;">Xếp loại</th>
-              </tr>
+              ${periodType === 'year' ? `
+                <tr>
+                  <th style="width: 32px;">STT</th>
+                  <th style="width: 40px;">Hạng</th>
+                  <th style="width: 70px;">Lớp</th>
+                  <th style="width: 52px;">Khối</th>
+                  <th>Phân hiệu</th>
+                  <th>Giáo viên chủ nhiệm</th>
+                  <th style="width: 60px;">Điểm HKI</th>
+                  <th style="width: 60px;">Điểm HKII</th>
+                  <th style="width: 60px;">Điểm TB Năm</th>
+                  <th style="width: 60px; color: #15803d;">Thưởng (+)</th>
+                  <th style="width: 68px; background-color: #cbd5e1;">Tổng điểm Cả Năm</th>
+                  <th style="width: 75px;">Xếp loại</th>
+                </tr>
+              ` : `
+                <tr>
+                  <th style="width: 32px;">STT</th>
+                  <th style="width: 40px;">Hạng</th>
+                  <th style="width: 70px;">Lớp</th>
+                  <th style="width: 52px;">Khối</th>
+                  <th>Phân hiệu</th>
+                  <th>Giáo viên chủ nhiệm</th>
+                  <th style="width: 58px;">${periodType === 'semester' ? 'Điểm TB Tháng' : 'Điểm gốc'}</th>
+                  <th style="width: 60px; color: #15803d;">Thưởng (+)</th>
+                  <th style="width: 60px; color: #be123c;">Phạt (-)</th>
+                  <th style="width: 68px; background-color: #cbd5e1;">${periodType === 'semester' ? 'Điểm Học Kỳ' : 'Tổng điểm'}</th>
+                  <th style="width: 75px;">Xếp loại</th>
+                </tr>
+              `}
             </thead>
             <tbody>
               ${rowsHtml}
@@ -435,27 +583,27 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
           <!-- Official Signatures Block - 3 Chữ Ký Chuẩn Quy Định -->
           <div class="signatures-grid">
             <div class="sig-cell">
-              <div style="font-weight: bold; text-transform: uppercase; font-size: 10pt;">NGƯỜI LẬP BIỂU / TPT ĐỘI</div>
+              <div style="font-weight: bold; text-transform: uppercase; font-size: 10pt;">${signers.col1Header}</div>
               <div style="font-size: 8.5pt; color: #64748b; font-style: italic;">(Ký, ghi rõ họ tên)</div>
               <div class="sig-space"></div>
-              <div style="font-weight: bold; font-size: 10.5pt; color: #0f172a;">${tptName || ''}</div>
-              <div style="font-size: 8.5pt; color: #475569;">Tổng phụ trách Đội</div>
+              <div style="font-weight: bold; font-size: 10.5pt; color: #0f172a;">${signers.col1Name}</div>
+              <div style="font-size: 8.5pt; color: #475569;">${signers.col1Title}</div>
             </div>
 
             <div class="sig-cell">
-              <div style="font-weight: bold; text-transform: uppercase; font-size: 10pt;">${vicePrincipalTitle.toUpperCase()}</div>
+              <div style="font-weight: bold; text-transform: uppercase; font-size: 10pt;">${signers.col2Header}</div>
               <div style="font-size: 8.5pt; color: #64748b; font-style: italic;">(Ký, ghi rõ họ tên)</div>
               <div class="sig-space"></div>
-              <div style="font-weight: bold; font-size: 10.5pt; color: #0f172a;">${vicePrincipalName || ''}</div>
-              <div style="font-size: 8.5pt; color: #475569;">${vicePrincipalTitle}</div>
+              <div style="font-weight: bold; font-size: 10.5pt; color: #0f172a;">${signers.col2Name}</div>
+              <div style="font-size: 8.5pt; color: #475569;">${signers.col2Title}</div>
             </div>
 
             <div class="sig-cell">
-              <div style="font-weight: bold; text-transform: uppercase; font-size: 10pt;">${periodType === 'week' ? 'GIÁO VIÊN TRỰC' : 'HIỆU TRƯỜNG NHÀ TRƯỜNG'}</div>
+              <div style="font-weight: bold; text-transform: uppercase; font-size: 10pt;">${signers.col3Header}</div>
               <div style="font-size: 8.5pt; color: #64748b; font-style: italic;">${periodType === 'week' ? '(Ký, ghi rõ họ tên)' : '(Ký tên và đóng dấu)'}</div>
               <div class="sig-space"></div>
-              <div style="font-weight: bold; font-size: 10.5pt; color: #0f172a;">${periodType === 'week' ? (dutyTeacherName || '') : (principalName || '')}</div>
-              <div style="font-size: 8.5pt; color: #475569;">${periodType === 'week' ? dutyTeacherTitle : 'Hiệu trưởng'}</div>
+              <div style="font-weight: bold; font-size: 10.5pt; color: #0f172a;">${signers.col3Name}</div>
+              <div style="font-size: 8.5pt; color: #475569;">${signers.col3Title}</div>
             </div>
           </div>
         </div>
@@ -658,11 +806,21 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
   const handleExportExcel = () => {
     const signatures: ExportSignatures = {
       tptName,
-      leaderTitle: vicePrincipalTitle,
-      leaderName: vicePrincipalName,
+      leaderTitle: signers.col2Title,
+      leaderName: signers.col2Name,
       principalName,
       dutyTeacherName,
       campusName: activeScopeTitle,
+      col1Title: signers.col1Header,
+      col1Sub: signers.col1Title,
+      col1Name: signers.col1Name,
+      col2Title: signers.col2Header,
+      col2Sub: signers.col2Title,
+      col2Name: signers.col2Name,
+      col3Title: signers.col3Header,
+      col3Sub: signers.col3Title,
+      col3Name: signers.col3Name,
+      isCampusScope,
     };
 
     exportRankingsToExcel(
@@ -821,7 +979,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
                   <div className="font-semibold uppercase tracking-wide">{settings.governingBody.trim()}</div>
                 )}
                 <div className="font-bold uppercase tracking-wide">{settings.schoolName || 'TRƯỜNG THCS LÊ HỮU LẬP'}</div>
-                <div className="text-[11px] text-slate-600 italic">Số: 26/BC-TĐ-LHL</div>
+                <div className="text-[11px] text-slate-600 italic">{docNumberStr}</div>
               </div>
               <div className="text-center space-y-1">
                 <div className="font-bold uppercase tracking-wide">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
@@ -852,25 +1010,67 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
             <div className="my-4 overflow-x-auto">
               <table className="w-full border-collapse border border-slate-800 text-[11px] sm:text-xs">
                 <thead>
-                  <tr className="bg-slate-100 text-center font-bold">
-                    <th className="border border-slate-700 p-2 w-10">STT</th>
-                    <th className="border border-slate-700 p-2 w-12">Hạng</th>
-                    <th className="border border-slate-700 p-2">Lớp</th>
-                    <th className="border border-slate-700 p-2 w-14">Khối</th>
-                    <th className="border border-slate-700 p-2">Phân hiệu</th>
-                    <th className="border border-slate-700 p-2">Giáo viên chủ nhiệm</th>
-                    <th className="border border-slate-700 p-2 w-16">Điểm gốc</th>
-                    <th className="border border-slate-700 p-2 w-16 text-emerald-800">Thưởng (+)</th>
-                    <th className="border border-slate-700 p-2 w-16 text-rose-800">Phạt (-)</th>
-                    <th className="border border-slate-700 p-2 w-20 bg-slate-200">Tổng điểm</th>
-                    <th className="border border-slate-700 p-2 w-24">Xếp loại</th>
-                  </tr>
+                  {periodType === 'year' ? (
+                    <tr className="bg-slate-100 text-center font-bold">
+                      <th className="border border-slate-700 p-2 w-10">STT</th>
+                      <th className="border border-slate-700 p-2 w-12">Hạng</th>
+                      <th className="border border-slate-700 p-2">Lớp</th>
+                      <th className="border border-slate-700 p-2 w-14">Khối</th>
+                      <th className="border border-slate-700 p-2">Phân hiệu</th>
+                      <th className="border border-slate-700 p-2">Giáo viên chủ nhiệm</th>
+                      <th className="border border-slate-700 p-2 w-16">Điểm HKI</th>
+                      <th className="border border-slate-700 p-2 w-16">Điểm HKII</th>
+                      <th className="border border-slate-700 p-2 w-16">Điểm TB Năm</th>
+                      <th className="border border-slate-700 p-2 w-16 text-emerald-800">Thưởng (+)</th>
+                      <th className="border border-slate-700 p-2 w-20 bg-slate-200">Tổng điểm</th>
+                      <th className="border border-slate-700 p-2 w-24">Xếp loại</th>
+                    </tr>
+                  ) : (
+                    <tr className="bg-slate-100 text-center font-bold">
+                      <th className="border border-slate-700 p-2 w-10">STT</th>
+                      <th className="border border-slate-700 p-2 w-12">Hạng</th>
+                      <th className="border border-slate-700 p-2">Lớp</th>
+                      <th className="border border-slate-700 p-2 w-14">Khối</th>
+                      <th className="border border-slate-700 p-2">Phân hiệu</th>
+                      <th className="border border-slate-700 p-2">Giáo viên chủ nhiệm</th>
+                      <th className="border border-slate-700 p-2 w-16">{periodType === 'semester' ? 'Điểm TB Tháng' : 'Điểm gốc'}</th>
+                      <th className="border border-slate-700 p-2 w-16 text-emerald-800">Thưởng (+)</th>
+                      <th className="border border-slate-700 p-2 w-16 text-rose-800">Phạt (-)</th>
+                      <th className="border border-slate-700 p-2 w-20 bg-slate-200">{periodType === 'semester' ? 'Điểm Học Kỳ' : 'Tổng điểm'}</th>
+                      <th className="border border-slate-700 p-2 w-24">Xếp loại</th>
+                    </tr>
+                  )}
                 </thead>
                 <tbody>
                   {displayRankings.map((r, idx) => {
                     const bonus = r.bonusPoints || r.monthBonusPoints || r.yearBonusPoints || 0;
                     const penalty = r.penaltyPoints || r.monthPenaltyPoints || 0;
                     const classNameStr = String(r.classItem.name); // Text preservation strictly as String
+
+                    if (periodType === 'year') {
+                      const s1Str = r.semester1Score !== undefined ? `${r.semester1Score.toFixed(2)}đ` : 'Chưa chốt';
+                      const s2Str = r.semester2Score !== undefined ? `${r.semester2Score.toFixed(2)}đ` : 'Chưa chốt';
+                      const baseYearStr = r.baseScore ? `${r.baseScore.toFixed(2)}` : 'Chưa đủ';
+
+                      return (
+                        <tr key={r.classItem.id} className="text-center hover:bg-slate-50">
+                          <td className="border border-slate-700 p-1.5 tabular-nums text-slate-500">{idx + 1}</td>
+                          <td className="border border-slate-700 p-1.5 font-bold tabular-nums">
+                            {r.isDisqualifiedYearly ? 'Không XL' : r.rank}
+                          </td>
+                          <td className="border border-slate-700 p-1.5 font-bold text-left px-2">Lớp {classNameStr}</td>
+                          <td className="border border-slate-700 p-1.5">Khối {r.classItem.grade}</td>
+                          <td className="border border-slate-700 p-1.5 text-left px-2">{r.campus.name}</td>
+                          <td className="border border-slate-700 p-1.5 text-left px-2">{r.classItem.homeroomTeacher || 'Chưa phân công'}</td>
+                          <td className="border border-slate-700 p-1.5 tabular-nums">{s1Str}</td>
+                          <td className="border border-slate-700 p-1.5 tabular-nums">{s2Str}</td>
+                          <td className="border border-slate-700 p-1.5 tabular-nums font-semibold">{baseYearStr}</td>
+                          <td className="border border-slate-700 p-1.5 tabular-nums text-emerald-700 font-bold">+{bonus}</td>
+                          <td className="border border-slate-700 p-1.5 font-bold text-sm bg-slate-100 tabular-nums">{r.totalScore}</td>
+                          <td className="border border-slate-700 p-1.5 font-bold">{r.performanceTier}</td>
+                        </tr>
+                      );
+                    }
 
                     return (
                       <tr key={r.classItem.id} className="text-center hover:bg-slate-50">
@@ -924,35 +1124,29 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
             {/* Official Signatures Block - 3 Chữ Ký Chuẩn Quy Định */}
             <div className="signatures-block grid grid-cols-3 gap-4 text-center mt-10 text-xs sm:text-sm font-serif pt-4">
               <div className="space-y-1">
-                <div className="font-semibold uppercase">NGƯỜI LẬP BIỂU / TPT ĐỘI</div>
+                <div className="font-semibold uppercase">{signers.col1Header}</div>
                 <div className="text-[11px] text-slate-500 italic">(Ký, ghi rõ họ tên)</div>
                 <div className="h-16"></div>
-                <div className="font-bold text-slate-900">{tptName || ''}</div>
-                <div className="text-[11px] text-slate-600 font-sans">Tổng phụ trách Đội</div>
+                <div className="font-bold text-slate-900">{signers.col1Name}</div>
+                <div className="text-[11px] text-slate-600 font-sans">{signers.col1Title}</div>
               </div>
 
               <div className="space-y-1">
-                <div className="font-semibold uppercase">{vicePrincipalTitle.toUpperCase()}</div>
+                <div className="font-semibold uppercase">{signers.col2Header}</div>
                 <div className="text-[11px] text-slate-500 italic">(Ký, ghi rõ họ tên)</div>
                 <div className="h-16"></div>
-                <div className="font-bold text-slate-900">{vicePrincipalName || ''}</div>
-                <div className="text-[11px] text-slate-600 font-sans">{vicePrincipalTitle}</div>
+                <div className="font-bold text-slate-900">{signers.col2Name}</div>
+                <div className="text-[11px] text-slate-600 font-sans">{signers.col2Title}</div>
               </div>
 
               <div className="space-y-1">
-                <div className="font-semibold uppercase">
-                  {periodType === 'week' ? 'GIÁO VIÊN TRỰC' : 'HIỆU TRƯỜNG NHÀ TRƯỜNG'}
-                </div>
+                <div className="font-semibold uppercase">{signers.col3Header}</div>
                 <div className="text-[11px] text-slate-500 italic">
                   {periodType === 'week' ? '(Ký, ghi rõ họ tên)' : '(Ký tên và đóng dấu)'}
                 </div>
                 <div className="h-16"></div>
-                <div className="font-bold text-slate-900">
-                  {periodType === 'week' ? (dutyTeacherName || '') : (principalName || '')}
-                </div>
-                <div className="text-[11px] text-slate-600 font-sans">
-                  {periodType === 'week' ? dutyTeacherTitle : 'Hiệu trưởng'}
-                </div>
+                <div className="font-bold text-slate-900">{signers.col3Name}</div>
+                <div className="text-[11px] text-slate-600 font-sans">{signers.col3Title}</div>
               </div>
             </div>
           </div>

@@ -226,14 +226,14 @@ export const INITIAL_RED_FLAG_BRIEFINGS: RedFlagBriefing[] = [
     meetingDate: '2026-09-25',
     meetingTime: '08:30',
     presidedBy: 'Cô Lê Thị Hoa (Tổng Phụ Trách Đội)',
-    dutyClassId: 'c_9a1',
-    dutyClassName: '9A1',
-    dutyTeacherName: 'Cô Lê Thị Nga',
+    dutyClassId: 'c_8a1',
+    dutyClassName: '8A1',
+    dutyTeacherName: 'Thầy Trịnh Xuân Tĩnh',
     logBookHandedOver: false,
     attendeesCount: 18,
     status: 'pending',
     conclusionSummary: 'Hạn chót cập nhật biên bản thi đua tuần 4 trước 08:30 Thứ Sáu phục vụ họp giao ban Liên đội.',
-    notes: 'Đang theo dõi cập nhật dữ liệu từ lớp trực tuần 9A1 và các phân hiệu.',
+    notes: 'Đang theo dõi cập nhật dữ liệu từ lớp trực tuần 8A1 và các phân hiệu.',
   },
 ];
 
@@ -374,14 +374,8 @@ export function generateInitialCampusWeeklyDuties(): CampusWeeklyDuty[] {
   // Populate weeks 1 through 35 for each campus
   for (let week = 1; week <= 35; week++) {
     for (const campus of campusesConfig) {
-      // Rotate through classes
-      // In Week 4, ensure 9A1 is assigned to lhl_main so Cô Lê Thị Nga is on duty!
-      let classIndex: number;
-      if (campus.campusId === 'lhl_main' && week === 4) {
-        classIndex = 0; // c_9a1
-      } else {
-        classIndex = (week - 1) % campus.classes.length;
-      }
+      // Rotate through classes normally
+      const classIndex = (week - 1) % campus.classes.length;
 
       const assigned = campus.classes[classIndex];
       duties.push({

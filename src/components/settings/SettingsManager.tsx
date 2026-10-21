@@ -101,7 +101,17 @@ export const SettingsManager: React.FC = () => {
       map[c.id] =
         c.leaderName ||
         settings.leadershipSignatures?.campusVicePrincipals?.[c.id] ||
-        '';
+        (c.isMain || c.id === 'lhl_main' ? 'Cô Trần Thị Hà' : c.id === 'hau_loc' ? 'Thầy Phạm Văn Đình' : '');
+    });
+    return map;
+  });
+
+  const [campusNeNepTeachers, setCampusNeNepTeachers] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    campuses.forEach((c) => {
+      map[c.id] =
+        settings.leadershipSignatures?.campusNeNepTeachers?.[c.id] ||
+        (c.isMain || c.id === 'lhl_main' ? (settings.leadershipSignatures?.tptName || 'Cô Lê Thị Hoa') : c.id === 'hau_loc' ? 'Thầy Nguyễn Văn Cường' : '');
     });
     return map;
   });
@@ -185,6 +195,7 @@ export const SettingsManager: React.FC = () => {
         vicePrincipalEmulationName: vicePrincipalEmulationName.trim(),
         tptName: tptName.trim(),
         campusVicePrincipals: campusLeaders,
+        campusNeNepTeachers: campusNeNepTeachers,
       },
     });
 
@@ -974,43 +985,68 @@ export const SettingsManager: React.FC = () => {
           </div>
         </div>
 
-        {/* Vice Principals by Campus */}
+        {/* Vice Principals and Ne Nep Teachers by Campus */}
         <div>
           <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
             <School size={14} className="text-indigo-600" />
-            <span>b. Phó Hiệu Trưởng Phụ Trách Từng Phân Hiệu (Ký Biên Bản Xếp Loại)</span>
+            <span>b. Ban Quản Lý & Giáo Viên Phụ Trách Nề Nếp Từng Phân Hiệu</span>
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {campuses.map((campus) => (
               <div
                 key={campus.id}
-                className="p-3.5 bg-slate-50 border border-slate-200 hover:border-indigo-300 rounded-xl space-y-1.5 transition-colors"
+                className="p-3.5 bg-slate-50 border border-slate-200 hover:border-indigo-300 rounded-xl space-y-2 transition-colors"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
                   <span className="text-xs font-black text-slate-800">{campus.name}</span>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
                     {classes.filter((c) => c.campusId === campus.id).length} lớp
                   </span>
                 </div>
-                <label className="block text-[11px] font-semibold text-slate-600">
-                  Phó Hiệu trưởng phụ trách:
-                </label>
-                <input
-                  type="text"
-                  disabled={!canManage}
-                  value={campusLeaders[campus.id] || ''}
-                  onChange={(e) =>
-                    setCampusLeaders({
-                      ...campusLeaders,
-                      [campus.id]: e.target.value,
-                    })
-                  }
-                  placeholder={`Phó HT phụ trách ${campus.name}`}
-                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-indigo-500"
-                />
-                <p className="text-[10px] text-slate-500 italic">
-                  Chức danh ký: Phó Hiệu trưởng phụ trách {campus.name}
-                </p>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">
+                    Phó Hiệu trưởng phụ trách:
+                  </label>
+                  <input
+                    type="text"
+                    disabled={!canManage}
+                    value={campusLeaders[campus.id] || ''}
+                    onChange={(e) =>
+                      setCampusLeaders({
+                        ...campusLeaders,
+                        [campus.id]: e.target.value,
+                      })
+                    }
+                    placeholder={`Phó HT phụ trách ${campus.name}`}
+                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-indigo-500"
+                  />
+                  <p className="text-[10px] text-slate-500 italic mt-0.5">
+                    Chức danh ký: Phó Hiệu trưởng phụ trách {campus.name}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">
+                    GV phụ trách nề nếp phân hiệu:
+                  </label>
+                  <input
+                    type="text"
+                    disabled={!canManage}
+                    value={campusNeNepTeachers[campus.id] || ''}
+                    onChange={(e) =>
+                      setCampusNeNepTeachers({
+                        ...campusNeNepTeachers,
+                        [campus.id]: e.target.value,
+                      })
+                    }
+                    placeholder={`Giáo viên phụ trách nề nếp ${campus.name}`}
+                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-emerald-800 focus:outline-indigo-500"
+                  />
+                  <p className="text-[10px] text-slate-500 italic mt-0.5">
+                    Chức danh ký: GV phụ trách nề nếp {campus.name}
+                  </p>
+                </div>
               </div>
             ))}
           </div>

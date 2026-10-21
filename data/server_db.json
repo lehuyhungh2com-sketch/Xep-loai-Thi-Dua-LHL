@@ -1511,6 +1511,14 @@
             "loc_son": "Thầy Bùi Tuấn Long",
             "my_loc": "Cô Hoàng Thị Huyền",
             "thuan_loc": "Cô Lường Thị Ngân"
+          },
+          "campusNeNepTeachers": {
+            "lhl_main": "Cô Lê Thị Hoa",
+            "hau_loc": "Thầy Phạm Văn Đình",
+            "loc_tan": "Thầy Phạm Văn Dũng",
+            "loc_son": "Thầy Bùi Tuấn Long",
+            "my_loc": "Cô Hoàng Thị Huyền",
+            "thuan_loc": "Cô Lường Thị Ngân"
           }
         },
         "lockedMonths": {},
@@ -2749,6 +2757,14 @@
           "tptName": "Cô Lê Thị Hoa",
           "campusVicePrincipals": {
             "lhl_main": "Cô Trần Thị Hà",
+            "hau_loc": "Thầy Phạm Văn Đình",
+            "loc_tan": "Thầy Phạm Văn Dũng",
+            "loc_son": "Thầy Bùi Tuấn Long",
+            "my_loc": "Cô Hoàng Thị Huyền",
+            "thuan_loc": "Cô Lường Thị Ngân"
+          },
+          "campusNeNepTeachers": {
+            "lhl_main": "Cô Lê Thị Hoa",
             "hau_loc": "Thầy Phạm Văn Đình",
             "loc_tan": "Thầy Phạm Văn Dũng",
             "loc_son": "Thầy Bùi Tuấn Long",
@@ -4428,6 +4444,14 @@
         "loc_son": "Thầy Bùi Tuấn Long",
         "my_loc": "Cô Hoàng Thị Huyền",
         "thuan_loc": "Cô Lường Thị Ngân"
+      },
+      "campusNeNepTeachers": {
+        "lhl_main": "Cô Lê Thị Hoa",
+        "hau_loc": "Thầy Phạm Văn Đình",
+        "loc_tan": "Thầy Phạm Văn Dũng",
+        "loc_son": "Thầy Bùi Tuấn Long",
+        "my_loc": "Cô Hoàng Thị Huyền",
+        "thuan_loc": "Cô Lường Thị Ngân"
       }
     },
     "lockedMonths": {},
@@ -4544,7 +4568,7 @@
       "classType": "A1",
       "type": "A1",
       "status": "active",
-      "homeroomTeacher": "Trịnh Xuân Tĩnh",
+      "homeroomTeacher": "Thầy Trịnh Xuân Tĩnh",
       "monitorName": "Chưa bầu",
       "studentCount": 44,
       "roomNumber": "P.301",

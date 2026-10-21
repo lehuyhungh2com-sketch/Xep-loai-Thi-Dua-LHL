@@ -243,6 +243,7 @@ export interface YearRankingRow {
   finalYearScore: number | null; // yearScore + (bonus_points_yearly || 0)
   displayScoreText: string; // "94.00" hoặc "Chưa đủ dữ liệu"
   performanceTier: 'Xuất sắc' | 'Tốt' | 'Khá' | 'Trung bình' | 'Cần cố gắng' | 'Chưa đủ dữ liệu';
+  isDisqualifiedYearly?: boolean;
   semester1Row?: SemesterRankingRow;
   semester2Row?: SemesterRankingRow;
 }
@@ -804,9 +805,10 @@ export interface RedFlagActivityLog {
 
 export interface LeadershipSignatures {
   principalName?: string; // Hiệu trưởng
-  tptName?: string; // Tổng phụ trách Đội
-  vicePrincipalEmulationName?: string; // Phó Hiệu trưởng phụ trách thi đua
+  tptName?: string; // Tổng phụ trách Đội (Quản lý nề nếp chung toàn trường)
+  vicePrincipalEmulationName?: string; // Phó Hiệu trưởng phụ trách thi đua / nề nếp
   campusVicePrincipals?: Record<string, string>; // campusId -> Phó Hiệu trưởng phụ trách phân hiệu
+  campusNeNepTeachers?: Record<string, string>; // campusId -> Giáo viên phụ trách nề nếp phân hiệu
 }
 
 export interface SchoolSettings {

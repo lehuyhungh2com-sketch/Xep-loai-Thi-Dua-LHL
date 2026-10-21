@@ -17,6 +17,16 @@ export interface ExportSignatures {
   campusName?: string;
   governingBody?: string;
   schoolName?: string;
+  col1Title?: string;
+  col1Sub?: string;
+  col1Name?: string;
+  col2Title?: string;
+  col2Sub?: string;
+  col2Name?: string;
+  col3Title?: string;
+  col3Sub?: string;
+  col3Name?: string;
+  isCampusScope?: boolean;
 }
 
 /** Helper: download file to user's browser */
@@ -372,26 +382,35 @@ export function exportRankingsToExcel(
   const isWeekly = periodTitle.toLowerCase().includes('tuần') || periodTitle.toLowerCase().includes('week');
   const dutyTeacher = signatures?.dutyTeacherName || 'Giáo viên trực ban tuần';
 
+  const col1Header = signatures?.col1Title || 'NGƯỜI LẬP BIỂU / TPT ĐỘI';
+  const col1Name = signatures?.col1Name || tpt;
+
+  const col2Header = signatures?.col2Title || viceTitle.toUpperCase();
+  const col2Name = signatures?.col2Name || viceLeader;
+
+  const col3Header = signatures?.col3Title || (isWeekly ? 'GIÁO VIÊN TRỰC' : 'HIỆU TRƯỜNG NHÀ TRƯỜNG');
+  const col3Name = signatures?.col3Name || (isWeekly ? dutyTeacher : principal);
+
   html += `
     <table style="border: none; margin-top: 35px; width: 100%;">
       <tr style="border: none;">
         <td colspan="3" style="text-align: center; border: none; font-weight: bold; width: 33%;">
-          NGƯỜI LẬP BIỂU / TPT ĐỘI<br>
+          ${col1Header}<br>
           <span style="font-size: 10pt; font-weight: normal; font-style: italic;">(Ký, ghi rõ họ tên)</span>
           <br><br><br><br>
-          <strong>${tpt}</strong>
+          <strong>${col1Name}</strong>
         </td>
         <td colspan="4" style="text-align: center; border: none; font-weight: bold; width: 33%;">
-          ${viceTitle.toUpperCase()}<br>
+          ${col2Header}<br>
           <span style="font-size: 10pt; font-weight: normal; font-style: italic;">(Ký, ghi rõ họ tên)</span>
           <br><br><br><br>
-          <strong>${viceLeader}</strong>
+          <strong>${col2Name}</strong>
         </td>
         <td colspan="4" style="text-align: center; border: none; font-weight: bold; width: 34%;">
-          ${isWeekly ? 'GIÁO VIÊN TRỰC' : 'HIỆU TRƯỞNG NHÀ TRƯỜNG'}<br>
+          ${col3Header}<br>
           <span style="font-size: 10pt; font-weight: normal; font-style: italic;">${isWeekly ? '(Ký, ghi rõ họ tên)' : '(Ký tên và đóng dấu)'}</span>
           <br><br><br><br>
-          <strong>${isWeekly ? dutyTeacher : principal}</strong>
+          <strong>${col3Name}</strong>
         </td>
       </tr>
     </table>

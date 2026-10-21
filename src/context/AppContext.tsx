@@ -1078,6 +1078,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   useEffect(() => {
     try {
+      localStorage.setItem(STORAGE_KEYS.CAMPUS_WEEKLY_DUTIES, JSON.stringify(campusWeeklyDuties));
+    } catch {}
+  }, [campusWeeklyDuties]);
+
+  useEffect(() => {
+    try {
       localStorage.setItem(STORAGE_KEYS.LOCKED_WEEKS, JSON.stringify(lockedWeeks));
     } catch {}
   }, [lockedWeeks]);
@@ -1156,7 +1162,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         usersSnap, campusesSnap, criteriaSnap, classesSnap, scoreLogsSnap, settingsSnap,
         lockedWeeksSnap, lockedMonthsSnap, lockedSemestersSnap,
         lockedTitlesSnap, disciplinaryRecordsSnap, monthlyBonusesSnap, appealsSnap,
-        historicalScoresSnap
+        historicalScoresSnap, campusWeeklyDutiesSnap
       ] = await Promise.all([
         getDocs(collection(db, 'users')),
         getDocs(collection(db, 'campuses')),
@@ -1172,6 +1178,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         getDoc(doc(db, 'monthly_bonuses', 'summary')),
         getDocs(collection(db, 'appeals')),
         getDoc(doc(db, 'historical_scores', 'summary')),
+        getDoc(doc(db, 'campus_weekly_duties', 'summary')),
       ]);
 
       let finalUsers: User[] = [];
@@ -1217,6 +1224,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const histData = historicalScoresSnap.data().historicalWeeklyScores;
         setHistoricalWeeklyScores(histData);
         setSettings((prev) => ({ ...prev, historicalWeeklyScores: histData }));
+      }
+      if (campusWeeklyDutiesSnap.exists() && Array.isArray(campusWeeklyDutiesSnap.data().duties)) {
+        setCampusWeeklyDuties(campusWeeklyDutiesSnap.data().duties);
       }
 
       setIsDataLoaded(true);
@@ -4374,7 +4384,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Lớp trực tuần & Phân quyền GVCN theo tuần (Tuần → Phân hiệu → Lớp trực → GVCN)
   const updateCampusWeeklyDuty = (id: string, patch: Partial<CampusWeeklyDuty>) => {
-    setCampusWeeklyDuties((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
+    setCampusWeeklyDuties((prev) => {
+      const nextList = prev.map((d) => (d.id === id ? { ...d, ...patch } : d));
+      try {
+        setDoc(doc(db, 'campus_weekly_duties', 'summary'), { duties: nextList, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+      } catch {}
+      return nextList;
+    });
   };
 
   const setWeeklyDutyAssignment = (week: number, campusId: string, classId: string, notes?: string) => {
@@ -4395,13 +4411,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         dutyRoleDescription: `Trực ban nề nếp Tuần ${week}: Kéo cờ, giám sát nề nếp, truy bài và tổng hợp nề nếp giao ban.`,
         notes: notes || `Lớp trực tuần ${cls.name} chịu trách nhiệm ghi nhận dữ liệu thi đua trong tuần ${week}.`,
       };
+      let nextList: CampusWeeklyDuty[];
       if (existingIndex >= 0) {
-        const copy = [...prev];
-        copy[existingIndex] = updatedItem;
-        return copy;
+        nextList = [...prev];
+        nextList[existingIndex] = updatedItem;
       } else {
-        return [...prev, updatedItem];
+        nextList = [...prev, updatedItem];
       }
+
+      try {
+        setDoc(doc(db, 'campus_weekly_duties', 'summary'), { duties: nextList, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+      } catch {}
+
+      return nextList;
+    });
+
+    setBriefingRecords((prev) => {
+      const bIdx = prev.findIndex((b) => b.week === week && (b.campusId === campusId || campusId === 'lhl_main'));
+      if (bIdx >= 0) {
+        const nextBriefings = [...prev];
+        nextBriefings[bIdx] = {
+          ...nextBriefings[bIdx],
+          dutyClassId: cls.id,
+          dutyClassName: cls.name,
+          dutyTeacherName: cls.homeroomTeacher,
+        };
+        return nextBriefings;
+      }
+      return prev;
     });
 
     logAudit({

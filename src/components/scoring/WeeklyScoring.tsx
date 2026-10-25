@@ -32,6 +32,12 @@ import {
   RotateCcw,
   Check,
   Flag,
+  Star,
+  Clock,
+  ArrowUpDown,
+  SlidersHorizontal,
+  Grid,
+  List,
 } from 'lucide-react';
 import { Criteria, ScoreLog, CriteriaPeriod, ClassItem, Campus, CampusWeeklyDuty, normalizeRole } from '../../types';
 import { canInputScores, canLockWeek, canUnlockWeek, ROLE_METADATA } from '../../utils/rbac';
@@ -170,6 +176,154 @@ export const WeeklyScoring: React.FC = () => {
   });
   const [customPeriod, setCustomPeriod] = useState<CriteriaPeriod | 'auto'>('auto');
 
+  // Criteria UX Enhancements: Sort Mode & View Mode
+  const [criteriaSortMode, setCriteriaSortMode] = useState<'vi_az' | 'code' | 'category' | 'points_desc'>('vi_az');
+  const [criteriaViewMode, setCriteriaViewMode] = useState<'dropdown' | 'grid'>('dropdown');
+
+  // Helper for accent-insensitive search in Vietnamese
+  const removeVietnameseTones = (str: string) => {
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .toLowerCase();
+  };
+
+  // Default common criteria codes requested by school/teachers:
+  // - HS không sơ vin (TP02), không đeo khăn quàng (TP04)
+  // - Đi dép lê, dẫm quai (TP03)
+  // - 2 tiết học xếp loại khá (HT02)
+  // - Trường chính 2 điểm yếu (HT04) & Phân hiệu điểm yếu (HT03)
+  // - Chưa đổ rác (VS03)
+  // - Lớp đạt điểm tốt (TT02, TT03, TT04)
+  const DEFAULT_PINNED_CODES = [
+    'TP02', // Không sơ vin
+    'TP04', // Không đeo khăn quàng
+    'TP03', // Đi dép lê, dẫm quai
+    'HT02', // 2 tiết học xếp loại khá
+    'HT04', // Trường chính 2 con điểm yếu
+    'HT03', // Các phân hiệu 5 con điểm yếu
+    'VS03', // Chưa đổ rác
+    'TT02', // Phân hiệu đạt 5 điểm tốt
+    'TT03', // Lớp A1 đạt 13 điểm tốt
+    'TT04', // Lớp A2, A3 đạt 10 điểm tốt
+  ];
+
+  // Pinned / Favorite Criteria IDs (persisted in localStorage)
+  const [pinnedCriteriaIds, setPinnedCriteriaIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('pinned_criteria_ids');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return DEFAULT_PINNED_CODES;
+  });
+
+  // Recent Criteria IDs (persisted in localStorage)
+  const [recentCriteriaIds, setRecentCriteriaIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('recent_criteria_ids');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  });
+
+  const isCriteriaPinned = (crit: Criteria | string): boolean => {
+    if (!crit) return false;
+    let targetId = '';
+    let targetCode = '';
+    if (typeof crit === 'string') {
+      targetId = crit.toLowerCase();
+      const match = criteria.find(
+        (c) => c.id.toLowerCase() === targetId || c.code.toLowerCase() === targetId
+      );
+      if (match) {
+        targetId = match.id.toLowerCase();
+        targetCode = match.code.toLowerCase();
+      }
+    } else {
+      targetId = (crit.id || '').toLowerCase();
+      targetCode = (crit.code || '').toLowerCase();
+    }
+
+    return pinnedCriteriaIds.some((p) => {
+      const lower = p.toLowerCase();
+      return (targetId && lower === targetId) || (targetCode && lower === targetCode);
+    });
+  };
+
+  const togglePinCriteria = (crit: Criteria | string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+
+    let targetId = '';
+    let targetCode = '';
+
+    if (typeof crit === 'string') {
+      targetId = crit.toLowerCase();
+      const match = criteria.find(
+        (c) => c.id.toLowerCase() === targetId || c.code.toLowerCase() === targetId
+      );
+      if (match) {
+        targetId = match.id.toLowerCase();
+        targetCode = match.code.toLowerCase();
+      }
+    } else if (crit) {
+      targetId = (crit.id || '').toLowerCase();
+      targetCode = (crit.code || '').toLowerCase();
+    }
+
+    if (!targetId && !targetCode) return;
+
+    setPinnedCriteriaIds((prev) => {
+      const currentlyPinned = prev.some((p) => {
+        const lower = p.toLowerCase();
+        return (targetId && lower === targetId) || (targetCode && lower === targetCode);
+      });
+
+      let next: string[];
+      if (currentlyPinned) {
+        next = prev.filter((p) => {
+          const lower = p.toLowerCase();
+          const matchId = targetId && lower === targetId;
+          const matchCode = targetCode && lower === targetCode;
+          return !matchId && !matchCode;
+        });
+      } else {
+        next = [...prev, targetCode || targetId];
+      }
+
+      try {
+        localStorage.setItem('pinned_criteria_ids', JSON.stringify(next));
+      } catch (err) {
+        console.error(err);
+      }
+      return next;
+    });
+  };
+
+  const addRecentCriteria = (id: string) => {
+    if (!id) return;
+    setRecentCriteriaIds((prev) => {
+      const next = [id, ...prev.filter((i) => i !== id)].slice(0, 6);
+      try {
+        localStorage.setItem('recent_criteria_ids', JSON.stringify(next));
+      } catch (err) {
+        console.error(err);
+      }
+      return next;
+    });
+  };
+
   // Notifications
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -194,7 +348,7 @@ export const WeeklyScoring: React.FC = () => {
   // Bulk / Excel Import Modal State
   const [showExcelModal, setShowExcelModal] = useState<boolean>(false);
 
-  // Filtered criteria
+  // Filtered categories
   const availableCategories = useMemo(() => {
     const set = new Set<string>();
     criteria.forEach((c) => {
@@ -203,12 +357,14 @@ export const WeeklyScoring: React.FC = () => {
     return Array.from(set);
   }, [criteria]);
 
+  // Filtered and sorted criteria list with Vietnamese collation & search
   const filteredCriteriaList = useMemo(() => {
     const isMain = currentCampus?.type === 'main' || currentCampus?.isMain === true;
     const cType = (currentClass?.classType || currentClass?.type || '').toUpperCase();
     const cName = (currentClass?.name || '').toUpperCase();
+    const cleanSearch = removeVietnameseTones(criteriaSearch.trim());
 
-    return criteria.filter((crit) => {
+    const result = criteria.filter((crit) => {
       if (!crit.isActive) return false;
 
       // 1. Phân hiệu (Campus scope filtering)
@@ -229,19 +385,72 @@ export const WeeklyScoring: React.FC = () => {
         } else if (isA2A3) {
           if (target === 'A1') return false;
         } else {
-          // Lớp chuẩn trường chính (không phải A1, A2, A3)
+          // Lớp chuẩn trường chính
           if (target === 'A1' || target === 'A2_A3') return false;
         }
       }
 
       const matchCategory = criteriaCategory === 'all' || crit.category === criteriaCategory;
+      
+      const rawName = crit.name.toLowerCase();
+      const rawCode = crit.code.toLowerCase();
+      const normName = removeVietnameseTones(crit.name);
+      const normCode = removeVietnameseTones(crit.code);
+
       const matchSearch =
-        criteriaSearch === '' ||
-        crit.name.toLowerCase().includes(criteriaSearch.toLowerCase()) ||
-        crit.code.toLowerCase().includes(criteriaSearch.toLowerCase());
+        cleanSearch === '' ||
+        rawName.includes(criteriaSearch.toLowerCase()) ||
+        rawCode.includes(criteriaSearch.toLowerCase()) ||
+        normName.includes(cleanSearch) ||
+        normCode.includes(cleanSearch);
+
       return matchCategory && matchSearch;
     });
-  }, [criteria, criteriaCategory, criteriaSearch, currentCampus, currentClass]);
+
+    // Sort list according to criteriaSortMode
+    result.sort((a, b) => {
+      if (criteriaSortMode === 'vi_az') {
+        return a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' });
+      }
+      if (criteriaSortMode === 'code') {
+        return a.code.localeCompare(b.code, 'vi');
+      }
+      if (criteriaSortMode === 'category') {
+        const catCompare = (a.category || '').localeCompare(b.category || '', 'vi');
+        if (catCompare !== 0) return catCompare;
+        return a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' });
+      }
+      if (criteriaSortMode === 'points_desc') {
+        return Math.abs(b.points) - Math.abs(a.points);
+      }
+      return 0;
+    });
+
+    return result;
+  }, [criteria, criteriaCategory, criteriaSearch, criteriaSortMode, currentCampus, currentClass]);
+
+  // List of Pinned Criteria objects available for current campus
+  const pinnedCriteriaList = useMemo(() => {
+    return criteria.filter((crit) => {
+      if (!crit.isActive) return false;
+      return pinnedCriteriaIds.some(
+        (p) =>
+          p.toLowerCase() === crit.id.toLowerCase() ||
+          p.toLowerCase() === crit.code.toLowerCase()
+      );
+    });
+  }, [criteria, pinnedCriteriaIds]);
+
+  // List of Recent Criteria objects
+  const recentCriteriaList = useMemo(() => {
+    return recentCriteriaIds
+      .map((id) =>
+        criteria.find(
+          (c) => c.id.toLowerCase() === id.toLowerCase() || c.code.toLowerCase() === id.toLowerCase()
+        )
+      )
+      .filter((c): c is Criteria => Boolean(c && c.isActive));
+  }, [criteria, recentCriteriaIds]);
 
   const currentCriteria = useMemo(() => {
     if (selectedCriteriaId) {
@@ -390,6 +599,7 @@ export const WeeklyScoring: React.FC = () => {
 
     const res = addScoreLog(logToSave);
     if (res.success) {
+      addRecentCriteria(currentCriteria.id);
       setSuccessMessage(
         `✅ Đã lưu thành công: "${currentCriteria.name}" (${previewResult.totalPoints >= 0 ? `+${previewResult.totalPoints}` : previewResult.totalPoints}đ) cho lớp ${currentClass.name}. Điểm số được cập nhật ngay lập tức!`
       );
@@ -930,64 +1140,348 @@ export const WeeklyScoring: React.FC = () => {
               </div>
             </div>
 
-            {/* STEP 4: CHỌN TIÊU CHÍ */}
-            <div className="space-y-3 pt-4 border-t border-slate-100">
+            {/* STEP 4: CHỌN TIÊU CHÍ (UX TỐI ƯU CỰC KỲ DỄ CHỌN VÀ TÌM KIẾM) */}
+            <div className="space-y-4 pt-4 border-t border-slate-100">
+              {/* Header & Controls */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <label className="flex items-center gap-2 text-xs font-extrabold text-slate-800 uppercase tracking-wide">
                   <span className="w-6 h-6 rounded-full bg-blue-700 text-white flex items-center justify-center text-xs font-black">4</span>
                   <span>Chọn Tiêu chí thi đua (Vi phạm / Thưởng):</span>
+                  <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+                    {filteredCriteriaList.length} tiêu chí
+                  </span>
                 </label>
+
+                <div className="flex items-center gap-2">
+                  {/* View Mode Switcher */}
+                  <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setCriteriaViewMode('dropdown')}
+                      className={`px-2.5 py-1 rounded-md flex items-center gap-1 font-bold cursor-pointer transition-all ${
+                        criteriaViewMode === 'dropdown' ? 'bg-white text-blue-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                      title="Chế độ chọn Danh sách thả xuống (Dropdown)"
+                    >
+                      <List size={13} />
+                      <span>Thả xuống</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCriteriaViewMode('grid')}
+                      className={`px-2.5 py-1 rounded-md flex items-center gap-1 font-bold cursor-pointer transition-all ${
+                        criteriaViewMode === 'grid' ? 'bg-white text-blue-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                      title="Chế độ Lưới Thẻ bấm trực quan (Card Grid)"
+                    >
+                      <Grid size={13} />
+                      <span>Bảng thẻ</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {/* Filters for Criteria */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                <div className="sm:col-span-5 relative">
+              {/* 1. GHIM TIÊU CHÍ HAY SỬ DỤNG (FAVORITE QUICK CHIPS) */}
+              <div className="bg-amber-50/70 border border-amber-200/90 rounded-2xl p-3 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-extrabold text-amber-950 flex items-center gap-1.5">
+                    <Star size={14} className="text-amber-500 fill-amber-400" />
+                    <span>GHIM TIÊU CHÍ HAY SỬ DỤNG (Bấm 1-chạm chọn nhanh):</span>
+                  </span>
+                  <span className="text-[10px] text-amber-800 italic">Bấm ⭐ cạnh tiêu chí để ghim/bỏ ghim</span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {pinnedCriteriaList.length > 0 ? (
+                    pinnedCriteriaList.map((crit) => {
+                      const isSelected = (currentCriteria?.id === crit.id || selectedCriteriaId === crit.id || selectedCriteriaId === crit.code);
+                      const isBonus = crit.type === 'bonus';
+
+                      return (
+                        <div
+                          key={crit.id}
+                          onClick={() => setSelectedCriteriaId(crit.id)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold cursor-pointer transition-all active:scale-95 shadow-2xs ${
+                            isSelected
+                              ? 'bg-blue-600 text-white border-blue-700 ring-2 ring-blue-400/40 shadow-xs scale-[1.02]'
+                              : 'bg-white text-slate-800 border-amber-300/80 hover:bg-amber-100/60 hover:border-amber-400'
+                          }`}
+                        >
+                          <span className={isSelected ? 'text-amber-300 font-mono font-black' : 'text-blue-700 font-mono font-black'}>
+                            [{crit.code}]
+                          </span>
+                          <span className="truncate max-w-[180px] sm:max-w-[220px]">{crit.name}</span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.2 rounded font-black ${
+                              isSelected
+                                ? 'bg-white/20 text-white'
+                                : isBonus
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-rose-100 text-rose-800'
+                            }`}
+                          >
+                            {isBonus ? `+${crit.points}đ` : `-${Math.abs(crit.points)}đ`}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={(e) => togglePinCriteria(crit, e)}
+                            className="ml-0.5 opacity-60 hover:opacity-100 p-1 hover:bg-black/10 rounded transition-opacity cursor-pointer"
+                            title="Bỏ ghim tiêu chí này"
+                          >
+                            <Star size={11} className={isSelected ? 'text-amber-300 fill-amber-300' : 'text-amber-500 fill-amber-500'} />
+                          </button>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <span className="text-xs text-amber-800 italic">Chưa có tiêu chí nào được ghim. Bấm ⭐ cạnh danh sách bên dưới để ghim tiêu chí thường dùng.</span>
+                  )}
+                </div>
+              </div>
+
+              {/* 2. TIÊU CHÍ VỪA DÙNG GẦN ĐÂY (RECENTLY USED CHIPS) */}
+              {recentCriteriaList.length > 0 && (
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+                  <span className="text-slate-500 font-extrabold shrink-0 flex items-center gap-1">
+                    <Clock size={13} className="text-slate-400" />
+                    <span>Gần đây:</span>
+                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {recentCriteriaList.map((crit) => {
+                      const isSelected = (currentCriteria?.id === crit.id || selectedCriteriaId === crit.id);
+                      return (
+                        <button
+                          key={crit.id}
+                          type="button"
+                          onClick={() => setSelectedCriteriaId(crit.id)}
+                          className={`px-2.5 py-1 rounded-lg border text-xs font-semibold cursor-pointer transition-all whitespace-nowrap ${
+                            isSelected
+                              ? 'bg-slate-800 text-white border-slate-900 font-bold'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                          }`}
+                        >
+                          [{crit.code}] {crit.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 3. NHÓM DANH MỤC CATEGORY TABS */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-100 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setCriteriaCategory('all')}
+                  className={`px-3 py-1.5 rounded-xl font-extrabold cursor-pointer transition-all whitespace-nowrap shrink-0 ${
+                    criteriaCategory === 'all'
+                      ? 'bg-blue-900 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                  }`}
+                >
+                  Tất cả nhóm ({criteria.length})
+                </button>
+                {availableCategories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setCriteriaCategory(cat)}
+                    className={`px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all whitespace-nowrap shrink-0 ${
+                      criteriaCategory === cat
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              {/* 4. SEARCH & SORT CONTROLS BAR */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+                {/* Search Input with accent-insensitive search */}
+                <div className="sm:col-span-7 relative">
                   <Search size={16} className="absolute left-3.5 top-3 text-slate-400" />
                   <input
                     type="text"
                     value={criteriaSearch}
                     onChange={(e) => setCriteriaSearch(e.target.value)}
-                    placeholder="Tìm tên hoặc mã lỗi (CC01, sơ vin...)"
-                    className="w-full text-xs sm:text-sm bg-slate-50 border-2 border-slate-200 rounded-xl pl-9 pr-3 py-2.5 font-medium focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                    placeholder="Tìm tên không dấu ('so vin', 'muon') hoặc mã lỗi (CC01...)"
+                    className="w-full text-xs sm:text-sm bg-slate-50 border-2 border-slate-200 rounded-xl pl-9 pr-8 py-2.5 font-medium focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
                   />
+                  {criteriaSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setCriteriaSearch('')}
+                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-700 cursor-pointer"
+                    >
+                      <X size={15} />
+                    </button>
+                  )}
                 </div>
 
-                <div className="sm:col-span-7">
+                {/* Sort Mode Dropdown */}
+                <div className="sm:col-span-5 flex items-center gap-1 bg-slate-50 border-2 border-slate-200 rounded-xl px-2 py-1">
+                  <ArrowUpDown size={14} className="text-blue-600 shrink-0 ml-1" />
+                  <span className="text-[11px] font-bold text-slate-500 shrink-0">Xếp:</span>
                   <select
-                    value={criteriaCategory}
-                    onChange={(e) => setCriteriaCategory(e.target.value)}
-                    className="w-full text-xs sm:text-sm bg-slate-50 border-2 border-slate-200 rounded-xl px-3 py-2.5 font-bold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none cursor-pointer transition-all"
+                    value={criteriaSortMode}
+                    onChange={(e) => setCriteriaSortMode(e.target.value as any)}
+                    className="w-full bg-transparent text-xs font-extrabold text-slate-800 outline-none cursor-pointer py-1"
                   >
-                    <option value="all">-- Tất cả nhóm tiêu chí ({criteria.length}) --</option>
-                    {availableCategories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
+                    <option value="vi_az">🔤 Alpha-bêt Tiếng Việt (A-Z)</option>
+                    <option value="code">🔢 Mã tiêu chí (CC01, CC02...)</option>
+                    <option value="category">📁 Phân loại theo Nhóm</option>
+                    <option value="points_desc">⚡ Mức điểm phạt/thưởng</option>
                   </select>
                 </div>
               </div>
 
-              {/* Main Criteria Selector Dropdown */}
-              <div>
-                <select
-                  value={currentCriteria?.id || selectedCriteriaId}
-                  onChange={(e) => setSelectedCriteriaId(e.target.value)}
-                  className="w-full text-sm sm:text-base font-extrabold text-slate-900 bg-blue-50/40 border-2 border-blue-300 rounded-xl p-3 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none cursor-pointer shadow-2xs transition-all"
-                >
-                  {dropdownCriteriaList.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      [{c.code}] {c.name} — {c.type === 'bonus' ? `+${c.points}đ` : `-${Math.abs(c.points)}đ`}/{c.unit} ({c.category})
-                    </option>
-                  ))}
-                </select>
-                {currentCriteria?.description && (
-                  <p className="text-xs text-slate-500 mt-1.5 italic pl-1 flex items-center gap-1">
-                    <Info size={13} className="text-slate-400 shrink-0" />
-                    <span>{currentCriteria.description}</span>
-                  </p>
-                )}
-              </div>
+              {/* 5. MAIN SELECTOR: DROPDOWN VIEW VS CARD GRID VIEW */}
+              {criteriaViewMode === 'dropdown' ? (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-stretch">
+                    <div className="sm:col-span-8 md:col-span-9 relative flex items-center">
+                      <select
+                        value={currentCriteria?.id || selectedCriteriaId}
+                        onChange={(e) => setSelectedCriteriaId(e.target.value)}
+                        className="w-full text-xs sm:text-sm font-extrabold text-slate-900 bg-blue-50/60 border-2 border-blue-300 rounded-xl p-3 pr-8 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none cursor-pointer shadow-2xs transition-all truncate"
+                      >
+                        {dropdownCriteriaList.map((c) => {
+                          const isPinned = isCriteriaPinned(c);
+                          return (
+                            <option key={c.id} value={c.id}>
+                              {isPinned ? '⭐ ' : ''}[{c.code}] {c.name} — {c.type === 'bonus' ? `+${c.points}đ` : `-${Math.abs(c.points)}đ`}/{c.unit} ({c.category})
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+
+                    {/* Quick Pin Toggle Button with clear text label */}
+                    <div className="sm:col-span-4 md:col-span-3 flex items-center">
+                      {currentCriteria && (
+                        <button
+                          type="button"
+                          onClick={(e) => togglePinCriteria(currentCriteria, e)}
+                          className={`w-full h-full min-h-[46px] px-3 py-2 rounded-xl border-2 flex items-center justify-center gap-2 font-extrabold text-xs cursor-pointer transition-all active:scale-95 shadow-2xs ${
+                            isCriteriaPinned(currentCriteria)
+                              ? 'bg-amber-100/90 border-amber-400 text-amber-900 hover:bg-amber-200'
+                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-amber-50 hover:border-amber-300'
+                          }`}
+                          title={
+                            isCriteriaPinned(currentCriteria)
+                              ? 'Bỏ ghim tiêu chí đang chọn khỏi thanh chọn nhanh'
+                              : 'Ghim tiêu chí đang chọn lên thanh chọn nhanh'
+                          }
+                        >
+                          <Star
+                            size={16}
+                            className={
+                              isCriteriaPinned(currentCriteria)
+                                ? 'fill-amber-400 text-amber-600 shrink-0'
+                                : 'text-slate-400 shrink-0'
+                            }
+                          />
+                          <span className="truncate">
+                            {isCriteriaPinned(currentCriteria) ? 'Đã ghim' : 'Ghim tiêu chí'}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Details summary box for currently selected criteria */}
+                  {currentCriteria && (
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Info size={14} className="text-blue-600 shrink-0" />
+                        <span>
+                          <strong>Mô tả:</strong> {currentCriteria.description || 'Không có mô tả bổ sung.'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 font-bold">
+                        <span className="bg-slate-200 px-2 py-0.5 rounded text-[11px] text-slate-700">
+                          Nhóm: {currentCriteria.category}
+                        </span>
+                        <span className={currentCriteria.type === 'bonus' ? 'text-emerald-700 font-extrabold' : 'text-rose-700 font-extrabold'}>
+                          Mức điểm: {currentCriteria.type === 'bonus' ? `+${currentCriteria.points}đ` : `-${Math.abs(currentCriteria.points)}đ`}/{currentCriteria.unit}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* VISUAL CARD GRID VIEW */
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-80 overflow-y-auto p-2 bg-slate-50 rounded-2xl border border-slate-200">
+                  {filteredCriteriaList.map((crit) => {
+                    const isSelected = currentCriteria?.id === crit.id;
+                    const isPinned = isCriteriaPinned(crit);
+                    const isBonus = crit.type === 'bonus';
+
+                    return (
+                      <div
+                        key={crit.id}
+                        onClick={() => setSelectedCriteriaId(crit.id)}
+                        className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between space-y-2 relative ${
+                          isSelected
+                            ? 'bg-blue-600 text-white border-blue-700 shadow-md ring-2 ring-blue-400/40'
+                            : 'bg-white text-slate-800 border-slate-200 hover:border-blue-400 hover:bg-blue-50/30'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="space-y-0.5">
+                            <span className={`font-mono text-xs font-black ${isSelected ? 'text-amber-300' : 'text-blue-700'}`}>
+                              [{crit.code}]
+                            </span>
+                            <div className="text-xs sm:text-sm font-extrabold leading-tight">
+                              {crit.name}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={(e) => togglePinCriteria(crit, e)}
+                            className="p-1 hover:bg-black/10 rounded transition-colors cursor-pointer"
+                            title={isPinned ? 'Bỏ ghim' : 'Ghim vào thanh chọn nhanh'}
+                          >
+                            <Star
+                              size={14}
+                              className={
+                                isPinned
+                                  ? isSelected
+                                    ? 'fill-amber-300 text-amber-300'
+                                    : 'fill-amber-400 text-amber-500'
+                                  : isSelected
+                                  ? 'text-white/60'
+                                  : 'text-slate-300'
+                              }
+                            />
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100/30">
+                          <span className={isSelected ? 'text-blue-100 font-medium' : 'text-slate-500 font-medium'}>
+                            {crit.category}
+                          </span>
+                          <span
+                            className={`font-black px-2 py-0.5 rounded ${
+                              isSelected
+                                ? 'bg-white/20 text-white'
+                                : isBonus
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-rose-100 text-rose-800'
+                            }`}
+                          >
+                            {isBonus ? `+${crit.points}đ` : `-${Math.abs(crit.points)}đ`}/{crit.unit}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* STEP 5 & 6: NHẬP SỐ LẦN & HỆ THỐNG TÍNH ĐIỂM */}

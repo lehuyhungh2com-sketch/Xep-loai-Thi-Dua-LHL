@@ -241,6 +241,21 @@ async function startServer() {
     res.json({ success: true });
   });
 
+  app.put('/api/users/:id', (req, res) => {
+    const db = readDb();
+    if (!db.users) db.users = [];
+    const userId = req.params.id;
+    const patch = req.body;
+    const idx = db.users.findIndex((u: any) => u.id === userId);
+    if (idx >= 0) {
+      db.users[idx] = { ...db.users[idx], ...patch };
+    } else if (patch && patch.id) {
+      db.users.push(patch);
+    }
+    writeDb(db);
+    res.json({ success: true });
+  });
+
   app.post('/api/auth/validate-login', (req, res) => {
     const db = readDb();
     const queryEmail = (req.body.email || req.body.username || '').trim().toLowerCase();
@@ -250,6 +265,13 @@ async function startServer() {
       return uEmail === queryEmail;
     });
     if (user) {
+      if (user.isLocked) {
+        return res.json({
+          success: false,
+          isLocked: true,
+          message: `Tài khoản "${user.name}" đang bị KHÓA (${user.lockedReason || 'Liên hệ quản trị viên'}). Không thể đăng nhập!`,
+        });
+      }
       const isAdmin = user.role === 'super_admin' || user.role === 'admin' || user.id === 'u_admin' || user.id === 'u_admin_hung' || (user.email || '').toLowerCase() === 'lehuyhung.h2com@gmail.com';
       const defaultPass = isAdmin ? 'Admin@123' : 'Lhl@2026';
       const expectedPassword = (user.password && typeof user.password === 'string' && user.password.trim())

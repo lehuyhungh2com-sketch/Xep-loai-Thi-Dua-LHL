@@ -1541,6 +1541,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const switchCurrentUser = (userId: string) => {
     const found = users.find((u) => u.id === userId);
     if (found) {
+      if (found.isLocked || isUserLocked(found)) {
+        alert(`Tài khoản "${found.name}" hiện đang bị KHÓA (${found.lockedReason || 'Liên hệ quản trị viên'}). Không thể chuyển sang tài khoản này!`);
+        return;
+      }
       setCurrentUserId(found.id);
       try {
         sessionStorage.setItem('lhl_session_auth_user_id', found.id);
@@ -1556,7 +1560,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!target) {
       return { success: false, message: 'Tài khoản không tồn tại trên hệ thống!' };
     }
-    if (target.isLocked) {
+    if (target.isLocked || isUserLocked(target)) {
       return {
         success: false,
         message: `Tài khoản "${target.name}" hiện đang bị KHÓA (${target.lockedReason || 'Liên hệ quản trị viên'}). Không thể đăng nhập!`,
@@ -1625,7 +1629,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const cloudUsers = snap.docs.map((d) => d.data() as User);
         const idMap = new Map<string, User>();
         currentUsersList.forEach((u) => idMap.set(u.id, u));
-        cloudUsers.forEach((u) => idMap.set(u.id, u));
+        cloudUsers.forEach((u) => {
+          const localU = idMap.get(u.id);
+          idMap.set(u.id, {
+            ...u,
+            isLocked: localU?.isLocked || u.isLocked,
+            lockedReason: localU?.lockedReason || u.lockedReason,
+            lockedAt: localU?.lockedAt || u.lockedAt,
+          });
+        });
         currentUsersList = Array.from(idMap.values());
         setUsers(currentUsersList);
         try {
@@ -1644,7 +1656,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (Array.isArray(parsed) && parsed.length > 0) {
           const idMap = new Map<string, User>();
           currentUsersList.forEach((u) => idMap.set(u.id, u));
-          parsed.forEach((u: User) => idMap.set(u.id, u));
+          parsed.forEach((u: User) => {
+            const localU = idMap.get(u.id);
+            idMap.set(u.id, {
+              ...u,
+              isLocked: localU?.isLocked || u.isLocked,
+              lockedReason: localU?.lockedReason || u.lockedReason,
+              lockedAt: localU?.lockedAt || u.lockedAt,
+            });
+          });
           currentUsersList = Array.from(idMap.values());
         }
       }
@@ -1676,6 +1696,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         });
         if (response.ok) {
           const data = await response.json();
+          if (data.isLocked) {
+            return {
+              success: false,
+              message: data.message || `Tài khoản "${cleanEmail}" hiện đang bị KHÓA. Không thể đăng nhập!`,
+            };
+          }
           if (data.success && data.user) {
             matched = data.user;
             // Cập nhật người dùng mới vào State
@@ -1697,6 +1723,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         (u) => (u.email || '').trim().toLowerCase() === cleanEmail
       );
       if (emailExists) {
+        if (emailExists.isLocked || isUserLocked(emailExists)) {
+          return {
+            success: false,
+            message: `Tài khoản "${emailExists.name}" (${emailExists.email}) đang bị KHÓA (${emailExists.lockedReason || 'Liên hệ quản trị viên'}). Không thể đăng nhập!`,
+          };
+        }
         return {
           success: false,
           message: 'Mật khẩu không chính xác! Vui lòng kiểm tra lại.',
@@ -1708,7 +1740,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       };
     }
 
-    if (matched.isLocked) {
+    if (matched.isLocked || isUserLocked(matched)) {
       return {
         success: false,
         message: `Tài khoản "${matched.name}" đang bị KHÓA (${matched.lockedReason || 'Liên hệ quản trị viên'}). Không thể đăng nhập!`,
@@ -2013,8 +2045,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         email: teacherEmail,
         password: teacherPassword,
         title: `Giáo viên chủ nhiệm lớp ${cls.name}`,
-        isLocked: false,
-        customPermissions: {
+        isLocked: existing?.isLocked ?? false,
+        lockedReason: existing?.lockedReason,
+        lockedAt: existing?.lockedAt,
+        customPermissions: existing?.customPermissions || {
           canInputScore: true,
           canEditScore: false,
           canDeleteScore: false,
@@ -2322,7 +2356,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       lockedReason: willLock ? (reason || 'Khóa tài khoản bởi Quản trị viên') : undefined,
     };
 
-    setUsers((prev) => prev.map((u) => (u.id === id ? updated : u)));
+    const updatedUsers = users.map((u) => (u.id === id ? updated : u));
+    setUsers(updatedUsers);
+
+    try {
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updatedUsers));
+    } catch {}
+
+    // Synchronize to Firestore
+    syncFirestoreDoc('users', id, updated).catch((err) =>
+      console.error('Lỗi lưu trạng thái khóa tài khoản lên Firestore:', err)
+    );
+
+    // Synchronize to Express server DB
+    fetch(`/api/users/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    }).catch(() => {});
 
     logAudit({
       action: willLock ? 'KHOA_TAI_KHOAN' : 'MO_KHOA_TAI_KHOAN',
@@ -2358,7 +2409,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       allowedCampusIds: scopeType === 'campus' ? allowedCampusIds : undefined,
     };
 
-    setUsers((prev) => prev.map((u) => (u.id === id ? updated : u)));
+    const updatedUsers = users.map((u) => (u.id === id ? updated : u));
+    setUsers(updatedUsers);
+
+    try {
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updatedUsers));
+    } catch {}
+
+    syncFirestoreDoc('users', id, updated).catch((err) =>
+      console.error('Lỗi lưu phân quyền lên Firestore:', err)
+    );
+
+    fetch(`/api/users/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    }).catch(() => {});
 
     logAudit({
       action: 'THAY_DOI_QUYEN_HAN',
